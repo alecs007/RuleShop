@@ -315,6 +315,11 @@ model Cart {
   sessionKey String
   userId     String?
 
+  /// Metoda de livrare aleasa de client (ID din `Store.settings.shippingMethods`).
+  /// Doar o preferinta: daca o regula o scoate din lista, cotatia cade pe cea
+  /// mai ieftina metoda disponibila.
+  shippingMethodId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -456,8 +461,13 @@ model RuleSet {
   defaultDecision  Json             @default("{}")
 
   // --- Stare de publicare ---
-  activeVersionId  String? @unique
-  canaryVersionId  String? @unique
+  /// Pointerii spre versiuni sunt relatii unu-la-multi la nivel de schema, fara
+  /// index unic: pe MongoDB un index unic pe un camp opțional intra in coliziune
+  /// la mai multe valori null, deci al doilea ruleset creat (nepublicat inca) ar
+  /// fi respins. Unicitatea reala — un ruleset arata spre o singura versiune
+  /// activa si una canary — o garanteaza serviciul de publicare.
+  activeVersionId  String?
+  canaryVersionId  String?
   /// Procent de utilizatori/sesiuni directionati catre versiunea canary (0-100).
   canaryPercentage Int     @default(0)
   /// Oprire rapida a intregii categorii de decizii; se cade pe defaultDecision.
@@ -571,8 +581,10 @@ model RuleVersion {
   createdBy   User?    @relation("VersionAuthor", fields: [createdById], references: [id], onDelete: SetNull)
   publishedBy User?    @relation("VersionPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
 
-  activeFor RuleSet? @relation("ActiveVersion")
-  canaryFor RuleSet? @relation("CanaryVersion")
+  /// Liste doar din cauza constrangerii MongoDB descrise in RuleSet: in practica
+  /// o versiune este activa/canary pentru cel mult un ruleset.
+  activeFor RuleSet[] @relation("ActiveVersion")
+  canaryFor RuleSet[] @relation("CanaryVersion")
 
   @@unique([ruleSetId, version])
   @@index([storeId, ruleSetId, status])

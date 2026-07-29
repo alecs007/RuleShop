@@ -69,6 +69,19 @@ export async function setQuantityAction(formData: FormData): Promise<void> {
   revalidatePath("/", "layout");
 }
 
+/** Alegerea metodei de livrare din coș. */
+export async function selectShippingMethodAction(
+  formData: FormData,
+): Promise<void> {
+  const methodId = formData.get("methodId");
+  if (typeof methodId !== "string" || !methodId) return;
+
+  const store = await getActiveStore();
+  const sessionKey = await getOrCreateSessionKey();
+  await cartService.setShippingMethod(store.id, sessionKey, methodId);
+  revalidatePath("/", "layout");
+}
+
 export async function removeItemAction(formData: FormData): Promise<void> {
   const productId = formData.get("productId");
   if (typeof productId !== "string" || !productId) return;

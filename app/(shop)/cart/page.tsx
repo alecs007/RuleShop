@@ -5,7 +5,14 @@ import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { getActiveStore } from "@/lib/shop/store";
 import { computeTotals, readCart } from "@/lib/shop/cart";
 import { getPriceViews } from "@/lib/shop/pricing";
+import { cartShippingFacts, quoteShipping } from "@/lib/shop/shipping";
+import { getRuleNames } from "@/lib/rules/service";
 import { formatMoney } from "@/lib/utils/money";
+import {
+  ShippingExplanation,
+  ShippingOptions,
+  ShippingSummaryRow,
+} from "@/components/shop/shipping-options";
 import { removeItemAction, setQuantityAction } from "./actions";
 
 export const metadata: Metadata = { title: "Coșul meu" };
@@ -33,6 +40,19 @@ export default async function CartPage() {
       </div>
     );
   }
+
+  // Livrarea: metodele magazinului trecute prin rulesetul SHIPPING publicat.
+  const [quote, ruleNames] = await Promise.all([
+    quoteShipping({
+      storeId: store.id,
+      storeSettings: store.settings,
+      currency: totals.currency,
+      cart: cartShippingFacts(cart, totals),
+      selectedMethodId: cart.shippingMethodId,
+    }),
+    getRuleNames(store.id),
+  ]);
+  const shippingCents = quote.selected?.costCents ?? 0;
 
   return (
     <div className="py-8">
@@ -145,14 +165,25 @@ export default async function CartPage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-ink-muted">Livrare</dt>
-              {/* TODO(rules): costul si metodele vin din decizia SHIPPING */}
-              <dd className="text-ink-muted">calculată la checkout</dd>
+              <dd>
+                <ShippingSummaryRow quote={quote} />
+              </dd>
             </div>
           </dl>
+
+          {/* Metodele de livrare, cu costul decis de rulesetul SHIPPING */}
+          <div className="mt-4 border-t border-line pt-4">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-faint">
+              Metodă de livrare
+            </p>
+            <ShippingOptions quote={quote} />
+            <ShippingExplanation quote={quote} ruleNames={ruleNames} />
+          </div>
+
           <div className="mt-4 flex justify-between border-t border-line pt-4">
             <span className="font-semibold">Total</span>
             <span className="font-semibold tabular-nums">
-              {formatMoney(totals.subtotalCents, totals.currency)}
+              {formatMoney(totals.subtotalCents + shippingCents, totals.currency)}
             </span>
           </div>
 

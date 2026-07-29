@@ -9,7 +9,26 @@ export const metadata: Metadata = {
     default: "RuleShop",
     template: "%s | RuleShop",
   },
-  description: "Magazin online guvernat în timp real de un rule engine configurabil.",
+  description:
+    "Magazin online guvernat în timp real de un rule engine configurabil.",
+  icons: {
+    icon: [
+      { url: "/icon/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/icon/favicon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/icon/favicon.ico",
+    apple: [
+      {
+        url: "/icon/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
+  },
+  manifest: "/site.webmanifest",
+  appleWebApp: {
+    title: "RuleShop",
+  },
 };
 
 export default function RootLayout({

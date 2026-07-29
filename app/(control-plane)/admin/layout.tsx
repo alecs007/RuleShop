@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard, Package, Scale, Store, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, Scale, Store, Truck, LogOut } from "lucide-react";
 import { requireStaff } from "@/lib/auth/guards";
 import { signOut } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
@@ -9,6 +9,7 @@ const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/products", label: "Produse", icon: Package },
   { href: "/admin/rules", label: "Reguli", icon: Scale },
+  { href: "/admin/shipping", label: "Livrare", icon: Truck },
 ];
 
 export default async function AdminLayout({

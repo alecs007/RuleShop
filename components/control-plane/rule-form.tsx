@@ -36,6 +36,8 @@ export interface ActionParamOption {
   min?: number;
   max?: number;
   oneOf?: string[];
+  /** Lista de valori venita din configurarea magazinului (ex: metodele de livrare). */
+  options?: { value: string; label: string }[];
 }
 
 export interface ActionOption {
@@ -118,13 +120,22 @@ function buildConditionsJson(
   return JSON.stringify({ type: "group", op: rootOp, children: leaves });
 }
 
+/**
+ * Valoarea implicita a unui parametru cu lista de valori: primul element.
+ * Un select afiseaza oricum prima opțiune, deci fara asta s-ar trimite gol
+ * exact valoarea pe care administratorul o vede selectata.
+ */
+function defaultParamValue(spec: ActionParamOption): string | undefined {
+  return spec.options?.[0]?.value ?? spec.oneOf?.[0];
+}
+
 function buildActionsJson(rows: ActionRow[], actionDefs: ActionOption[]): string {
   return JSON.stringify(
     rows.map((row) => {
       const def = actionDefs.find((a) => a.type === row.type);
       const params: Record<string, unknown> = {};
       for (const spec of def?.params ?? []) {
-        const raw = row.params[spec.name];
+        const raw = row.params[spec.name] || defaultParamValue(spec);
         if (raw === undefined || raw === "") continue;
         params[spec.name] =
           spec.type === "number" ? Number(raw) : spec.type === "boolean" ? raw === "true" : raw;
@@ -507,7 +518,22 @@ export function RuleForm({
                 </select>
 
                 {def?.params.map((spec) =>
-                  spec.oneOf ? (
+                  spec.options?.length ? (
+                    <select
+                      key={spec.name}
+                      value={row.params[spec.name] ?? spec.options[0]!.value}
+                      onChange={(e) =>
+                        updateActionRow(i, {
+                          params: { ...row.params, [spec.name]: e.target.value },
+                        })
+                      }
+                      className={`${inputCls} cursor-pointer`}
+                    >
+                      {spec.options.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  ) : spec.oneOf ? (
                     <select
                       key={spec.name}
                       value={row.params[spec.name] ?? spec.oneOf[0]}

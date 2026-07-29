@@ -16,37 +16,57 @@ interface SeedProduct {
   priceCents: number;
   stock: number;
   description: string;
+  /** Greutatea de livrare — faptul `cart.weightGrams` din regulile de livrare. */
+  weightGrams: number;
   tags?: string[];
 }
 
+/**
+ * Metodele de livrare, ca setari de magazin: fiecare magazin are lista lui, iar
+ * costul final il decide rulesetul SHIPPING la runtime. Cele doua magazine au
+ * intentionat liste diferite — izolarea multi-tenant se vede si aici.
+ */
+const roShippingMethods = [
+  { id: "curier-standard", label: "Curier standard", costCents: 1999, etaDaysMin: 2, etaDaysMax: 4, sortOrder: 1 },
+  { id: "curier-express", label: "Curier express", costCents: 3499, etaDaysMin: 1, etaDaysMax: 2, sortOrder: 2 },
+  { id: "easybox", label: "Ridicare din easybox", costCents: 1499, etaDaysMin: 2, etaDaysMax: 5, sortOrder: 3 },
+  { id: "ridicare-magazin", label: "Ridicare din magazin", costCents: 0, etaDaysMin: 0, etaDaysMax: 1, sortOrder: 4 },
+];
+
+const deShippingMethods = [
+  { id: "dhl-paket", label: "DHL Paket", costCents: 495, etaDaysMin: 2, etaDaysMax: 3, sortOrder: 1 },
+  { id: "dhl-express", label: "DHL Express", costCents: 1290, etaDaysMin: 1, etaDaysMax: 1, sortOrder: 2 },
+  { id: "packstation", label: "Packstation", costCents: 395, etaDaysMin: 2, etaDaysMax: 4, sortOrder: 3 },
+];
+
 const roProducts: SeedProduct[] = [
   // audio
-  { sku: "AUD-001", name: "Căști wireless Aria X2", category: "audio", brand: "Aria", priceCents: 34900, stock: 42, description: "Căști over-ear cu anulare activă a zgomotului, autonomie de 40 de ore și încărcare rapidă USB-C.", tags: ["wireless", "noise-cancelling"] },
-  { sku: "AUD-002", name: "Boxă portabilă Wave Mini", category: "audio", brand: "Wave", priceCents: 19900, stock: 65, description: "Boxă bluetooth compactă, rezistentă la apă IPX7, 12 ore de redare.", tags: ["bluetooth", "portabil"] },
-  { sku: "AUD-003", name: "Căști in-ear Pulse Buds Pro", category: "audio", brand: "Pulse", priceCents: 24900, stock: 4, description: "True wireless cu ANC hibrid, două microfoane per cască și carcasă cu încărcare wireless.", tags: ["wireless"] },
+  { sku: "AUD-001", name: "Căști wireless Aria X2", category: "audio", brand: "Aria", priceCents: 34900, stock: 42, weightGrams: 320, description: "Căști over-ear cu anulare activă a zgomotului, autonomie de 40 de ore și încărcare rapidă USB-C.", tags: ["wireless", "noise-cancelling"] },
+  { sku: "AUD-002", name: "Boxă portabilă Wave Mini", category: "audio", brand: "Wave", priceCents: 19900, stock: 65, weightGrams: 580, description: "Boxă bluetooth compactă, rezistentă la apă IPX7, 12 ore de redare.", tags: ["bluetooth", "portabil"] },
+  { sku: "AUD-003", name: "Căști in-ear Pulse Buds Pro", category: "audio", brand: "Pulse", priceCents: 24900, stock: 4, weightGrams: 60, description: "True wireless cu ANC hibrid, două microfoane per cască și carcasă cu încărcare wireless.", tags: ["wireless"] },
   // laptopuri
-  { sku: "LAP-001", name: "Laptop Nova Air 14", category: "laptopuri", brand: "Nova", priceCents: 429900, stock: 12, description: "Ultraportabil de 14\", 1.2 kg, ecran 2.8K 90 Hz, 16 GB RAM și SSD de 1 TB.", tags: ["ultraportabil"] },
-  { sku: "LAP-002", name: "Laptop Nova Pro 16", category: "laptopuri", brand: "Nova", priceCents: 689900, stock: 7, description: "Stație de lucru mobilă cu ecran 16\" 120 Hz, GPU dedicat și răcire cu două ventilatoare.", tags: ["performanta"] },
-  { sku: "LAP-003", name: "Laptop Atlas Studio 15", category: "laptopuri", brand: "Atlas", priceCents: 549900, stock: 0, description: "Pentru creatori de conținut: ecran OLED calibrat, 32 GB RAM, SSD 2 TB.", tags: ["creator", "oled"] },
+  { sku: "LAP-001", name: "Laptop Nova Air 14", category: "laptopuri", brand: "Nova", priceCents: 429900, stock: 12, weightGrams: 1200, description: "Ultraportabil de 14\", 1.2 kg, ecran 2.8K 90 Hz, 16 GB RAM și SSD de 1 TB.", tags: ["ultraportabil"] },
+  { sku: "LAP-002", name: "Laptop Nova Pro 16", category: "laptopuri", brand: "Nova", priceCents: 689900, stock: 7, weightGrams: 2100, description: "Stație de lucru mobilă cu ecran 16\" 120 Hz, GPU dedicat și răcire cu două ventilatoare.", tags: ["performanta"] },
+  { sku: "LAP-003", name: "Laptop Atlas Studio 15", category: "laptopuri", brand: "Atlas", priceCents: 549900, stock: 0, weightGrams: 1800, description: "Pentru creatori de conținut: ecran OLED calibrat, 32 GB RAM, SSD 2 TB.", tags: ["creator", "oled"] },
   // telefoane
-  { sku: "TEL-001", name: "Telefon Vertex 9", category: "telefoane", brand: "Vertex", priceCents: 399900, stock: 25, description: "Ecran AMOLED 6.4\" 120 Hz, cameră principală de 50 MP cu stabilizare optică, baterie de 5000 mAh.", tags: ["5g"] },
-  { sku: "TEL-002", name: "Telefon Vertex 9 Pro", category: "telefoane", brand: "Vertex", priceCents: 549900, stock: 18, description: "Varianta Pro cu teleobiectiv periscop 5x, încărcare 80W și certificare IP68.", tags: ["5g", "flagship"] },
-  { sku: "TEL-003", name: "Telefon Mono Lite", category: "telefoane", brand: "Mono", priceCents: 149900, stock: 50, description: "Esențialul făcut bine: ecran de 6.1\", două zile de autonomie, Android curat.", tags: ["buget"] },
+  { sku: "TEL-001", name: "Telefon Vertex 9", category: "telefoane", brand: "Vertex", priceCents: 399900, stock: 25, weightGrams: 195, description: "Ecran AMOLED 6.4\" 120 Hz, cameră principală de 50 MP cu stabilizare optică, baterie de 5000 mAh.", tags: ["5g"] },
+  { sku: "TEL-002", name: "Telefon Vertex 9 Pro", category: "telefoane", brand: "Vertex", priceCents: 549900, stock: 18, weightGrams: 210, description: "Varianta Pro cu teleobiectiv periscop 5x, încărcare 80W și certificare IP68.", tags: ["5g", "flagship"] },
+  { sku: "TEL-003", name: "Telefon Mono Lite", category: "telefoane", brand: "Mono", priceCents: 149900, stock: 50, weightGrams: 180, description: "Esențialul făcut bine: ecran de 6.1\", două zile de autonomie, Android curat.", tags: ["buget"] },
   // accesorii
-  { sku: "ACC-001", name: "Încărcător GaN 65W", category: "accesorii", brand: "Volt", priceCents: 12900, stock: 80, description: "Încărcător compact GaN cu 2×USB-C și 1×USB-A, putere totală de 65W.", tags: ["usb-c"] },
-  { sku: "ACC-002", name: "Mouse ergonomic Drift", category: "accesorii", brand: "Drift", priceCents: 15900, stock: 35, description: "Mouse vertical wireless cu senzor de 4000 DPI și click-uri silențioase.", tags: ["ergonomic", "wireless"] },
-  { sku: "ACC-003", name: "Tastatură mecanică Keystone 75", category: "accesorii", brand: "Keystone", priceCents: 44900, stock: 22, description: "Layout 75%, switch-uri hot-swap, iluminare RGB per tastă, carcasă din aluminiu.", tags: ["mecanica", "rgb"] },
-  { sku: "ACC-004", name: "Hub USB-C 8-in-1", category: "accesorii", brand: "Volt", priceCents: 18900, stock: 3, description: "HDMI 4K60, 2×USB 3.2, cititor SD/microSD, Ethernet gigabit și Power Delivery 100W.", tags: ["usb-c"] },
+  { sku: "ACC-001", name: "Încărcător GaN 65W", category: "accesorii", brand: "Volt", priceCents: 12900, stock: 80, weightGrams: 120, description: "Încărcător compact GaN cu 2×USB-C și 1×USB-A, putere totală de 65W.", tags: ["usb-c"] },
+  { sku: "ACC-002", name: "Mouse ergonomic Drift", category: "accesorii", brand: "Drift", priceCents: 15900, stock: 35, weightGrams: 95, description: "Mouse vertical wireless cu senzor de 4000 DPI și click-uri silențioase.", tags: ["ergonomic", "wireless"] },
+  { sku: "ACC-003", name: "Tastatură mecanică Keystone 75", category: "accesorii", brand: "Keystone", priceCents: 44900, stock: 22, weightGrams: 850, description: "Layout 75%, switch-uri hot-swap, iluminare RGB per tastă, carcasă din aluminiu.", tags: ["mecanica", "rgb"] },
+  { sku: "ACC-004", name: "Hub USB-C 8-in-1", category: "accesorii", brand: "Volt", priceCents: 18900, stock: 3, weightGrams: 75, description: "HDMI 4K60, 2×USB 3.2, cititor SD/microSD, Ethernet gigabit și Power Delivery 100W.", tags: ["usb-c"] },
   // gaming
-  { sku: "GAM-001", name: "Controller Nimbus Pro", category: "gaming", brand: "Nimbus", priceCents: 27900, stock: 30, description: "Controller wireless cu trigger-e adaptive, butoane spate programabile și autonomie de 30 de ore.", tags: ["wireless"] },
-  { sku: "GAM-002", name: "Monitor gaming Prism 27", category: "gaming", brand: "Prism", priceCents: 179900, stock: 9, description: "27\" QHD, 165 Hz, 1 ms, HDR400 și suport cu reglaj complet pe înălțime.", tags: ["165hz", "qhd"] },
-  { sku: "GAM-003", name: "Scaun gaming Throne S", category: "gaming", brand: "Throne", priceCents: 129900, stock: 6, description: "Spătar reglabil 165°, suport lombar magnetic, tapițerie textilă respirabilă.", tags: ["ergonomic"] },
+  { sku: "GAM-001", name: "Controller Nimbus Pro", category: "gaming", brand: "Nimbus", priceCents: 27900, stock: 30, weightGrams: 280, description: "Controller wireless cu trigger-e adaptive, butoane spate programabile și autonomie de 30 de ore.", tags: ["wireless"] },
+  { sku: "GAM-002", name: "Monitor gaming Prism 27", category: "gaming", brand: "Prism", priceCents: 179900, stock: 9, weightGrams: 6400, description: "27\" QHD, 165 Hz, 1 ms, HDR400 și suport cu reglaj complet pe înălțime.", tags: ["165hz", "qhd"] },
+  { sku: "GAM-003", name: "Scaun gaming Throne S", category: "gaming", brand: "Throne", priceCents: 129900, stock: 6, weightGrams: 21500, description: "Spătar reglabil 165°, suport lombar magnetic, tapițerie textilă respirabilă.", tags: ["ergonomic"] },
 ];
 
 const deProducts: SeedProduct[] = [
-  { sku: "DE-AUD-001", name: "Kopfhörer Klang One", category: "audio", brand: "Klang", priceCents: 29900, stock: 20, description: "Over-Ear-Kopfhörer mit aktiver Geräuschunterdrückung und 35 Stunden Akkulaufzeit.", tags: ["wireless"] },
-  { sku: "DE-LAP-001", name: "Laptop Berg Book 13", category: "laptopuri", brand: "Berg", priceCents: 389900, stock: 10, description: "Kompaktes 13-Zoll-Notebook mit 16 GB RAM und 512 GB SSD.", tags: ["ultraportabil"] },
-  { sku: "DE-ACC-001", name: "Ladegerät Blitz 45W", category: "accesorii", brand: "Blitz", priceCents: 9900, stock: 40, description: "Kompaktes GaN-Ladegerät mit USB-C Power Delivery.", tags: ["usb-c"] },
+  { sku: "DE-AUD-001", name: "Kopfhörer Klang One", category: "audio", brand: "Klang", priceCents: 29900, stock: 20, weightGrams: 300, description: "Over-Ear-Kopfhörer mit aktiver Geräuschunterdrückung und 35 Stunden Akkulaufzeit.", tags: ["wireless"] },
+  { sku: "DE-LAP-001", name: "Laptop Berg Book 13", category: "laptopuri", brand: "Berg", priceCents: 389900, stock: 10, weightGrams: 1100, description: "Kompaktes 13-Zoll-Notebook mit 16 GB RAM und 512 GB SSD.", tags: ["ultraportabil"] },
+  { sku: "DE-ACC-001", name: "Ladegerät Blitz 45W", category: "accesorii", brand: "Blitz", priceCents: 9900, stock: 40, weightGrams: 90, description: "Kompaktes GaN-Ladegerät mit USB-C Power Delivery.", tags: ["usb-c"] },
 ];
 
 async function seedStore(
@@ -55,11 +75,13 @@ async function seedStore(
   currency: string,
   locale: string,
   products: SeedProduct[],
+  shippingMethods: (typeof roShippingMethods)[number][],
 ) {
+  const settings = { shippingMethods };
   const store = await prisma.store.upsert({
     where: { slug },
-    create: { slug, name, currency, locale },
-    update: { name, currency, locale },
+    create: { slug, name, currency, locale, settings },
+    update: { name, currency, locale, settings },
   });
 
   for (const p of products) {
@@ -83,6 +105,7 @@ async function seedStore(
         basePriceCents: p.priceCents,
         currency,
         stock: p.stock,
+        weightGrams: p.weightGrams,
         tags: p.tags ?? [],
         imageUrls: [img(p.sku)],
       },
@@ -93,19 +116,36 @@ async function seedStore(
         brand: p.brand,
         basePriceCents: p.priceCents,
         stock: p.stock,
+        weightGrams: p.weightGrams,
         tags: p.tags ?? [],
         imageUrls: [img(p.sku)],
       },
     });
   }
 
-  console.log(`✔ ${name} (${slug}): ${products.length} produse`);
+  console.log(
+    `✔ ${name} (${slug}): ${products.length} produse, ${shippingMethods.length} metode de livrare`,
+  );
   return store;
 }
 
 async function main() {
-  await seedStore("ruleshop-ro", "RuleShop", "RON", "ro-RO", roProducts);
-  await seedStore("ruleshop-de", "RuleShop DE", "EUR", "de-DE", deProducts);
+  await seedStore(
+    "ruleshop-ro",
+    "RuleShop",
+    "RON",
+    "ro-RO",
+    roProducts,
+    roShippingMethods,
+  );
+  await seedStore(
+    "ruleshop-de",
+    "RuleShop DE",
+    "EUR",
+    "de-DE",
+    deProducts,
+    deShippingMethods,
+  );
 }
 
 main()

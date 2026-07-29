@@ -101,6 +101,22 @@ export async function setItemQuantity(
   });
 }
 
+/**
+ * Salveaza metoda de livrare preferata. Nu se valideaza aici daca metoda e
+ * disponibila: disponibilitatea o decide rulesetul SHIPPING la fiecare
+ * afisare, deci verificarea are loc in cotatie (`computeShippingQuote`).
+ */
+export async function setShippingMethod(
+  storeId: string,
+  sessionKey: string,
+  methodId: string,
+) {
+  await prisma.cart.updateMany({
+    where: { storeId, sessionKey },
+    data: { shippingMethodId: methodId },
+  });
+}
+
 export async function removeItem(
   storeId: string,
   sessionKey: string,

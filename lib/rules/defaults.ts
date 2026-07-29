@@ -28,8 +28,15 @@ export const CATEGORY_DEFAULTS: Record<DecisionCategory, CategoryDefaults> = {
     defaultDecision: {},
   },
   SHIPPING: {
-    conflictStrategy: "BEST_FOR_CUSTOMER",
-    defaultDecision: { costCents: 1999, freeShipping: false },
+    // Decizia de livrare are campuri independente (cost, disponibilitate,
+    // estimare), deci o strategie cu un singur castigator ar arunca in silentiu
+    // regulile de disponibilitate atunci cand exista si una de cost. Toate
+    // regulile potrivite se aplica; prioritatea mai mare are ultimul cuvant pe
+    // campurile suprascrise. Administratorul poate schimba strategia oricand.
+    conflictStrategy: "PRIORITY_ALL_MATCHES",
+    // Gol intentionat: fara reguli, fiecare metoda isi pastreaza costul de
+    // lista din setarile magazinului (fail-safe la kill switch).
+    defaultDecision: {},
   },
   FRAUD: {
     conflictStrategy: "PRIORITY_ALL_MATCHES",

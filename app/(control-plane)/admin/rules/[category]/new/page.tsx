@@ -8,6 +8,7 @@ import {
   getFactOptions,
   getOperatorOptions,
 } from "@/lib/rules/form-mapping";
+import { getDynamicParamOptions } from "@/lib/rules/store-options";
 import { RuleForm } from "@/components/control-plane/rule-form";
 import { saveRuleAction } from "../../actions";
 
@@ -22,7 +23,8 @@ export default async function NewRulePage({
   const category = raw.toUpperCase() as DecisionCategory;
   if (!DECISION_CATEGORIES.includes(category)) notFound();
 
-  await requireAdmin();
+  const { storeId } = await requireAdmin();
+  const dynamic = await getDynamicParamOptions(storeId, category);
   const save = saveRuleAction.bind(null, category, null);
 
   return (
@@ -32,9 +34,9 @@ export default async function NewRulePage({
       <div className="mt-6">
         <RuleForm
           action={save}
-          facts={getFactOptions()}
+          facts={getFactOptions(category)}
           operators={getOperatorOptions()}
-          actionDefs={getActionOptions(category)}
+          actionDefs={getActionOptions(category, dynamic)}
         />
       </div>
     </div>

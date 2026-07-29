@@ -17,6 +17,7 @@ export interface CustomerFacts {
 export interface SessionFacts {
   isGuest: boolean;
   isAuthenticated: boolean;
+  [key: string]: unknown;
 }
 
 /**

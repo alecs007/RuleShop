@@ -8,6 +8,7 @@ import {
   Pencil,
   Plus,
   Rocket,
+  Truck,
   Undo2,
   Zap,
 } from "lucide-react";
@@ -25,6 +26,10 @@ import { getOrCreateRuleSet } from "@/lib/rules/service";
 import { Badge } from "@/components/ui/badge";
 import { PublishButton } from "@/components/control-plane/publish-button";
 import { PriceTester } from "@/components/control-plane/price-tester";
+import {
+  parseSimulation,
+  ShippingTester,
+} from "@/components/control-plane/shipping-tester";
 import {
   deleteRuleAction,
   killSwitchAction,
@@ -46,15 +51,29 @@ export default async function RuleSetPage({
   searchParams,
 }: {
   params: Promise<{ category: string }>;
-  searchParams: Promise<{ saved?: string; test?: string }>;
+  searchParams: Promise<{
+    saved?: string;
+    test?: string;
+    subtotal?: string;
+    items?: string;
+    weight?: string;
+    who?: string;
+  }>;
 }) {
   const { category: rawCategory } = await params;
-  const { saved, test } = await searchParams;
+  const query = await searchParams;
+  const { saved, test } = query;
   const category = parseCategory(rawCategory);
   if (!category) notFound();
 
   const { storeId } = await requireStaff();
   const ruleSet = await getOrCreateRuleSet(storeId, category);
+
+  // Metodele si moneda magazinului — necesare doar pentru testerul de livrare.
+  const store =
+    category === "SHIPPING"
+      ? await prisma.store.findUnique({ where: { id: storeId } })
+      : null;
 
   const [rules, versions] = await Promise.all([
     prisma.rule.findMany({
@@ -80,9 +99,14 @@ export default async function RuleSetPage({
       {/* Confirmare dupa salvarea unei reguli */}
       {saved && (
         <div className="mb-6 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
-          <CheckCircle2 className="size-5 shrink-0 text-positive" strokeWidth={1.75} />
+          <CheckCircle2
+            className="size-5 shrink-0 text-positive"
+            strokeWidth={1.75}
+          />
           <p className="text-sm">
-            <span className="font-medium text-positive">Regula a fost salvată.</span>{" "}
+            <span className="font-medium text-positive">
+              Regula a fost salvată.
+            </span>{" "}
             <span className="text-ink-muted">
               Intră în vigoare când apeși „Publică v{nextVersion}”.
             </span>
@@ -94,19 +118,28 @@ export default async function RuleSetPage({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm text-ink-muted">
-            <Link href="/admin/rules" className="hover:text-ink">Reguli</Link> /
+            <Link href="/admin/rules" className="hover:text-ink">
+              Reguli
+            </Link>{" "}
+            /
           </p>
           <h1 className="text-2xl font-semibold tracking-tight">
             {CATEGORY_LABELS[category]}
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
             {activeVersion ? (
-              <Badge tone="positive">v{activeVersion.version} activă în magazin</Badge>
+              <Badge tone="positive">
+                v{activeVersion.version} activă în magazin
+              </Badge>
             ) : (
               <Badge>încă nepublicat</Badge>
             )}
-            {hasDraftChanges && <Badge tone="caution">modificări nepublicate</Badge>}
-            {ruleSet.killSwitch && <Badge tone="critical">kill switch activ</Badge>}
+            {hasDraftChanges && (
+              <Badge tone="caution">modificări nepublicate</Badge>
+            )}
+            {ruleSet.killSwitch && (
+              <Badge tone="critical">kill switch activ</Badge>
+            )}
           </div>
         </div>
         <PublishButton action={publishWithCategory} nextVersion={nextVersion} />
@@ -114,12 +147,27 @@ export default async function RuleSetPage({
 
       {/* Fluxul, intr-o singura linie */}
       <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-muted">
-        <Pencil className="size-3.5" strokeWidth={1.75} /> Modifici reguli (draft)
+        <Pencil className="size-3.5" strokeWidth={1.75} /> Modifici reguli
         <span aria-hidden>→</span>
         <Rocket className="size-3.5" strokeWidth={1.75} /> Publici
         <span aria-hidden>→</span>
         <Undo2 className="size-3.5" strokeWidth={1.75} /> Rollback oricând
       </p>
+
+      {/* Livrarea are si o parte de configurare, nu doar reguli */}
+      {category === "SHIPPING" && (
+        <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-ink-muted">
+          <Truck className="size-3.5" strokeWidth={1.75} />
+          Regulile decid costul și disponibilitatea metodelor din{" "}
+          <Link
+            href="/admin/shipping"
+            className="text-accent underline-offset-2 hover:underline"
+          >
+            lista de metode a magazinului
+          </Link>
+          .
+        </p>
+      )}
 
       {/* Ce ruleaza ACUM in magazin: regulile versiunii active */}
       {activeVersion && (
@@ -128,7 +176,8 @@ export default async function RuleSetPage({
             În magazin acum · v{activeVersion.version}
           </p>
           <ul className="mt-2 space-y-1.5">
-            {(activeVersion.snapshot as unknown as RuleSetSnapshot).rules.length === 0 ? (
+            {(activeVersion.snapshot as unknown as RuleSetSnapshot).rules
+              .length === 0 ? (
               <li className="text-sm text-ink-muted">
                 Nicio regulă — comportamentul implicit.
               </li>
@@ -138,12 +187,22 @@ export default async function RuleSetPage({
                 .map((rule) => {
                   const text = tryHumanizeRule(rule.conditions, rule.actions);
                   return (
-                    <li key={rule.key} className="flex items-start gap-2 text-sm">
-                      <Zap className="mt-0.5 size-3.5 shrink-0 text-positive" strokeWidth={1.75} />
+                    <li
+                      key={rule.key}
+                      className="flex items-start gap-2 text-sm"
+                    >
+                      <Zap
+                        className="mt-0.5 size-3.5 shrink-0 text-positive"
+                        strokeWidth={1.75}
+                      />
                       <span className="text-ink-muted">
-                        <span className="font-medium text-ink">{rule.name}:</span>{" "}
+                        <span className="font-medium text-ink">
+                          {rule.name}:
+                        </span>{" "}
                         {text ? (
-                          <>DACĂ {text.if} ATUNCI {text.then}</>
+                          <>
+                            DACĂ {text.if} ATUNCI {text.then}
+                          </>
                         ) : (
                           <span className="font-mono text-xs">{rule.key}</span>
                         )}
@@ -158,7 +217,10 @@ export default async function RuleSetPage({
 
       {/* Setari ruleset */}
       <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface-raised p-4">
-        <form action={setStrategyAction} className="flex flex-wrap items-center gap-2">
+        <form
+          action={setStrategyAction}
+          className="flex flex-wrap items-center gap-2"
+        >
           <input type="hidden" name="category" value={category} />
           <label htmlFor="strategy" className="text-sm text-ink-muted">
             Când se potrivesc mai multe reguli, câștigă:
@@ -170,7 +232,9 @@ export default async function RuleSetPage({
             className="h-9 cursor-pointer rounded-lg border border-line bg-surface px-2 text-sm outline-none focus:border-accent"
           >
             {Object.entries(STRATEGY_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
+              <option key={value} value={value}>
+                {label}
+              </option>
             ))}
           </select>
           <button className="h-9 cursor-pointer rounded-lg border border-line px-3 text-sm font-medium transition-colors hover:border-ink-faint">
@@ -194,17 +258,25 @@ export default async function RuleSetPage({
             }
           >
             <OctagonX className="size-4" strokeWidth={1.75} />
-            {ruleSet.killSwitch ? "Repornește regulile" : "Oprește tot (kill switch)"}
+            {ruleSet.killSwitch
+              ? "Repornește regulile"
+              : "Oprește tot (kill switch)"}
           </button>
         </form>
       </div>
 
       {ruleSet.killSwitch && (
         <div className="mt-3 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm">
-          <OctagonX className="size-5 shrink-0 text-critical" strokeWidth={1.75} />
+          <OctagonX
+            className="size-5 shrink-0 text-critical"
+            strokeWidth={1.75}
+          />
           <p className="text-ink-muted">
-            <span className="font-medium text-critical">Kill switch activ:</span>{" "}
-            nicio regulă nu se aplică — magazinul folosește comportamentul implicit.
+            <span className="font-medium text-critical">
+              Kill switch activ:
+            </span>{" "}
+            nicio regulă nu se aplică — magazinul folosește comportamentul
+            implicit.
           </p>
         </div>
       )}
@@ -243,16 +315,25 @@ export default async function RuleSetPage({
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-medium">{rule.name}</p>
-                      {rule.status === "DRAFT" && <Badge tone="caution">draft</Badge>}
-                      {rule.source === "AI_SUGGESTION" && <Badge tone="accent">IA</Badge>}
+                      {rule.status === "DRAFT" && (
+                        <Badge tone="caution">draft</Badge>
+                      )}
+                      {rule.source === "AI_SUGGESTION" && (
+                        <Badge tone="accent">IA</Badge>
+                      )}
                       {!rule.enabled && <Badge>dezactivată</Badge>}
                     </div>
                     {text && (
                       <p className="mt-1.5 flex items-start gap-2 text-sm leading-relaxed text-ink-muted">
-                        <Zap className="mt-0.5 size-4 shrink-0 text-accent" strokeWidth={1.75} />
+                        <Zap
+                          className="mt-0.5 size-4 shrink-0 text-accent"
+                          strokeWidth={1.75}
+                        />
                         <span>
-                          <span className="font-medium text-ink">DACĂ</span> {text.if}{" "}
-                          <span className="font-medium text-ink">ATUNCI</span> {text.then}
+                          <span className="font-medium text-ink">DACĂ</span>{" "}
+                          {text.if}{" "}
+                          <span className="font-medium text-ink">ATUNCI</span>{" "}
+                          {text.then}
                         </span>
                       </p>
                     )}
@@ -311,6 +392,17 @@ export default async function RuleSetPage({
         />
       )}
 
+      {/* Tester de livrare — doar pentru SHIPPING */}
+      {category === "SHIPPING" && (
+        <ShippingTester
+          storeId={storeId}
+          storeSettings={store?.settings}
+          currency={store?.currency ?? "RON"}
+          hasDraftChanges={hasDraftChanges}
+          simulation={parseSimulation(query)}
+        />
+      )}
+
       {/* Versiuni */}
       <h2 className="mt-10 text-lg font-semibold">Istoric versiuni</h2>
       <div className="mt-3 overflow-x-auto rounded-xl border border-line bg-surface-raised">
@@ -329,11 +421,18 @@ export default async function RuleSetPage({
               const diff = (version.diff ?? {}) as Record<string, string[]>;
               const diffParts = [
                 diff.added?.length ? `+${diff.added.length} noi` : null,
-                diff.changed?.length ? `~${diff.changed.length} modificate` : null,
-                diff.removed?.length ? `−${diff.removed.length} eliminate` : null,
+                diff.changed?.length
+                  ? `~${diff.changed.length} modificate`
+                  : null,
+                diff.removed?.length
+                  ? `−${diff.removed.length} eliminate`
+                  : null,
               ].filter(Boolean);
               return (
-                <tr key={version.id} className="transition-colors hover:bg-zinc-50">
+                <tr
+                  key={version.id}
+                  className="transition-colors hover:bg-zinc-50"
+                >
                   <td className="px-4 py-3">
                     <Link
                       href={`${base}/versions/${version.id}`}
@@ -341,9 +440,15 @@ export default async function RuleSetPage({
                     >
                       v{version.version}
                     </Link>
-                    {isActive && <Badge tone="positive" className="ml-2">activă</Badge>}
+                    {isActive && (
+                      <Badge tone="positive" className="ml-2">
+                        activă
+                      </Badge>
+                    )}
                     {version.status === "ROLLED_BACK" && (
-                      <Badge tone="caution" className="ml-2">înlocuită prin rollback</Badge>
+                      <Badge tone="caution" className="ml-2">
+                        înlocuită prin rollback
+                      </Badge>
                     )}
                   </td>
                   <td className="px-4 py-3 text-ink-muted">
@@ -354,7 +459,10 @@ export default async function RuleSetPage({
                         }).format(version.publishedAt)
                       : "—"}
                     {version.publishedBy?.email && (
-                      <span className="text-ink-faint"> · {version.publishedBy.email}</span>
+                      <span className="text-ink-faint">
+                        {" "}
+                        · {version.publishedBy.email}
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-ink-muted">
@@ -371,7 +479,11 @@ export default async function RuleSetPage({
                       </Link>
                       {!isActive && (
                         <form action={rollbackAction} className="inline">
-                          <input type="hidden" name="versionId" value={version.id} />
+                          <input
+                            type="hidden"
+                            name="versionId"
+                            value={version.id}
+                          />
                           <button
                             className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-sm text-ink-muted transition-colors hover:bg-zinc-100 hover:text-ink"
                             title="Reactivează această versiune în magazin"
@@ -387,7 +499,10 @@ export default async function RuleSetPage({
             })}
             {versions.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-10 text-center text-ink-muted">
+                <td
+                  colSpan={4}
+                  className="px-4 py-10 text-center text-ink-muted"
+                >
                   Nicio versiune publicată încă — publică prima versiune ca
                   regulile să ajungă în magazin.
                 </td>

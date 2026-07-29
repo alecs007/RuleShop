@@ -1,5 +1,6 @@
 import "server-only";
 import { createHash } from "crypto";
+import { cache } from "react";
 import { Prisma, type RuleSet, type User } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { logAudit } from "@/lib/audit";
@@ -318,3 +319,18 @@ export async function getActiveRuleset(
     killSwitch: ruleSet.killSwitch,
   };
 }
+
+/**
+ * Cheie de regula -> nume, pentru traducerea explicatiilor de decizie.
+ * Snapshot-urile publicate poarta doar chei; numele se citesc de aici ca
+ * explicatiile din magazin si din control plane sa fie lizibile.
+ */
+export const getRuleNames = cache(
+  async (storeId: string): Promise<Map<string, string>> => {
+    const rules = await prisma.rule.findMany({
+      where: { storeId },
+      select: { key: true, name: true },
+    });
+    return new Map(rules.map((r) => [r.key, r.name]));
+  },
+);

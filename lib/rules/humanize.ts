@@ -95,6 +95,12 @@ export function humanizeAction(action: RuleAction): string {
       return `livrare la ${moneyParam(params, "costCents")}`;
     case "FREE_SHIPPING":
       return "livrare gratuită";
+    case "DISABLE_SHIPPING_METHOD":
+      return `metoda „${param(params, "method")}” nu este disponibilă`;
+    case "FORCE_SHIPPING_METHOD":
+      return `singura metodă permisă este „${param(params, "method")}”`;
+    case "SET_SHIPPING_ETA":
+      return `livrare în ${param(params, "minDays")}–${param(params, "maxDays")} zile`;
     case "ADD_RISK_SCORE":
       return `+${param(params, "value")} la scorul de risc`;
     case "SET_FRAUD_DECISION":

@@ -10,6 +10,7 @@ import {
   getOperatorOptions,
   ruleToFormInitial,
 } from "@/lib/rules/form-mapping";
+import { getDynamicParamOptions } from "@/lib/rules/store-options";
 import { RuleForm } from "@/components/control-plane/rule-form";
 import { saveRuleAction } from "../../actions";
 
@@ -28,6 +29,7 @@ export default async function EditRulePage({
   const rule = await prisma.rule.findFirst({ where: { id: ruleId, storeId } });
   if (!rule) notFound();
 
+  const dynamic = await getDynamicParamOptions(storeId, category);
   const save = saveRuleAction.bind(null, category, rule.id);
 
   return (
@@ -39,9 +41,9 @@ export default async function EditRulePage({
       <div className="mt-6">
         <RuleForm
           action={save}
-          facts={getFactOptions()}
+          facts={getFactOptions(category)}
           operators={getOperatorOptions()}
-          actionDefs={getActionOptions(category)}
+          actionDefs={getActionOptions(category, dynamic)}
           initial={ruleToFormInitial(rule)}
         />
       </div>
