@@ -50,11 +50,6 @@ function str(params: Record<string, unknown>, key: string): string {
   return typeof v === "string" ? v : "";
 }
 
-function strArr(params: Record<string, unknown>, key: string): string[] {
-  const v = params[key];
-  return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
-}
-
 function appendUnique(list: unknown, items: string[]): string[] {
   const base = Array.isArray(list)
     ? list.filter((x): x is string => typeof x === "string")

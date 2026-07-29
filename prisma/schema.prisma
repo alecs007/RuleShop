@@ -145,7 +145,9 @@ model Store {
   id       String  @id @default(cuid()) @map("_id")
   slug     String  @unique
   name     String
-  domain   String? @unique
+  /// Unicitatea domeniului se impune in aplicatie: pe MongoDB un index unic
+  /// pe camp optional ar intra in coliziune la mai multe valori null.
+  domain   String?
   currency String  @default("RON")
   locale   String  @default("ro-RO")
   active   Boolean @default(true)
@@ -161,6 +163,7 @@ model Store {
 
   users          User[]
   products       Product[]
+  carts          Cart[]
   orders         Order[]
   ruleSets       RuleSet[]
   rules          Rule[]
@@ -176,20 +179,23 @@ model Store {
 // Identitate & autorizare
 // ---------------------------------------------------------------------------
 
-/// Utilizator. `storeId` este null doar pentru PLATFORM_ADMIN (cont global).
-/// Pentru toti ceilalti, contul apartine unui singur magazin.
+/// Utilizator. Identitatea clientilor este la nivel de platforma (OAuth
+/// Google/Facebook), iar apartenenta la un magazin exista prin cosuri si
+/// comenzi (fiecare cu storeId). `storeId` se seteaza doar pentru personal
+/// (OPERATOR / STORE_ADMIN); PLATFORM_ADMIN il are null.
 model User {
   id           String  @id @default(cuid()) @map("_id")
   storeId      String?
-  email        String
+  email        String  @unique
   name         String?
-  /// Hash Argon2/bcrypt. Parola in clar nu este stocata niciodata.
-  passwordHash String
+  image        String?
+  /// Rezervat pentru autentificarea cu parola a personalului (etapa admin).
+  passwordHash String?
   role         Role    @default(CUSTOMER)
   active       Boolean @default(true)
 
-  emailVerifiedAt DateTime?
-  lastLoginAt     DateTime?
+  emailVerified DateTime?
+  lastLoginAt   DateTime?
 
   // Semnale folosite de reguli (loialitate, segmentare, antifrauda).
   loyaltyTier    String @default("STANDARD")
@@ -203,6 +209,9 @@ model User {
   updatedAt DateTime @updatedAt
 
   store           Store?          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  accounts        Account[]
+  sessions        Session[]
+  carts           Cart[]
   orders          Order[]
   createdRules    Rule[]          @relation("RuleAuthor")
   createdVersions RuleVersion[]   @relation("VersionAuthor")
@@ -211,11 +220,47 @@ model User {
   fraudIncidents  FraudIncident[] @relation("FraudSubject")
   reviewedIncidents FraudIncident[] @relation("FraudReviewer")
 
-  /// Acelasi email poate exista in magazine diferite, dar o singura data per magazin.
-  @@unique([storeId, email])
   @@index([storeId, role])
-  @@index([email])
   @@map("users")
+}
+
+/// Cont OAuth legat de un utilizator (NextAuth / Auth.js).
+model Account {
+  id                String  @id @default(cuid()) @map("_id")
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+/// Sesiuni NextAuth (folosite doar daca se trece pe strategy "database";
+/// cu JWT raman goale, dar adapterul cere modelul).
+model Session {
+  id           String   @id @default(cuid()) @map("_id")
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
 }
 
 // ---------------------------------------------------------------------------
@@ -252,12 +297,51 @@ model Product {
 
   store      Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
   orderItems OrderItem[]
+  cartItems  CartItem[]
 
   @@unique([storeId, sku])
   @@unique([storeId, slug])
   @@index([storeId, active, category])
   @@index([storeId, name])
   @@map("products")
+}
+
+/// Cos de cumparaturi persistent. Cheia primara de identificare este
+/// `sessionKey` (cookie stabil) — functioneaza identic pentru guest si
+/// autentificat; `userId` se ataseaza la login pentru istoric/merge.
+model Cart {
+  id         String  @id @default(cuid()) @map("_id")
+  storeId    String
+  sessionKey String
+  userId     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user  User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items CartItem[]
+
+  @@unique([storeId, sessionKey])
+  @@index([storeId, userId])
+  @@map("carts")
+}
+
+model CartItem {
+  id        String @id @default(cuid()) @map("_id")
+  cartId    String
+  productId String
+  quantity  Int    @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@index([productId])
+  @@map("cart_items")
 }
 
 model Order {
