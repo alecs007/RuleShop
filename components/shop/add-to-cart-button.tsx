@@ -3,7 +3,9 @@
 import { useActionState } from "react";
 import { Minus, Plus, ShoppingBag } from "lucide-react";
 import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { addToCartAction, type CartActionState } from "@/app/(shop)/cart/actions";
 
 export function AddToCartButton({
@@ -54,19 +56,29 @@ export function AddToCartButton({
         </div>
 
         <Button type="submit" size="lg" disabled={disabled || pending} className="flex-1">
-          <ShoppingBag className="size-5" strokeWidth={1.75} />
+          {pending ? (
+            <Spinner className="size-5" />
+          ) : (
+            <ShoppingBag className="size-5" strokeWidth={1.75} />
+          )}
           {pending ? "Se adauga…" : disabled ? "Stoc epuizat" : "Adauga in cos"}
         </Button>
       </div>
 
-      {state?.message && (
-        <p
-          role="status"
-          className={state.ok ? "text-sm text-positive" : "text-sm text-critical"}
-        >
-          {state.message}
-        </p>
-      )}
+      <AnimatePresence>
+        {state?.message && (
+          <motion.p
+            role="status"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className={state.ok ? "text-sm text-positive" : "text-sm text-critical"}
+          >
+            {state.message}
+          </motion.p>
+        )}
+      </AnimatePresence>
     </form>
   );
 }

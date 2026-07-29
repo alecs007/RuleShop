@@ -19,6 +19,7 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "create-admin": "tsx scripts/create-admin.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
@@ -33,6 +34,7 @@
     "@prisma/client": "^6.16.2",
     "bcryptjs": "^3.0.2",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.43.0",
     "ioredis": "^5.8.0",
     "lucide-react": "^0.544.0",
     "next": "^15.5.4",

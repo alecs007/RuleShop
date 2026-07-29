@@ -1,0 +1,42 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { requireAdmin } from "@/lib/auth/guards";
+import { DECISION_CATEGORIES, type DecisionCategory } from "@/lib/engine";
+import { CATEGORY_LABELS } from "@/lib/rules/defaults";
+import {
+  getActionOptions,
+  getFactOptions,
+  getOperatorOptions,
+} from "@/lib/rules/form-mapping";
+import { RuleForm } from "@/components/control-plane/rule-form";
+import { saveRuleAction } from "../../actions";
+
+export const metadata: Metadata = { title: "Regula noua" };
+
+export default async function NewRulePage({
+  params,
+}: {
+  params: Promise<{ category: string }>;
+}) {
+  const { category: raw } = await params;
+  const category = raw.toUpperCase() as DecisionCategory;
+  if (!DECISION_CATEGORIES.includes(category)) notFound();
+
+  await requireAdmin();
+  const save = saveRuleAction.bind(null, category, null);
+
+  return (
+    <div>
+      <h1 className="text-2xl font-semibold tracking-tight">Regula noua</h1>
+      <p className="mt-1 text-sm text-ink-muted">{CATEGORY_LABELS[category]}</p>
+      <div className="mt-6">
+        <RuleForm
+          action={save}
+          facts={getFactOptions()}
+          operators={getOperatorOptions()}
+          actionDefs={getActionOptions(category)}
+        />
+      </div>
+    </div>
+  );
+}

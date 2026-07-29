@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { getActiveStore } from "@/lib/shop/store";
 import { computeTotals, readCart } from "@/lib/shop/cart";
+import { getPriceViews } from "@/lib/shop/pricing";
 import { formatMoney } from "@/lib/utils/money";
 import { removeItemAction, setQuantityAction } from "./actions";
 
@@ -12,7 +13,8 @@ export const metadata: Metadata = { title: "Cosul meu" };
 export default async function CartPage() {
   const store = await getActiveStore();
   const cart = await readCart(store.id);
-  const totals = computeTotals(cart);
+  const prices = await getPriceViews(cart?.items.map((i) => i.product) ?? []);
+  const totals = computeTotals(cart, prices);
 
   if (!cart || cart.items.length === 0) {
     return (
@@ -41,7 +43,9 @@ export default async function CartPage() {
         <ul className="divide-y divide-line rounded-xl border border-line bg-surface-raised">
           {cart.items.map((item) => {
             const image = item.product.imageUrls[0];
-            const lineTotal = item.quantity * item.product.basePriceCents;
+            const view = prices.get(item.productId);
+            const unitCents = view?.finalCents ?? item.product.basePriceCents;
+            const lineTotal = item.quantity * unitCents;
             return (
               <li key={item.id} className="flex gap-4 p-4">
                 <Link
@@ -69,7 +73,12 @@ export default async function CartPage() {
                         {item.product.name}
                       </Link>
                       <p className="mt-0.5 text-xs text-ink-faint">
-                        {formatMoney(item.product.basePriceCents, item.product.currency)} / buc
+                        {formatMoney(unitCents, item.product.currency)} / buc
+                        {view && view.discountPercent > 0 && (
+                          <span className="ml-1.5 text-critical">
+                            (−{view.discountPercent}%)
+                          </span>
+                        )}
                       </p>
                     </div>
                     <p className="shrink-0 text-sm font-semibold tabular-nums">

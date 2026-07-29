@@ -120,18 +120,22 @@ export interface CartTotals {
 }
 
 /**
- * Totalurile cosului. PUNCT DE EXTENSIE: aici se vor aplica deciziile
- * PRICING (reduceri) si SHIPPING (cost livrare) la integrarea engine-ului.
+ * Totalurile cosului. `prices` — deciziile PRICING per produs; fara ele se
+ * folosesc preturile de baza. Costul livrarii (SHIPPING) se adauga la checkout.
  */
-export function computeTotals(cart: CartWithItems | null): CartTotals {
+export function computeTotals(
+  cart: CartWithItems | null,
+  prices?: Map<string, { finalCents: number }>,
+): CartTotals {
   if (!cart || cart.items.length === 0) {
     return { itemCount: 0, subtotalCents: 0, currency: "RON" };
   }
   let itemCount = 0;
   let subtotalCents = 0;
   for (const item of cart.items) {
+    const unit = prices?.get(item.productId)?.finalCents ?? item.product.basePriceCents;
     itemCount += item.quantity;
-    subtotalCents += item.quantity * item.product.basePriceCents;
+    subtotalCents += item.quantity * unit;
   }
   return {
     itemCount,

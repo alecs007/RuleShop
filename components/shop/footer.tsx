@@ -7,34 +7,55 @@ export function Footer({ storeName = "RuleShop" }: { storeName?: string }) {
         <div>
           <p className="text-sm font-semibold">{storeName}</p>
           <p className="mt-2 max-w-xs text-sm text-ink-muted">
-            Magazin online guvernat in timp real de un rule engine configurabil.
+            Magazin online întreținut de un rule engine configurabil.
           </p>
         </div>
         <div>
           <p className="text-sm font-semibold">Magazin</p>
           <ul className="mt-2 space-y-1.5 text-sm text-ink-muted">
-            <li><Link href="/products" className="hover:text-ink">Toate produsele</Link></li>
-            <li><Link href="/cart" className="hover:text-ink">Cosul meu</Link></li>
+            <li>
+              <Link href="/products" className="hover:text-ink">
+                Toate produsele
+              </Link>
+            </li>
+            <li>
+              <Link href="/cart" className="hover:text-ink">
+                Cosul meu
+              </Link>
+            </li>
           </ul>
         </div>
         <div>
           <p className="text-sm font-semibold">Cont</p>
           <ul className="mt-2 space-y-1.5 text-sm text-ink-muted">
-            <li><Link href="/account" className="hover:text-ink">Contul meu</Link></li>
-            <li><Link href="/account/orders" className="hover:text-ink">Comenzile mele</Link></li>
+            <li>
+              <Link href="/account" className="hover:text-ink">
+                Contul meu
+              </Link>
+            </li>
+            <li>
+              <Link href="/account/orders" className="hover:text-ink">
+                Comenzile mele
+              </Link>
+            </li>
           </ul>
         </div>
         <div>
           <p className="text-sm font-semibold">Ajutor</p>
           <ul className="mt-2 space-y-1.5 text-sm text-ink-muted">
-            <li><span>Livrare si retururi</span></li>
-            <li><span>Contact</span></li>
+            <li>
+              <span>Livrare si retururi</span>
+            </li>
+            <li>
+              <span>Contact</span>
+            </li>
           </ul>
         </div>
       </div>
       <div className="border-t border-line">
         <p className="mx-auto max-w-7xl px-4 py-4 text-xs text-ink-faint sm:px-6">
-          © {new Date().getFullYear()} {storeName}. Plati simulate — mediu demonstrativ.
+          © {new Date().getFullYear()} {storeName}. Plati simulate — mediu
+          demonstrativ.
         </p>
       </div>
     </footer>

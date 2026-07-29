@@ -126,8 +126,9 @@ describe("evaluateRuleSet — flux de baza", () => {
 
   it("este determinist pentru acelasi input", () => {
     const snapshot = pricingSnapshot([rule({ key: "r1" })]);
-    const a = evaluateRuleSet(snapshot, vipContext, { traceId: "eval-fixed" });
-    const b = evaluateRuleSet(snapshot, vipContext, { traceId: "eval-fixed" });
+    const context = { ...vipContext, now: "2026-07-01T12:00:00Z" };
+    const a = evaluateRuleSet(snapshot, context, { traceId: "eval-fixed" });
+    const b = evaluateRuleSet(snapshot, context, { traceId: "eval-fixed" });
     expect(a).toEqual(b);
   });
 });
