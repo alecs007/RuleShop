@@ -45,7 +45,7 @@ export default async function RulesOverviewPage() {
                 <span>{rs?._count.rules ?? 0} reguli</span>
                 <span aria-hidden>·</span>
                 {rs?.activeVersion ? (
-                  <Badge tone="positive">v{rs.activeVersion.version} activa</Badge>
+                  <Badge tone="positive">v{rs.activeVersion.version} activă</Badge>
                 ) : (
                   <Badge>nepublicat</Badge>
                 )}

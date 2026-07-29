@@ -62,14 +62,14 @@ const defs: ActionDef[] = [
   {
     type: "SET_DISCOUNT_PERCENT",
     category: "PRICING",
-    label: "Seteaza reducere procentuala",
+    label: "Setează reducere procentuală",
     params: [{ name: "value", type: "number", required: true, min: 0, max: 100 }],
     apply: (d, p) => ({ ...d, discountPercent: num(p, "value") }),
   },
   {
     type: "ADD_DISCOUNT_PERCENT",
     category: "PRICING",
-    label: "Adauga reducere procentuala (cumulativ)",
+    label: "Adaugă reducere procentuală (cumulativ)",
     params: [{ name: "value", type: "number", required: true, min: 0, max: 100 }],
     apply: (d, p) => ({
       ...d,
@@ -83,28 +83,28 @@ const defs: ActionDef[] = [
   {
     type: "SET_DISCOUNT_FIXED",
     category: "PRICING",
-    label: "Seteaza reducere fixa (bani)",
+    label: "Setează reducere fixă (bani)",
     params: [{ name: "valueCents", type: "number", required: true, min: 0 }],
     apply: (d, p) => ({ ...d, discountFixedCents: num(p, "valueCents") }),
   },
   {
     type: "SET_PRICE_OVERRIDE",
     category: "PRICING",
-    label: "Suprascrie pretul",
+    label: "Suprascrie prețul",
     params: [{ name: "priceCents", type: "number", required: true, min: 0 }],
     apply: (d, p) => ({ ...d, priceOverrideCents: num(p, "priceCents") }),
   },
   {
     type: "SET_PRICE_MULTIPLIER",
     category: "PRICING",
-    label: "Multiplica pretul (ex: 1.2 pentru +20%)",
+    label: "Multiplică prețul (ex: 1.2 pentru +20%)",
     params: [{ name: "factor", type: "number", required: true, min: 0 }],
     apply: (d, p) => ({ ...d, priceMultiplier: num(p, "factor") }),
   },
   {
     type: "ADD_PRICE_BADGE",
     category: "PRICING",
-    label: "Adauga badge de pret (ex: PROMO)",
+    label: "Adaugă badge de preț (ex: PROMO)",
     params: [{ name: "badge", type: "string", required: true }],
     apply: (d, p) => ({ ...d, badges: appendUnique(d.badges, [str(p, "badge")]) }),
   },
@@ -113,21 +113,21 @@ const defs: ActionDef[] = [
   {
     type: "SET_SHIPPING_COST",
     category: "SHIPPING",
-    label: "Seteaza costul livrarii",
+    label: "Setează costul livrării",
     params: [{ name: "costCents", type: "number", required: true, min: 0 }],
     apply: (d, p) => ({ ...d, costCents: num(p, "costCents"), freeShipping: false }),
   },
   {
     type: "FREE_SHIPPING",
     category: "SHIPPING",
-    label: "Livrare gratuita",
+    label: "Livrare gratuită",
     params: [],
     apply: (d) => ({ ...d, freeShipping: true, costCents: 0 }),
   },
   {
     type: "DISABLE_SHIPPING_METHOD",
     category: "SHIPPING",
-    label: "Dezactiveaza o metoda de livrare",
+    label: "Dezactivează o metodă de livrare",
     params: [{ name: "method", type: "string", required: true }],
     apply: (d, p) => ({
       ...d,
@@ -137,14 +137,14 @@ const defs: ActionDef[] = [
   {
     type: "FORCE_SHIPPING_METHOD",
     category: "SHIPPING",
-    label: "Impune o metoda de livrare",
+    label: "Impune o metodă de livrare",
     params: [{ name: "method", type: "string", required: true }],
     apply: (d, p) => ({ ...d, forcedMethod: str(p, "method") }),
   },
   {
     type: "SET_SHIPPING_ETA",
     category: "SHIPPING",
-    label: "Seteaza estimarea de livrare (zile)",
+    label: "Setează estimarea de livrare (zile)",
     params: [
       { name: "minDays", type: "number", required: true, min: 0 },
       { name: "maxDays", type: "number", required: true, min: 0 },
@@ -160,7 +160,7 @@ const defs: ActionDef[] = [
   {
     type: "ADD_RISK_SCORE",
     category: "FRAUD",
-    label: "Adauga la scorul de risc",
+    label: "Adaugă la scorul de risc",
     params: [{ name: "value", type: "number", required: true }],
     apply: (d, p) => ({
       ...d,
@@ -173,7 +173,7 @@ const defs: ActionDef[] = [
   {
     type: "SET_FRAUD_DECISION",
     category: "FRAUD",
-    label: "Seteaza decizia antifrauda",
+    label: "Setează decizia antifraudă",
     params: [
       {
         name: "decision",
@@ -187,7 +187,7 @@ const defs: ActionDef[] = [
   {
     type: "FLAG_SIGNAL",
     category: "FRAUD",
-    label: "Marcheaza un semnal de risc",
+    label: "Marchează un semnal de risc",
     params: [{ name: "signal", type: "string", required: true }],
     apply: (d, p) => ({ ...d, signals: appendUnique(d.signals, [str(p, "signal")]) }),
   },
@@ -196,7 +196,7 @@ const defs: ActionDef[] = [
   {
     type: "SET_AVAILABILITY",
     category: "AVAILABILITY",
-    label: "Seteaza disponibilitatea",
+    label: "Setează disponibilitatea",
     params: [{ name: "available", type: "boolean", required: true }],
     apply: (d, p) => ({ ...d, available: p.available === true }),
   },
@@ -210,7 +210,7 @@ const defs: ActionDef[] = [
   {
     type: "LIMIT_QUANTITY",
     category: "AVAILABILITY",
-    label: "Limiteaza cantitatea per comanda",
+    label: "Limitează cantitatea per comandă",
     params: [{ name: "maxQuantity", type: "number", required: true, min: 1 }],
     apply: (d, p) => ({ ...d, maxQuantityPerOrder: num(p, "maxQuantity") }),
   },
@@ -233,7 +233,7 @@ const defs: ActionDef[] = [
   {
     type: "GRANT_BONUS_POINTS",
     category: "LOYALTY",
-    label: "Acorda puncte bonus",
+    label: "Acordă puncte bonus",
     params: [{ name: "points", type: "number", required: true, min: 0 }],
     apply: (d, p) => ({
       ...d,
@@ -244,7 +244,7 @@ const defs: ActionDef[] = [
   {
     type: "GRANT_BENEFIT",
     category: "LOYALTY",
-    label: "Acorda un beneficiu (ex: retur extins)",
+    label: "Acordă un beneficiu (ex: retur extins)",
     params: [{ name: "benefit", type: "string", required: true }],
     apply: (d, p) => ({
       ...d,
@@ -256,7 +256,7 @@ const defs: ActionDef[] = [
   {
     type: "SET_THEME_TOKEN",
     category: "THEME",
-    label: "Seteaza un token de tema (ex: culoare accent)",
+    label: "Setează un token de temă (ex: culoare accent)",
     params: [
       { name: "token", type: "string", required: true },
       { name: "value", type: "string", required: true },
@@ -272,14 +272,14 @@ const defs: ActionDef[] = [
   {
     type: "SET_BANNER",
     category: "THEME",
-    label: "Seteaza bannerul magazinului",
+    label: "Setează bannerul magazinului",
     params: [{ name: "message", type: "string", required: true }],
     apply: (d, p) => ({ ...d, banner: str(p, "message") }),
   },
   {
     type: "SET_LAYOUT_VARIANT",
     category: "THEME",
-    label: "Seteaza varianta de layout",
+    label: "Setează varianta de layout",
     params: [{ name: "variant", type: "string", required: true }],
     apply: (d, p) => ({ ...d, layoutVariant: str(p, "variant") }),
   },

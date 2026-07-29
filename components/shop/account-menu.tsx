@@ -3,13 +3,15 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { CircleUserRound, LogOut, Package, UserRound } from "lucide-react";
+import { CircleUserRound, LogOut, Package, Settings2, UserRound } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 interface SessionUser {
   name?: string | null;
   email?: string | null;
   image?: string | null;
+  /** Personalul vede scurtatura spre control plane, nu meniul de client. */
+  isStaff?: boolean;
 }
 
 export function AccountMenu({ user }: { user: SessionUser | null }) {
@@ -67,26 +69,39 @@ export function AccountMenu({ user }: { user: SessionUser | null }) {
             <p className="truncate text-sm font-medium">{user.name}</p>
             <p className="truncate text-xs text-ink-muted">{user.email}</p>
           </div>
-          <Link
-            href="/account"
-            role="menuitem"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-zinc-100"
-          >
-            <UserRound className="size-4" strokeWidth={1.75} /> Contul meu
-          </Link>
-          <Link
-            href="/account/orders"
-            role="menuitem"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-zinc-100"
-          >
-            <Package className="size-4" strokeWidth={1.75} /> Comenzile mele
-          </Link>
+          {user.isStaff ? (
+            <Link
+              href="/admin"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-zinc-100"
+            >
+              <Settings2 className="size-4" strokeWidth={1.75} /> Control Plane
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/account"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-zinc-100"
+              >
+                <UserRound className="size-4" strokeWidth={1.75} /> Contul meu
+              </Link>
+              <Link
+                href="/account/orders"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-zinc-100"
+              >
+                <Package className="size-4" strokeWidth={1.75} /> Comenzile mele
+              </Link>
+            </>
+          )}
           <button
             role="menuitem"
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-ink-muted transition-colors hover:bg-zinc-100"
+            className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-critical transition-colors hover:bg-red-50"
           >
             <LogOut className="size-4" strokeWidth={1.75} /> Deconectare
           </button>

@@ -36,7 +36,7 @@ describe("validateRule", () => {
       conditions: { type: "condition", fact: "cart.totalCents", operator: "gte" },
     } as EngineRule;
     const issues = validateRule(bad, "PRICING");
-    expect(issues.some((i) => i.message.includes("necesita o valoare"))).toBe(true);
+    expect(issues.some((i) => i.message.includes("necesită o valoare"))).toBe(true);
   });
 
   it("respinge valoare la operator unar", () => {
@@ -94,7 +94,7 @@ describe("validateRule", () => {
       effectiveTo: "2026-01-01T00:00:00Z",
     };
     const issues = validateRule(bad, "PRICING");
-    expect(issues.some((i) => i.message.includes("inversata"))).toBe(true);
+    expect(issues.some((i) => i.message.includes("inversată"))).toBe(true);
   });
 
   it("respinge chei care nu sunt kebab-case", () => {
@@ -123,7 +123,7 @@ describe("validateSnapshot", () => {
       ...snapshot,
       rules: [validRule, { ...validRule }],
     });
-    expect(issues.some((i) => i.message.includes("duplicata"))).toBe(true);
+    expect(issues.some((i) => i.message.includes("duplicată"))).toBe(true);
   });
 
   it("avertizeaza la prioritati egale sub PRIORITY_FIRST_MATCH", () => {

@@ -11,7 +11,7 @@ import {
 import { RuleForm } from "@/components/control-plane/rule-form";
 import { saveRuleAction } from "../../actions";
 
-export const metadata: Metadata = { title: "Regula noua" };
+export const metadata: Metadata = { title: "Regulă nouă" };
 
 export default async function NewRulePage({
   params,
@@ -27,7 +27,7 @@ export default async function NewRulePage({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight">Regula noua</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Regulă nouă</h1>
       <p className="mt-1 text-sm text-ink-muted">{CATEGORY_LABELS[category]}</p>
       <div className="mt-6">
         <RuleForm

@@ -8,7 +8,7 @@ import { getPriceViews } from "@/lib/shop/pricing";
 import { formatMoney } from "@/lib/utils/money";
 import { removeItemAction, setQuantityAction } from "./actions";
 
-export const metadata: Metadata = { title: "Cosul meu" };
+export const metadata: Metadata = { title: "Coșul meu" };
 
 export default async function CartPage() {
   const store = await getActiveStore();
@@ -20,9 +20,9 @@ export default async function CartPage() {
     return (
       <div className="flex flex-col items-center py-24 text-center">
         <ShoppingBag className="size-10 text-ink-faint" strokeWidth={1.5} />
-        <h1 className="mt-4 text-xl font-semibold">Cosul tau este gol</h1>
+        <h1 className="mt-4 text-xl font-semibold">Coșul tău este gol</h1>
         <p className="mt-1 text-ink-muted">
-          Produsele adaugate raman salvate, chiar si fara cont.
+          Produsele adăugate rămân salvate, chiar și fără cont.
         </p>
         <Link
           href="/products"
@@ -36,7 +36,7 @@ export default async function CartPage() {
 
   return (
     <div className="py-8">
-      <h1 className="text-2xl font-semibold tracking-tight">Cosul meu</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Coșul meu</h1>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_360px]">
         {/* Lista de produse */}
@@ -106,7 +106,7 @@ export default async function CartPage() {
                         <input type="hidden" name="productId" value={item.productId} />
                         <input type="hidden" name="quantity" value={item.quantity + 1} />
                         <button
-                          aria-label="Creste cantitatea"
+                          aria-label="Crește cantitatea"
                           disabled={item.quantity >= item.product.stock}
                           className="flex h-9 w-9 cursor-pointer items-center justify-center text-ink-muted transition-colors hover:text-ink disabled:cursor-not-allowed disabled:text-ink-faint"
                         >
@@ -118,7 +118,7 @@ export default async function CartPage() {
                     <form action={removeItemAction}>
                       <input type="hidden" name="productId" value={item.productId} />
                       <button
-                        aria-label="Sterge din cos"
+                        aria-label="Șterge din coș"
                         className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-red-50 hover:text-critical"
                       >
                         <Trash2 className="size-4" strokeWidth={1.75} />
@@ -133,7 +133,7 @@ export default async function CartPage() {
 
         {/* Sumar */}
         <aside className="h-fit rounded-xl border border-line bg-surface-raised p-5 lg:sticky lg:top-32">
-          <h2 className="font-semibold">Sumar comanda</h2>
+          <h2 className="font-semibold">Sumar comandă</h2>
           <dl className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between">
               <dt className="text-ink-muted">
@@ -146,7 +146,7 @@ export default async function CartPage() {
             <div className="flex justify-between">
               <dt className="text-ink-muted">Livrare</dt>
               {/* TODO(rules): costul si metodele vin din decizia SHIPPING */}
-              <dd className="text-ink-muted">calculata la checkout</dd>
+              <dd className="text-ink-muted">calculată la checkout</dd>
             </div>
           </dl>
           <div className="mt-4 flex justify-between border-t border-line pt-4">
@@ -159,13 +159,13 @@ export default async function CartPage() {
           {/* Checkout-ul vine in pasul urmator */}
           <button
             disabled
-            title="Checkout-ul este in lucru"
+            title="Checkout-ul este în lucru"
             className="mt-5 h-12 w-full cursor-not-allowed rounded-lg bg-zinc-300 font-medium text-zinc-500"
           >
-            Continua spre checkout
+            Continuă spre checkout
           </button>
           <p className="mt-3 text-center text-xs text-ink-faint">
-            Poti comanda ca vizitator sau autentificat.
+            Poți comanda ca vizitator sau autentificat.
           </p>
         </aside>
       </div>

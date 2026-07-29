@@ -73,14 +73,14 @@ export function ProductSearch({
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          placeholder="Cauta un produs dupa nume sau SKU…"
-          aria-label="Cauta un produs"
+          placeholder="Caută un produs după nume sau SKU…"
+          aria-label="Caută un produs"
           className="h-10 w-full rounded-lg border border-line bg-surface pl-9 pr-9 text-sm outline-none transition-colors focus:border-accent focus:bg-surface-raised"
         />
         {selected && !open && (
           <button
             type="button"
-            aria-label="Renunta la produsul selectat"
+            aria-label="Renunță la produsul selectat"
             onClick={() => router.push(pathname, { scroll: false })}
             className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-ink-faint transition-colors hover:bg-zinc-100 hover:text-ink"
           >
@@ -96,7 +96,7 @@ export function ProductSearch({
         >
           {results.length === 0 && (
             <li className="px-3 py-2.5 text-sm text-ink-muted">
-              Niciun produs gasit pentru „{query}”.
+              Niciun produs găsit pentru „{query}”.
             </li>
           )}
           {results.slice(0, 8).map((p) => (

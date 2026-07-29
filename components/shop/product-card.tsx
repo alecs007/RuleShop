@@ -52,7 +52,7 @@ export function ProductCard({
           <Price view={price} />
         </div>
         {product.stock > 0 && product.stock <= 5 && (
-          <Badge tone="caution" className="w-fit">Ultimele {product.stock} bucati</Badge>
+          <Badge tone="caution" className="w-fit">Ultimele {product.stock} bucăți</Badge>
         )}
       </div>
     </Link>

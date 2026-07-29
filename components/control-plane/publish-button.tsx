@@ -28,7 +28,7 @@ export function PublishButton({
     <form action={formAction} className="flex flex-col items-end gap-2">
       <Button type="submit" disabled={pending}>
         {pending ? <Spinner /> : <Rocket className="size-4" strokeWidth={1.75} />}
-        {pending ? "Se publica…" : `Publica v${nextVersion}`}
+        {pending ? "Se publică…" : `Publică v${nextVersion}`}
       </Button>
       <AnimatePresence>
         {state?.message && (

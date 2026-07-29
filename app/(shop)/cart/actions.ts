@@ -29,7 +29,7 @@ export async function addToCartAction(
     productId: formData.get("productId"),
     quantity: formData.get("quantity") ?? 1,
   });
-  if (!parsed.success) return { ok: false, message: "Cerere invalida." };
+  if (!parsed.success) return { ok: false, message: "Cerere invalidă." };
 
   try {
     const store = await getActiveStore();
@@ -43,12 +43,12 @@ export async function addToCartAction(
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "A aparut o eroare.",
+      message: error instanceof Error ? error.message : "A apărut o eroare.",
     };
   }
 
   revalidatePath("/", "layout");
-  return { ok: true, message: "Adaugat in cos." };
+  return { ok: true, message: "Adăugat în coș." };
 }
 
 export async function setQuantityAction(formData: FormData): Promise<void> {

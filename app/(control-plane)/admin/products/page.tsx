@@ -40,7 +40,7 @@ export default async function AdminProductsPage({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Produse</h1>
           <p className="mt-1 text-sm text-ink-muted">
-            Catalog, preturi de baza si stoc. Preturile finale le decide rule engine-ul.
+            Catalog, prețuri de bază și stoc. Prețurile finale le decide rule engine-ul.
           </p>
         </div>
         <Link
@@ -56,7 +56,7 @@ export default async function AdminProductsPage({
           type="search"
           name="q"
           defaultValue={q ?? ""}
-          placeholder="Cauta dupa nume, SKU sau categorie…"
+          placeholder="Caută după nume, SKU sau categorie…"
           className="h-10 w-full max-w-sm rounded-lg border border-line bg-surface-raised px-3 text-sm outline-none transition-colors focus:border-accent"
         />
       </form>
@@ -67,10 +67,10 @@ export default async function AdminProductsPage({
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-faint">
               <th className="px-4 py-3 font-medium">Produs</th>
               <th className="px-4 py-3 font-medium">Categorie</th>
-              <th className="px-4 py-3 font-medium">Pret de baza</th>
+              <th className="px-4 py-3 font-medium">Preț de bază</th>
               <th className="px-4 py-3 font-medium">Stoc</th>
               <th className="px-4 py-3 font-medium">Stare</th>
-              <th className="px-4 py-3 font-medium text-right">Actiuni</th>
+              <th className="px-4 py-3 font-medium text-right">Acțiuni</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
@@ -113,7 +113,7 @@ export default async function AdminProductsPage({
                     <input type="hidden" name="productId" value={product.id} />
                     <button
                       className="cursor-pointer"
-                      title={product.active ? "Dezactiveaza" : "Activeaza"}
+                      title={product.active ? "Dezactivează" : "Activează"}
                     >
                       {product.active ? (
                         <Badge tone="positive">Activ</Badge>
@@ -127,7 +127,7 @@ export default async function AdminProductsPage({
                   <Link
                     href={`/admin/products/${product.id}`}
                     className="inline-flex size-8 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-zinc-100 hover:text-ink"
-                    aria-label={`Editeaza ${product.name}`}
+                    aria-label={`Editează ${product.name}`}
                   >
                     <Pencil className="size-4" strokeWidth={1.75} />
                   </Link>
@@ -137,7 +137,7 @@ export default async function AdminProductsPage({
             {products.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-12 text-center text-ink-muted">
-                  Niciun produs gasit.
+                  Niciun produs găsit.
                 </td>
               </tr>
             )}

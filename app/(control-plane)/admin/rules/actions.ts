@@ -80,7 +80,7 @@ export async function saveRuleAction(
     conditions = JSON.parse(parsed.data.conditionsJson);
     actions = JSON.parse(parsed.data.actionsJson);
   } catch {
-    return { ok: false, message: "Conditiile sau actiunile nu sunt JSON valid." };
+    return { ok: false, message: "Condițiile sau acțiunile nu sunt JSON valid." };
   }
 
   const ruleSet = await getOrCreateRuleSet(storeId, cat);
@@ -90,7 +90,7 @@ export async function saveRuleAction(
         where: { id: ruleId, storeId, ruleSetId: ruleSet.id },
       })
     : null;
-  if (ruleId && !existing) return { ok: false, message: "Regula nu exista." };
+  if (ruleId && !existing) return { ok: false, message: "Regula nu există." };
 
   let key = existing?.key ?? slugify(parsed.data.name);
   if (!existing) {
@@ -115,7 +115,7 @@ export async function saveRuleAction(
   if (issues.length > 0) {
     return {
       ok: false,
-      message: "Regula nu este valida.",
+      message: "Regula nu este validă.",
       issues: issues.map((i) => `${i.path}: ${i.message}`),
     };
   }
@@ -250,7 +250,7 @@ export async function publishAction(
   }
 
   revalidatePath("/", "layout");
-  return { ok: true, message: `Versiunea ${result.version} este acum activa.` };
+  return { ok: true, message: `Versiunea ${result.version} este acum activă.` };
 }
 
 export async function rollbackAction(formData: FormData): Promise<void> {

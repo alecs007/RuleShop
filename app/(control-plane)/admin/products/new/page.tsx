@@ -14,7 +14,7 @@ export default async function NewProductPage() {
     <div>
       <h1 className="text-2xl font-semibold tracking-tight">Produs nou</h1>
       <p className="mt-1 text-sm text-ink-muted">
-        Produsul apare imediat in magazin dupa salvare.
+        Produsul apare imediat în magazin după salvare.
       </p>
       <div className="mt-6">
         <ProductForm action={createProductAction} categories={categories} />

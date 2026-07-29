@@ -27,8 +27,8 @@ export function SearchBar() {
         type="search"
         name="q"
         defaultValue={searchParams.get("q") ?? ""}
-        placeholder="Cauta produse…"
-        aria-label="Cauta produse"
+        placeholder="Caută produse…"
+        aria-label="Caută produse"
         className="h-10 w-full rounded-lg border border-line bg-surface pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-ink-faint focus:border-accent focus:bg-surface-raised"
       />
     </form>

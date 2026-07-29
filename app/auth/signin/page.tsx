@@ -48,12 +48,12 @@ export default async function SignInPage({
             Bine ai venit
           </h1>
           <p className="mt-1.5 text-center text-sm text-ink-muted">
-            Autentifica-te pentru comenzi mai rapide si istoric salvat.
+            Autentifică-te pentru comenzi mai rapide și istoric salvat.
           </p>
 
           {params.error && (
             <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-center text-sm text-critical">
-              Autentificarea a esuat. Incearca din nou.
+              Autentificarea a eșuat. Încearcă din nou.
             </p>
           )}
 
@@ -65,7 +65,7 @@ export default async function SignInPage({
               }}
             >
               <button className="flex h-11 w-full cursor-pointer items-center justify-center gap-3 rounded-lg border border-line bg-surface-raised text-sm font-medium transition-colors hover:border-ink-faint">
-                <GoogleIcon /> Continua cu Google
+                <GoogleIcon /> Continuă cu Google
               </button>
             </form>
 
@@ -76,19 +76,19 @@ export default async function SignInPage({
               }}
             >
               <button className="flex h-11 w-full cursor-pointer items-center justify-center gap-3 rounded-lg border border-line bg-surface-raised text-sm font-medium transition-colors hover:border-ink-faint">
-                <FacebookIcon /> Continua cu Facebook
+                <FacebookIcon /> Continuă cu Facebook
               </button>
             </form>
           </div>
 
           <p className="mt-6 text-center text-xs leading-relaxed text-ink-faint">
-            Poti cumpara si fara cont — cosul tau ramane salvat.
+            Poți cumpăra și fără cont — coșul tău rămâne salvat.
           </p>
         </div>
 
         <p className="mt-6 text-center text-sm">
           <Link href="/" className="text-ink-muted transition-colors hover:text-ink">
-            ← Inapoi la magazin
+            ← Înapoi la magazin
           </Link>
         </p>
       </div>

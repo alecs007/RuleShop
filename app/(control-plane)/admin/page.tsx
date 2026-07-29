@@ -31,7 +31,7 @@ export default async function AdminDashboard() {
       href: "/admin/products",
     },
     { label: "Comenzi", value: String(orderCount), icon: ShoppingCart },
-    { label: "Cosuri active", value: String(cartCount), icon: Users },
+    { label: "Coșuri active", value: String(cartCount), icon: Users },
     {
       label: "Ruleset-uri publicate",
       value: `${publishedSets.length} / ${ruleSets.length || "6"}`,
@@ -44,7 +44,7 @@ export default async function AdminDashboard() {
     <div>
       <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
       <p className="mt-1 text-sm text-ink-muted">
-        Starea magazinului si a motorului de reguli.
+        Starea magazinului și a motorului de reguli.
       </p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -1,19 +1,19 @@
 import type { ConflictStrategy, DecisionCategory } from "@/lib/engine";
 
 export const CATEGORY_LABELS: Record<DecisionCategory, string> = {
-  PRICING: "Preturi si reduceri",
+  PRICING: "Prețuri și reduceri",
   SHIPPING: "Livrare",
-  FRAUD: "Antifrauda",
+  FRAUD: "Antifraudă",
   AVAILABILITY: "Disponibilitate",
   LOYALTY: "Loialitate",
-  THEME: "Tema si personalizare",
+  THEME: "Temă și personalizare",
 };
 
 export const STRATEGY_LABELS: Record<ConflictStrategy, string> = {
-  PRIORITY_FIRST_MATCH: "Prima regula (dupa prioritate)",
+  PRIORITY_FIRST_MATCH: "Prima regulă (după prioritate)",
   PRIORITY_ALL_MATCHES: "Toate regulile potrivite",
-  MOST_SPECIFIC: "Cea mai specifica regula",
-  BEST_FOR_CUSTOMER: "Cea mai avantajoasa pentru client",
+  MOST_SPECIFIC: "Cea mai specifică regulă",
+  BEST_FOR_CUSTOMER: "Cea mai avantajoasă pentru client",
 };
 
 interface CategoryDefaults {

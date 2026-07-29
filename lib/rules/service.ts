@@ -151,12 +151,12 @@ export async function publishVersion(
   // niciodata in productie.
   const issues = validateSnapshot(snapshot).filter((i) => i.severity === "error");
   if (issues.length > 0) {
-    return { ok: false, issues, message: "Snapshot invalid — corecteaza regulile." };
+    return { ok: false, issues, message: "Snapshot invalid — corectează regulile." };
   }
 
   const checksum = checksumOf(snapshot);
   if (lastVersion?.checksum === checksum && ruleSet.activeVersionId === lastVersion.id) {
-    return { ok: false, message: "Nicio modificare fata de versiunea publicata." };
+    return { ok: false, message: "Nicio modificare față de versiunea publicată." };
   }
 
   const prevSnapshot = lastVersion
@@ -224,9 +224,9 @@ export async function rollbackToVersion(
     where: { id: versionId, storeId },
     include: { ruleSet: true },
   });
-  if (!version) return { ok: false, message: "Versiunea nu exista." };
+  if (!version) return { ok: false, message: "Versiunea nu există." };
   if (version.ruleSet.activeVersionId === version.id) {
-    return { ok: false, message: "Versiunea este deja activa." };
+    return { ok: false, message: "Versiunea este deja activă." };
   }
 
   await prisma.$transaction([

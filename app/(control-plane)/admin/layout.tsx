@@ -3,6 +3,7 @@ import { LayoutDashboard, Package, Scale, Store, LogOut } from "lucide-react";
 import { requireStaff } from "@/lib/auth/guards";
 import { signOut } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
+import { LogoMark } from "@/components/shop/logo";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -23,9 +24,7 @@ export default async function AdminLayout({
       {/* Sidebar */}
       <aside className="fixed inset-y-0 left-0 z-40 flex w-16 flex-col border-r border-line bg-surface-raised lg:w-60">
         <div className="flex h-16 items-center gap-2.5 border-b border-line px-4">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-ink text-sm font-bold text-white">
-            {store?.name.charAt(0) ?? "R"}
-          </span>
+          <LogoMark alt={store?.name ?? "RuleShop"} />
           <div className="hidden min-w-0 lg:block">
             <p className="truncate text-sm font-semibold">{store?.name}</p>
             <p className="text-xs text-ink-faint">Control Plane</p>
@@ -59,7 +58,7 @@ export default async function AdminLayout({
               await signOut({ redirectTo: "/auth/admin" });
             }}
           >
-            <button className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-ink-muted transition-colors hover:bg-zinc-100 hover:text-ink">
+            <button className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-critical transition-colors hover:bg-red-50">
               <LogOut className="size-5 shrink-0" strokeWidth={1.75} />
               <span className="hidden lg:inline">Deconectare</span>
             </button>

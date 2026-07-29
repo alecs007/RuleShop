@@ -15,6 +15,19 @@ export interface StaffContext {
 }
 
 /**
+ * Utilizatorul curent din DB, sau null daca nu e autentificat. NU
+ * redirecteaza — pentru decizii de interfata (ex: ce afiseaza meniul de cont).
+ * Rolul vine din baza de date, nu din token, ca sa reflecte imediat
+ * promovarile si revocarile.
+ */
+export const getSessionUser = cache(async (): Promise<User | null> => {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  return user?.active ? user : null;
+});
+
+/**
  * Garda serverului pentru control plane. Verifica sesiunea + rolul PE SERVER
  * si incarca utilizatorul din DB (rolul din token e doar un hint de UI;
  * sursa de adevar ramane baza de date — un rol revocat isi pierde accesul

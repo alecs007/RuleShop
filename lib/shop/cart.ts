@@ -54,7 +54,7 @@ export async function addItem(
     // storeId in filtru: un produs din alt magazin nu poate ajunge in cos.
     where: { id: productId, storeId, active: true },
   });
-  if (!product) throw new Error("Produsul nu exista in acest magazin.");
+  if (!product) throw new Error("Produsul nu există în acest magazin.");
 
   const cart = await getOrCreateCart(storeId, sessionKey);
   const existing = await prisma.cartItem.findUnique({
@@ -65,7 +65,7 @@ export async function addItem(
   // TODO(rules): plafonul per comanda va veni din decizia AVAILABILITY
   // (LIMIT_QUANTITY); pana atunci limitam la stocul disponibil.
   const capped = Math.min(desired, Math.max(0, product.stock));
-  if (capped <= 0) throw new Error("Produsul nu mai este in stoc.");
+  if (capped <= 0) throw new Error("Produsul nu mai este în stoc.");
 
   await prisma.cartItem.upsert({
     where: { cartId_productId: { cartId: cart.id, productId } },

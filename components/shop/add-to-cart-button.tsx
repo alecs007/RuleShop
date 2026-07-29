@@ -46,7 +46,7 @@ export function AddToCartButton({
           </span>
           <button
             type="button"
-            aria-label="Creste cantitatea"
+            aria-label="Crește cantitatea"
             disabled={quantity >= max}
             onClick={() => setQuantity((q) => Math.min(max, q + 1))}
             className="flex h-full w-11 cursor-pointer items-center justify-center text-ink-muted transition-colors hover:text-ink disabled:cursor-not-allowed disabled:text-ink-faint"
@@ -61,7 +61,7 @@ export function AddToCartButton({
           ) : (
             <ShoppingBag className="size-5" strokeWidth={1.75} />
           )}
-          {pending ? "Se adauga…" : disabled ? "Stoc epuizat" : "Adauga in cos"}
+          {pending ? "Se adaugă…" : disabled ? "Stoc epuizat" : "Adaugă în coș"}
         </Button>
       </div>
 

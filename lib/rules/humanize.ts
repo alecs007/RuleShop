@@ -30,8 +30,8 @@ function formatValue(value: unknown, factPath?: string): string {
     if (factPath && isCentsPath(factPath)) return formatMoney(value);
     return String(value);
   }
-  if (typeof value === "boolean") return value ? "adevarat" : "fals";
-  return `„${String(value)}"`;
+  if (typeof value === "boolean") return value ? "adevărat" : "fals";
+  return `„${String(value)}”`;
 }
 
 /** Parametru de actiune, cu substituent cand lipseste sau e invalid. */
@@ -59,7 +59,7 @@ export function humanizeConditions(node: ConditionNode): string {
     const opLabel = operator?.label ?? node.operator;
     if (operator?.unary) return `${factLabel} ${opLabel}`;
     if (node.operator === "between" && Array.isArray(node.value)) {
-      return `${factLabel} este intre ${formatValue(node.value[0], node.fact)} si ${formatValue(node.value[1], node.fact)}`;
+      return `${factLabel} este între ${formatValue(node.value[0], node.fact)} și ${formatValue(node.value[1], node.fact)}`;
     }
     return `${factLabel} ${opLabel} ${formatValue(node.value, node.fact)}`;
   }
@@ -68,8 +68,8 @@ export function humanizeConditions(node: ConditionNode): string {
     const text = humanizeConditions(c);
     return c.type === "group" ? `(${text})` : text;
   });
-  if (node.op === "NOT") return `NU: ${children.join(" si ")}`;
-  return children.join(node.op === "AND" ? " SI " : " SAU ");
+  if (node.op === "NOT") return `NU: ${children.join(" și ")}`;
+  return children.join(node.op === "AND" ? " ȘI " : " SAU ");
 }
 
 /** "ATUNCI"-ul unei actiuni: eticheta + parametrii formatati. */
@@ -82,23 +82,23 @@ export function humanizeAction(action: RuleAction): string {
     case "SET_DISCOUNT_PERCENT":
       return `reducere de ${param(params, "value")}%`;
     case "ADD_DISCOUNT_PERCENT":
-      return `inca ${param(params, "value")}% reducere (cumulat)`;
+      return `încă ${param(params, "value")}% reducere (cumulat)`;
     case "SET_DISCOUNT_FIXED":
-      return `reducere fixa de ${moneyParam(params, "valueCents")}`;
+      return `reducere fixă de ${moneyParam(params, "valueCents")}`;
     case "SET_PRICE_OVERRIDE":
-      return `pret fixat la ${moneyParam(params, "priceCents")}`;
+      return `preț fixat la ${moneyParam(params, "priceCents")}`;
     case "SET_PRICE_MULTIPLIER":
-      return `pret inmultit cu ${param(params, "factor")}`;
+      return `preț înmulțit cu ${param(params, "factor")}`;
     case "ADD_PRICE_BADGE":
-      return `badge „${param(params, "badge")}"`;
+      return `badge „${param(params, "badge")}”`;
     case "SET_SHIPPING_COST":
       return `livrare la ${moneyParam(params, "costCents")}`;
     case "FREE_SHIPPING":
-      return "livrare gratuita";
+      return "livrare gratuită";
     case "ADD_RISK_SCORE":
       return `+${param(params, "value")} la scorul de risc`;
     case "SET_FRAUD_DECISION":
-      return `decizie antifrauda: ${param(params, "decision")}`;
+      return `decizie antifraudă: ${param(params, "decision")}`;
     case "GRANT_BONUS_POINTS":
       return `${param(params, "points")} puncte bonus`;
     case "SET_POINTS_MULTIPLIER":

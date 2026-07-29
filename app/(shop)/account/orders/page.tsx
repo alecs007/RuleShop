@@ -28,9 +28,9 @@ export default async function OrdersPage() {
       {orders.length === 0 ? (
         <div className="mt-12 flex flex-col items-center text-center">
           <Package className="size-10 text-ink-faint" strokeWidth={1.5} />
-          <p className="mt-4 font-medium">Nicio comanda inca</p>
+          <p className="mt-4 font-medium">Nicio comandă încă</p>
           <p className="mt-1 text-sm text-ink-muted">
-            Comenzile plasate vor aparea aici, cu statusul si istoricul lor.
+            Comenzile plasate vor apărea aici, cu statusul și istoricul lor.
           </p>
           <Link
             href="/products"

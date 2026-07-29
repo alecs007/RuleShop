@@ -13,7 +13,7 @@ import {
 import { RuleForm } from "@/components/control-plane/rule-form";
 import { saveRuleAction } from "../../actions";
 
-export const metadata: Metadata = { title: "Editeaza regula" };
+export const metadata: Metadata = { title: "Editează regula" };
 
 export default async function EditRulePage({
   params,

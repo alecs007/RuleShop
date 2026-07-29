@@ -21,7 +21,7 @@ import { priorityLabel } from "@/lib/rules/priority";
 import { Badge } from "@/components/ui/badge";
 import { rollbackAction } from "../../../actions";
 
-export const metadata: Metadata = { title: "Continut versiune" };
+export const metadata: Metadata = { title: "Conținut versiune" };
 
 export default async function VersionDetailPage({
   params,
@@ -57,10 +57,10 @@ export default async function VersionDetailPage({
           <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-positive" strokeWidth={1.75} />
           <div>
             <p className="font-medium text-positive">
-              Rollback efectuat — versiunea {version.version} este acum activa.
+              Rollback efectuat — versiunea {version.version} este acum activă.
             </p>
             <p className="mt-0.5 text-sm text-ink-muted">
-              Mai jos vezi exact regulile care ruleaza acum in magazin.
+              Mai jos vezi exact regulile care rulează acum în magazin.
             </p>
           </div>
         </div>
@@ -81,13 +81,13 @@ export default async function VersionDetailPage({
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-ink-muted">
             {isActive ? (
-              <Badge tone="positive">activa in magazin</Badge>
+              <Badge tone="positive">activă în magazin</Badge>
             ) : (
-              <Badge>istorica</Badge>
+              <Badge>istorică</Badge>
             )}
             {version.publishedAt && (
               <span>
-                publicata{" "}
+                publicată{" "}
                 {new Intl.DateTimeFormat("ro-RO", {
                   dateStyle: "long",
                   timeStyle: "short",
@@ -105,7 +105,7 @@ export default async function VersionDetailPage({
             <input type="hidden" name="versionId" value={version.id} />
             <button className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-ink px-4 text-sm font-medium text-white transition-colors hover:bg-zinc-700">
               <Undo2 className="size-4" strokeWidth={1.75} />
-              Activeaza aceasta versiune
+              Activează această versiune
             </button>
           </form>
         )}
@@ -114,23 +114,23 @@ export default async function VersionDetailPage({
       {/* Ce s-a schimbat fata de versiunea anterioara */}
       {(diff.added?.length || diff.changed?.length || diff.removed?.length) ? (
         <div className="mt-6 rounded-xl border border-line bg-surface-raised p-4 text-sm">
-          <p className="font-medium">Fata de versiunea anterioara:</p>
+          <p className="font-medium">Față de versiunea anterioară:</p>
           <ul className="mt-2 space-y-1 text-ink-muted">
             {diff.added?.map((key) => (
               <li key={`a-${key}`}>
-                <span className="font-medium text-positive">+ adaugata</span>{" "}
+                <span className="font-medium text-positive">+ adăugată</span>{" "}
                 <span className="font-mono text-xs">{key}</span>
               </li>
             ))}
             {diff.changed?.map((key) => (
               <li key={`c-${key}`}>
-                <span className="font-medium text-caution">~ modificata</span>{" "}
+                <span className="font-medium text-caution">~ modificată</span>{" "}
                 <span className="font-mono text-xs">{key}</span>
               </li>
             ))}
             {diff.removed?.map((key) => (
               <li key={`r-${key}`}>
-                <span className="font-medium text-critical">− eliminata</span>{" "}
+                <span className="font-medium text-critical">− eliminată</span>{" "}
                 <span className="font-mono text-xs">{key}</span>
               </li>
             ))}
@@ -150,7 +150,7 @@ export default async function VersionDetailPage({
         </div>
         <div className="rounded-xl border border-line bg-surface-raised p-4">
           <p className="text-xs uppercase tracking-wide text-ink-faint">
-            Reguli in versiune
+            Reguli în versiune
           </p>
           <p className="mt-1 text-sm font-medium tabular-nums">
             {snapshot.rules.length}
@@ -159,11 +159,11 @@ export default async function VersionDetailPage({
       </div>
 
       {/* Continutul: regulile, in limbaj natural */}
-      <h2 className="mt-8 text-lg font-semibold">Regulile din aceasta versiune</h2>
+      <h2 className="mt-8 text-lg font-semibold">Regulile din această versiune</h2>
       {snapshot.rules.length === 0 ? (
         <p className="mt-3 rounded-xl border border-line bg-surface-raised p-6 text-sm text-ink-muted">
-          Versiunea nu contine nicio regula — magazinul foloseste comportamentul
-          implicit (fara reduceri, fara exceptii).
+          Versiunea nu conține nicio regulă — magazinul folosește comportamentul
+          implicit (fără reduceri, fără excepții).
         </p>
       ) : (
         <ul className="mt-3 space-y-3">
@@ -187,7 +187,7 @@ export default async function VersionDetailPage({
                     <p className="mt-2 flex items-start gap-2 text-sm leading-relaxed text-ink-muted">
                       <Zap className="mt-0.5 size-4 shrink-0 text-accent" strokeWidth={1.75} />
                       <span>
-                        <span className="font-medium text-ink">DACA</span> {text.if}{" "}
+                        <span className="font-medium text-ink">DACĂ</span> {text.if}{" "}
                         <span className="font-medium text-ink">ATUNCI</span> {text.then}
                       </span>
                     </p>

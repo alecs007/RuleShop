@@ -95,13 +95,13 @@ const defs: OperatorDef[] = [
   },
 
   // --- comparatii numerice / temporale ---
-  { id: "gt", label: "mai mare decat", factTypes: ["number", "date"], test: (a, e) => compareNumeric(a, e, (x, y) => x > y) },
+  { id: "gt", label: "mai mare decât", factTypes: ["number", "date"], test: (a, e) => compareNumeric(a, e, (x, y) => x > y) },
   { id: "gte", label: "mai mare sau egal", factTypes: ["number", "date"], test: (a, e) => compareNumeric(a, e, (x, y) => x >= y) },
-  { id: "lt", label: "mai mic decat", factTypes: ["number", "date"], test: (a, e) => compareNumeric(a, e, (x, y) => x < y) },
+  { id: "lt", label: "mai mic decât", factTypes: ["number", "date"], test: (a, e) => compareNumeric(a, e, (x, y) => x < y) },
   { id: "lte", label: "mai mic sau egal", factTypes: ["number", "date"], test: (a, e) => compareNumeric(a, e, (x, y) => x <= y) },
   {
     id: "between",
-    label: "este intre (inclusiv)",
+    label: "este între (inclusiv)",
     factTypes: ["number", "date"],
     test: (a, e) => {
       if (!Array.isArray(e) || e.length !== 2) return false;
@@ -115,13 +115,13 @@ const defs: OperatorDef[] = [
   // --- apartenenta la multime ---
   {
     id: "in",
-    label: "este in lista",
+    label: "este în listă",
     factTypes: ["string", "number", "boolean"],
     test: (a, e) => Array.isArray(e) && e.some((v) => looseEquals(a, v)),
   },
   {
     id: "notIn",
-    label: "nu este in lista",
+    label: "nu este în listă",
     factTypes: ["string", "number", "boolean"],
     test: (a, e) => Array.isArray(e) && !e.some((v) => looseEquals(a, v)),
   },
@@ -129,7 +129,7 @@ const defs: OperatorDef[] = [
   // --- text ---
   {
     id: "contains",
-    label: "contine",
+    label: "conține",
     factTypes: ["string", "array"],
     test: (a, e) => {
       if (typeof a === "string" && typeof e === "string") {
@@ -141,7 +141,7 @@ const defs: OperatorDef[] = [
   },
   {
     id: "notContains",
-    label: "nu contine",
+    label: "nu conține",
     factTypes: ["string", "array"],
     test: (a, e) => {
       if (typeof a === "string" && typeof e === "string") {
@@ -153,7 +153,7 @@ const defs: OperatorDef[] = [
   },
   {
     id: "startsWith",
-    label: "incepe cu",
+    label: "începe cu",
     factTypes: ["string"],
     test: (a, e) =>
       typeof a === "string" && typeof e === "string" &&
@@ -171,7 +171,7 @@ const defs: OperatorDef[] = [
   // --- array ---
   {
     id: "containsAny",
-    label: "contine oricare din",
+    label: "conține oricare din",
     factTypes: ["array"],
     test: (a, e) =>
       Array.isArray(a) && Array.isArray(e) &&
@@ -179,7 +179,7 @@ const defs: OperatorDef[] = [
   },
   {
     id: "containsAll",
-    label: "contine toate",
+    label: "conține toate",
     factTypes: ["array"],
     test: (a, e) =>
       Array.isArray(a) && Array.isArray(e) &&
@@ -187,9 +187,9 @@ const defs: OperatorDef[] = [
   },
 
   // --- unari ---
-  { id: "exists", label: "exista", factTypes: ["any"], unary: true, test: (a) => a !== null && a !== undefined },
-  { id: "notExists", label: "nu exista", factTypes: ["any"], unary: true, test: (a) => a === null || a === undefined },
-  { id: "isTrue", label: "este adevarat", factTypes: ["boolean"], unary: true, test: (a) => a === true },
+  { id: "exists", label: "există", factTypes: ["any"], unary: true, test: (a) => a !== null && a !== undefined },
+  { id: "notExists", label: "nu există", factTypes: ["any"], unary: true, test: (a) => a === null || a === undefined },
+  { id: "isTrue", label: "este adevărat", factTypes: ["boolean"], unary: true, test: (a) => a === true },
   { id: "isFalse", label: "este fals", factTypes: ["boolean"], unary: true, test: (a) => a === false },
 ];
 

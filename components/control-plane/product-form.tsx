@@ -95,7 +95,7 @@ export function ProductForm({
             required
             list="categories"
             defaultValue={product?.category}
-            placeholder="alege sau scrie una noua"
+            placeholder="alege sau scrie una nouă"
             className={inputCls}
           />
           <datalist id="categories">
@@ -104,7 +104,7 @@ export function ProductForm({
             ))}
           </datalist>
         </Field>
-        <Field label="Brand (optional)" name="brand" error={errors.brand}>
+        <Field label="Brand (opțional)" name="brand" error={errors.brand}>
           <input
             id="brand"
             name="brand"
@@ -115,7 +115,7 @@ export function ProductForm({
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Pret de baza (lei)" name="price" error={errors.price}>
+        <Field label="Preț de bază (lei)" name="price" error={errors.price}>
           <input
             id="price"
             name="price"
@@ -152,17 +152,17 @@ export function ProductForm({
       </Field>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="URL imagine (optional)" name="imageUrl" error={errors.imageUrl}>
+        <Field label="URL imagine (opțional)" name="imageUrl" error={errors.imageUrl}>
           <input
             id="imageUrl"
             name="imageUrl"
             type="url"
             defaultValue={product?.imageUrls[0] ?? ""}
-            placeholder="gol = imagine demo automata"
+            placeholder="gol = imagine demo automată"
             className={inputCls}
           />
         </Field>
-        <Field label="Etichete (separate prin virgula)" name="tags" error={errors.tags}>
+        <Field label="Etichete (separate prin virgulă)" name="tags" error={errors.tags}>
           <input
             id="tags"
             name="tags"
@@ -180,16 +180,16 @@ export function ProductForm({
           defaultChecked={product?.active ?? true}
           className="size-4 accent-ink"
         />
-        Vizibil in magazin
+        Vizibil în magazin
       </label>
 
       <div className="flex items-center gap-3 border-t border-line pt-5">
         <Button type="submit" disabled={pending}>
           {pending && <Spinner />}
-          {pending ? "Se salveaza…" : product ? "Salveaza modificarile" : "Creeaza produsul"}
+          {pending ? "Se salvează…" : product ? "Salvează modificările" : "Creează produsul"}
         </Button>
         <Link href="/admin/products" className="text-sm text-ink-muted hover:text-ink">
-          Renunta
+          Renunță
         </Link>
       </div>
     </form>

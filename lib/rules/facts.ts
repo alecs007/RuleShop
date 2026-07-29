@@ -15,7 +15,7 @@ export interface FactDef {
 
 export const FACTS: FactDef[] = [
   // Produs (contextul evaluarilor de PRICING / AVAILABILITY per produs)
-  { path: "product.basePriceCents", label: "Pret de baza (bani)", type: "number", example: "34900" },
+  { path: "product.basePriceCents", label: "Preț de bază (bani)", type: "number", example: "34900" },
   { path: "product.category", label: "Categoria produsului", type: "string", example: "audio" },
   { path: "product.brand", label: "Brandul produsului", type: "string" },
   { path: "product.sku", label: "SKU", type: "string" },
@@ -27,20 +27,20 @@ export const FACTS: FactDef[] = [
   { path: "customer.loyaltyPoints", label: "Puncte de loialitate", type: "number" },
   { path: "customer.completedOrders", label: "Comenzi finalizate", type: "number" },
   { path: "customer.lifetimeSpend", label: "Total cheltuit (bani)", type: "number" },
-  { path: "customer.country", label: "Tara clientului", type: "string", example: "RO" },
+  { path: "customer.country", label: "Țara clientului", type: "string", example: "RO" },
   { path: "customer.email", label: "Email client", type: "string" },
 
   // Cos (contextul evaluarilor de SHIPPING / FRAUD / LOYALTY la checkout)
-  { path: "cart.subtotalCents", label: "Subtotal cos (bani)", type: "number" },
-  { path: "cart.itemCount", label: "Numar de produse in cos", type: "number" },
-  { path: "cart.categories", label: "Categoriile din cos", type: "array" },
+  { path: "cart.subtotalCents", label: "Subtotal coș (bani)", type: "number" },
+  { path: "cart.itemCount", label: "Număr de produse în coș", type: "number" },
+  { path: "cart.categories", label: "Categoriile din coș", type: "array" },
 
   // Sesiune
-  { path: "session.isGuest", label: "Este vizitator (fara cont)", type: "boolean" },
+  { path: "session.isGuest", label: "Este vizitator (fără cont)", type: "boolean" },
   { path: "session.isAuthenticated", label: "Este autentificat", type: "boolean" },
 
   // Timp
-  { path: "now", label: "Momentul evaluarii (data)", type: "date" },
+  { path: "now", label: "Momentul evaluării (dată)", type: "date" },
 ];
 
 export function getFact(path: string): FactDef | undefined {

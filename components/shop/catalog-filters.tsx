@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils/cn";
 
 const SORT_LABELS: Record<string, string> = {
   newest: "Cele mai noi",
-  "price-asc": "Pret crescator",
-  "price-desc": "Pret descrescator",
+  "price-asc": "Preț crescător",
+  "price-desc": "Preț descrescător",
   name: "Alfabetic",
 };
 
@@ -61,7 +61,7 @@ export function CatalogFilters({ categories }: { categories: string[] }) {
       <select
         value={searchParams.get("sort") ?? "newest"}
         onChange={(e) => setParam("sort", e.target.value === "newest" ? null : e.target.value)}
-        aria-label="Sorteaza"
+        aria-label="Sortează"
         className="ml-auto h-9 cursor-pointer rounded-lg border border-line bg-surface-raised px-3 text-sm outline-none transition-colors focus:border-accent"
       >
         {Object.entries(SORT_LABELS).map(([value, label]) => (

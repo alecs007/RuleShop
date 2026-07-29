@@ -1,12 +1,19 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export function Footer({ storeName = "RuleShop" }: { storeName?: string }) {
   return (
     <footer className="mt-16 border-t border-line bg-surface-raised">
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
+      <div className="mx-auto grid max-w-7xl gap-12 px-4 py-10 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
         <div>
-          <p className="text-sm font-semibold">{storeName}</p>
-          <p className="mt-2 max-w-xs text-sm text-ink-muted">
+          <Image
+            src="/images/wide-logo.svg"
+            alt={storeName}
+            width={1600}
+            height={332}
+            className="h-7 w-auto"
+          />
+          <p className="mt-4 max-w-xs text-sm text-ink-muted">
             Magazin online întreținut de un rule engine configurabil.
           </p>
         </div>
@@ -20,7 +27,7 @@ export function Footer({ storeName = "RuleShop" }: { storeName?: string }) {
             </li>
             <li>
               <Link href="/cart" className="hover:text-ink">
-                Cosul meu
+                Coșul meu
               </Link>
             </li>
           </ul>
@@ -44,7 +51,7 @@ export function Footer({ storeName = "RuleShop" }: { storeName?: string }) {
           <p className="text-sm font-semibold">Ajutor</p>
           <ul className="mt-2 space-y-1.5 text-sm text-ink-muted">
             <li>
-              <span>Livrare si retururi</span>
+              <span>Livrare și retururi</span>
             </li>
             <li>
               <span>Contact</span>
@@ -54,8 +61,8 @@ export function Footer({ storeName = "RuleShop" }: { storeName?: string }) {
       </div>
       <div className="border-t border-line">
         <p className="mx-auto max-w-7xl px-4 py-4 text-xs text-ink-faint sm:px-6">
-          © {new Date().getFullYear()} {storeName}. Plati simulate — mediu
-          demonstrativ.
+          © {new Date().getFullYear()} {storeName}. Toate drepturile
+          rezervate.{" "}
         </p>
       </div>
     </footer>

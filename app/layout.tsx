@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     default: "RuleShop",
     template: "%s | RuleShop",
   },
-  description: "Magazin online întreținut de un rule engine configurabil.",
+  description: "Magazin online guvernat în timp real de un rule engine configurabil.",
 };
 
 export default function RootLayout({

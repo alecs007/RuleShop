@@ -16,7 +16,7 @@ const productSchema = z.object({
     .trim()
     .min(2)
     .max(60)
-    .regex(/^[A-Za-z0-9-]+$/, "SKU: doar litere, cifre si cratime")
+    .regex(/^[A-Za-z0-9-]+$/, "SKU: doar litere, cifre și cratime")
     .transform((s) => s.toUpperCase()),
   category: z
     .string()
@@ -91,7 +91,7 @@ export async function createProductAction(
 
   const parsed = parseForm(formData);
   if (!parsed.success) {
-    return { ok: false, message: "Verifica erorile.", fieldErrors: fieldErrors(parsed.error) };
+    return { ok: false, message: "Verifică erorile.", fieldErrors: fieldErrors(parsed.error) };
   }
 
   const data = toData(parsed.data, storeId);
@@ -113,7 +113,7 @@ export async function createProductAction(
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      return { ok: false, message: "Exista deja un produs cu acest SKU sau nume (slug)." };
+      return { ok: false, message: "Există deja un produs cu acest SKU sau nume (slug)." };
     }
     throw error;
   }
@@ -133,11 +133,11 @@ export async function updateProductAction(
   const existing = await prisma.product.findFirst({
     where: { id: productId, storeId },
   });
-  if (!existing) return { ok: false, message: "Produsul nu exista." };
+  if (!existing) return { ok: false, message: "Produsul nu există." };
 
   const parsed = parseForm(formData);
   if (!parsed.success) {
-    return { ok: false, message: "Verifica erorile.", fieldErrors: fieldErrors(parsed.error) };
+    return { ok: false, message: "Verifică erorile.", fieldErrors: fieldErrors(parsed.error) };
   }
 
   const data = toData(parsed.data, storeId);
@@ -165,7 +165,7 @@ export async function updateProductAction(
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      return { ok: false, message: "Exista deja un produs cu acest SKU." };
+      return { ok: false, message: "Există deja un produs cu acest SKU." };
     }
     throw error;
   }

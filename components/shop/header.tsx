@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ShoppingBag } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth/guards";
+import { isStaff } from "@/lib/auth/roles";
 import { getActiveStore } from "@/lib/shop/store";
 import { getCartCount } from "@/lib/shop/cart";
 import { getCategories } from "@/lib/shop/products";
@@ -10,8 +11,8 @@ import { AccountMenu } from "./account-menu";
 
 export async function Header() {
   const store = await getActiveStore();
-  const [session, cartCount, categories] = await Promise.all([
-    auth(),
+  const [user, cartCount, categories] = await Promise.all([
+    getSessionUser(),
     getCartCount(store.id),
     getCategories(store.id),
   ]);
@@ -26,11 +27,22 @@ export async function Header() {
         </div>
 
         <nav className="flex items-center gap-1 sm:gap-2">
-          <AccountMenu user={session?.user ?? null} />
+          <AccountMenu
+            user={
+              user
+                ? {
+                    name: user.name,
+                    email: user.email,
+                    image: user.image,
+                    isStaff: isStaff(user.role),
+                  }
+                : null
+            }
+          />
           <Link
             href="/cart"
             className="relative flex size-10 items-center justify-center rounded-lg text-ink transition-colors hover:bg-zinc-100"
-            aria-label={`Cos de cumparaturi, ${cartCount} produse`}
+            aria-label={`Coș de cumpărături, ${cartCount} produse`}
           >
             <ShoppingBag className="size-5" strokeWidth={1.75} />
             {cartCount > 0 && (

@@ -64,9 +64,9 @@ function ResultCard({
   return (
     <div className="flex-1 rounded-xl border border-line bg-surface p-4">
       {tone === "live" ? (
-        <Badge tone="positive">acum in magazin</Badge>
+        <Badge tone="positive">acum în magazin</Badge>
       ) : (
-        <Badge tone="caution">dupa publicare</Badge>
+        <Badge tone="caution">după publicare</Badge>
       )}
       <div className="mt-3 flex items-baseline gap-2">
         <span className="text-xl font-semibold tabular-nums">
@@ -85,7 +85,7 @@ function ResultCard({
       </div>
       <p className="mt-3 text-sm text-ink-muted">
         {matchedRules.length === 0
-          ? "Nicio regula nu se aplica."
+          ? "Nicio regulă nu se aplică."
           : matchedRules.map((key) => ruleNames.get(key) ?? key).join(", ")}
       </p>
     </div>
@@ -93,7 +93,7 @@ function ResultCard({
 }
 
 /**
- * „Testeaza pe un produs": cautare cu autocomplete, apoi pretul calculat de
+ * „Testează pe un produs": cautare cu autocomplete, apoi pretul calculat de
  * versiunea activa si — daca exista drafturi — cel de dupa publicare.
  */
 export async function PriceTester({
@@ -141,7 +141,7 @@ export async function PriceTester({
     <div className="mt-10">
       <h2 className="flex items-center gap-2 text-lg font-semibold">
         <FlaskConical className="size-5 text-accent" strokeWidth={1.75} />
-        Testeaza pe un produs
+        Testează pe un produs
       </h2>
 
       <div className="mt-3 rounded-xl border border-line bg-surface-raised p-4">
@@ -175,7 +175,7 @@ export async function PriceTester({
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{tested.name}</p>
                 <p className="text-xs text-ink-faint">
-                  {tested.sku} · pret de baza{" "}
+                  {tested.sku} · preț de bază{" "}
                   {formatMoney(tested.basePriceCents, tested.currency)}
                 </p>
               </div>
@@ -211,7 +211,7 @@ export async function PriceTester({
           live.finalCents === candidate.finalCents && (
             <p className="mt-3 flex items-center gap-2 text-sm text-ink-muted">
               <TriangleAlert className="size-4 text-caution" strokeWidth={1.75} />
-              Drafturile nepublicate nu schimba pretul acestui produs.
+              Drafturile nepublicate nu schimbă prețul acestui produs.
             </p>
           )}
       </div>

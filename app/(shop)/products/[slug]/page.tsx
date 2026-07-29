@@ -82,9 +82,9 @@ export default async function ProductPage({ params }: Props) {
           <div className="mt-3 flex flex-wrap gap-2">
             {available ? (
               product.stock <= 5 ? (
-                <Badge tone="caution">Ultimele {product.stock} bucati</Badge>
+                <Badge tone="caution">Ultimele {product.stock} bucăți</Badge>
               ) : (
-                <Badge tone="positive">In stoc</Badge>
+                <Badge tone="positive">În stoc</Badge>
               )
             ) : (
               <Badge tone="critical">Stoc epuizat</Badge>
@@ -111,15 +111,15 @@ export default async function ProductPage({ params }: Props) {
           <ul className="mt-8 space-y-3 border-t border-line pt-6 text-sm text-ink-muted">
             <li className="flex items-center gap-2.5">
               <Truck className="size-4" strokeWidth={1.75} />
-              Livrare in 2–4 zile lucratoare
+              Livrare în 2–4 zile lucrătoare
             </li>
             <li className="flex items-center gap-2.5">
               <RotateCcw className="size-4" strokeWidth={1.75} />
-              Retur gratuit in 30 de zile
+              Retur gratuit în 30 de zile
             </li>
             <li className="flex items-center gap-2.5">
               <ShieldCheck className="size-4" strokeWidth={1.75} />
-              Garantie 24 de luni
+              Garanție 24 de luni
             </li>
           </ul>
         </div>

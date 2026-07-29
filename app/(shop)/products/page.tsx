@@ -76,9 +76,9 @@ export default async function ProductsPage({
 
       {result.products.length === 0 ? (
         <div className="mt-16 text-center">
-          <p className="text-ink-muted">Niciun produs nu corespunde cautarii.</p>
+          <p className="text-ink-muted">Niciun produs nu corespunde căutării.</p>
           <Link href="/products" className="mt-2 inline-block text-sm text-accent hover:underline">
-            Reseteaza filtrele
+            Resetează filtrele
           </Link>
         </div>
       ) : (

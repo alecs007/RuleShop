@@ -10,10 +10,10 @@ export interface PriorityLevel {
 }
 
 export const PRIORITY_LEVELS: PriorityLevel[] = [
-  { value: 50, label: "Scazuta", hint: "se aplica doar daca nu o bate alta regula" },
-  { value: 100, label: "Normala", hint: "potrivita pentru majoritatea regulilor" },
-  { value: 500, label: "Ridicata", hint: "bate regulile normale" },
-  { value: 1000, label: "Critica", hint: "bate aproape orice (ex: blocari, plafoane)" },
+  { value: 50, label: "Scăzută", hint: "se aplică doar dacă nu o bate altă regulă" },
+  { value: 100, label: "Normală", hint: "potrivită pentru majoritatea regulilor" },
+  { value: 500, label: "Ridicată", hint: "bate regulile normale" },
+  { value: 1000, label: "Critică", hint: "bate aproape orice (ex: blocări, plafoane)" },
 ];
 
 /** Eticheta nivelului cel mai apropiat de un numar arbitrar. */

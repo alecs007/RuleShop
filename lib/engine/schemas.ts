@@ -30,7 +30,7 @@ const conditionLeafSchema = z.object({
     .string()
     .min(1)
     .max(200)
-    .regex(/^[a-zA-Z_][a-zA-Z0-9_.]*$/, "Cale de fact invalida"),
+    .regex(/^[a-zA-Z_][a-zA-Z0-9_.]*$/, "Cale de fact invalidă"),
   operator: z.string().min(1),
   value: z.unknown().optional(),
 });
@@ -96,10 +96,10 @@ function expectedValueMatchesOperator(
   if (op.unary) {
     return value === undefined
       ? null
-      : `Operatorul "${operatorId}" este unar si nu accepta o valoare`;
+      : `Operatorul "${operatorId}" este unar și nu acceptă o valoare`;
   }
   if (value === undefined) {
-    return `Operatorul "${operatorId}" necesita o valoare de comparatie`;
+    return `Operatorul "${operatorId}" necesită o valoare de comparație`;
   }
   // compatibilitate operator <-> tipul VALORII de comparatie
   switch (operatorId) {
@@ -108,12 +108,12 @@ function expectedValueMatchesOperator(
     case "lt":
     case "lte":
       if (typeof value !== "number" && Number.isNaN(Date.parse(String(value)))) {
-        return `Operatorul "${operatorId}" cere un numar sau o data`;
+        return `Operatorul "${operatorId}" cere un număr sau o dată`;
       }
       return null;
     case "between":
       if (!Array.isArray(value) || value.length !== 2) {
-        return `Operatorul "between" cere o lista [min, max]`;
+        return `Operatorul "between" cere o listă [min, max]`;
       }
       return null;
     case "in":
@@ -121,7 +121,7 @@ function expectedValueMatchesOperator(
     case "containsAny":
     case "containsAll":
       if (!Array.isArray(value) || value.length === 0) {
-        return `Operatorul "${operatorId}" cere o lista nevida de valori`;
+        return `Operatorul "${operatorId}" cere o listă nevidă de valori`;
       }
       return null;
     case "startsWith":
@@ -148,7 +148,7 @@ function validateConditionTree(
   if (node.op === "NOT" && node.children.length !== 1) {
     issues.push({
       path,
-      message: "Grupul NOT trebuie sa aiba exact un copil",
+      message: "Grupul NOT trebuie să aibă exact un copil",
       severity: "error",
     });
   }
@@ -169,7 +169,7 @@ function validateActionsSemantics(
     if (!def) {
       issues.push({
         path: actionPath,
-        message: `Actiune necunoscuta: "${action.type}"`,
+        message: `Acțiune necunoscută: "${action.type}"`,
         severity: "error",
       });
       return;
@@ -177,7 +177,7 @@ function validateActionsSemantics(
     if (def.category !== category) {
       issues.push({
         path: actionPath,
-        message: `Actiunea "${action.type}" apartine categoriei ${def.category}, nu ${category}`,
+        message: `Actiunea "${action.type}" aparține categoriei ${def.category}, nu ${category}`,
         severity: "error",
       });
       return;
@@ -198,7 +198,7 @@ function validateActionsSemantics(
         if (typeof value !== "number" || !Number.isFinite(value)) {
           issues.push({
             path: actionPath,
-            message: `Parametrul "${spec.name}" trebuie sa fie numar`,
+            message: `Parametrul "${spec.name}" trebuie să fie număr`,
             severity: "error",
           });
           continue;
@@ -206,14 +206,14 @@ function validateActionsSemantics(
         if (spec.min !== undefined && value < spec.min) {
           issues.push({
             path: actionPath,
-            message: `Parametrul "${spec.name}" trebuie sa fie >= ${spec.min}`,
+            message: `Parametrul "${spec.name}" trebuie să fie >= ${spec.min}`,
             severity: "error",
           });
         }
         if (spec.max !== undefined && value > spec.max) {
           issues.push({
             path: actionPath,
-            message: `Parametrul "${spec.name}" trebuie sa fie <= ${spec.max}`,
+            message: `Parametrul "${spec.name}" trebuie să fie <= ${spec.max}`,
             severity: "error",
           });
         }
@@ -221,20 +221,20 @@ function validateActionsSemantics(
         if (typeof value !== "string" || value.length === 0) {
           issues.push({
             path: actionPath,
-            message: `Parametrul "${spec.name}" trebuie sa fie text nevid`,
+            message: `Parametrul "${spec.name}" trebuie să fie text nevid`,
             severity: "error",
           });
         } else if (spec.oneOf && !spec.oneOf.includes(value)) {
           issues.push({
             path: actionPath,
-            message: `Parametrul "${spec.name}" trebuie sa fie unul din: ${spec.oneOf.join(", ")}`,
+            message: `Parametrul "${spec.name}" trebuie să fie unul din: ${spec.oneOf.join(", ")}`,
             severity: "error",
           });
         }
       } else if (spec.type === "boolean" && typeof value !== "boolean") {
         issues.push({
           path: actionPath,
-          message: `Parametrul "${spec.name}" trebuie sa fie boolean`,
+          message: `Parametrul "${spec.name}" trebuie să fie boolean`,
           severity: "error",
         });
       }
@@ -272,7 +272,7 @@ export function validateRule(
     if (Date.parse(rule.effectiveFrom) > Date.parse(rule.effectiveTo)) {
       issues.push({
         path: `${path}.effectiveTo`,
-        message: "Fereastra de valabilitate este inversata (from > to)",
+        message: "Fereastra de valabilitate este inversată (from > to)",
         severity: "error",
       });
     }
@@ -302,7 +302,7 @@ export function validateSnapshot(snapshot: RuleSetSnapshot): ValidationIssue[] {
     if (seenKeys.has(rule.key)) {
       issues.push({
         path: `rules[${i}].key`,
-        message: `Cheie duplicata: "${rule.key}"`,
+        message: `Cheie duplicată: "${rule.key}"`,
         severity: "error",
       });
     }
@@ -322,7 +322,7 @@ export function validateSnapshot(snapshot: RuleSetSnapshot): ValidationIssue[] {
       if (keys.length > 1) {
         issues.push({
           path: "rules",
-          message: `Regulile [${keys.join(", ")}] au aceeasi prioritate (${priority}) sub PRIORITY_FIRST_MATCH — ordinea de castig este alfabetica, verifica intentia`,
+          message: `Regulile [${keys.join(", ")}] au aceeași prioritate (${priority}) sub PRIORITY_FIRST_MATCH — ordinea de câștig este alfabetică, verifică intenția`,
           severity: "warning",
         });
       }

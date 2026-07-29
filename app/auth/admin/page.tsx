@@ -4,6 +4,7 @@ import { AuthError } from "next-auth";
 import { ShieldCheck } from "lucide-react";
 import { auth, signIn } from "@/lib/auth";
 import { isStaff } from "@/lib/auth/roles";
+import { LogoMark } from "@/components/shop/logo";
 
 export const metadata: Metadata = { title: "Control Plane — Login" };
 
@@ -34,10 +35,9 @@ export default async function AdminLoginPage({
     <main className="flex min-h-screen items-center justify-center bg-surface px-4">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center gap-2">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-ink text-white">
-            <ShieldCheck className="size-5" strokeWidth={1.75} />
-          </span>
-          <h1 className="text-xl font-semibold tracking-tight">
+          <LogoMark className="size-10" />
+          <h1 className="flex items-center gap-1.5 text-xl font-semibold tracking-tight">
+            <ShieldCheck className="size-4 text-ink-muted" strokeWidth={1.75} />
             Control Plane
           </h1>
           <p className="text-sm text-ink-muted">Acces rezervat personalului.</p>
@@ -69,7 +69,7 @@ export default async function AdminLoginPage({
 
           <div>
             <label htmlFor="password" className="text-sm font-medium">
-              Parola
+              Parolă
             </label>
             <input
               id="password"

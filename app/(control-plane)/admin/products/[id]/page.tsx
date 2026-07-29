@@ -6,7 +6,7 @@ import { getCategories } from "@/lib/shop/products";
 import { ProductForm } from "@/components/control-plane/product-form";
 import { deleteProductAction, updateProductAction } from "../actions";
 
-export const metadata: Metadata = { title: "Editeaza produs" };
+export const metadata: Metadata = { title: "Editează produs" };
 
 export default async function EditProductPage({
   params,
@@ -37,7 +37,7 @@ export default async function EditProductPage({
         <form action={deleteProductAction}>
           <input type="hidden" name="productId" value={product.id} />
           <button className="cursor-pointer rounded-lg px-3 py-2 text-sm font-medium text-critical transition-colors hover:bg-red-50">
-            Sterge definitiv
+            Șterge definitiv
           </button>
         </form>
       </div>

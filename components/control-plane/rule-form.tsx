@@ -144,12 +144,12 @@ const inputCls =
 /** Nume prietenoase pentru parametrii actiunilor (in loc de cheile tehnice). */
 const PARAM_LABELS: Record<string, string> = {
   value: "valoare",
-  valueCents: "suma in bani",
-  priceCents: "pret in bani",
-  costCents: "cost in bani",
+  valueCents: "sumă în bani",
+  priceCents: "preț în bani",
+  costCents: "cost în bani",
   factor: "factor",
   badge: "text badge",
-  method: "metoda",
+  method: "metodă",
   decision: "decizie",
   signal: "semnal",
   minDays: "min. zile",
@@ -159,7 +159,7 @@ const PARAM_LABELS: Record<string, string> = {
   points: "puncte",
   benefit: "beneficiu",
   token: "token",
-  variant: "varianta",
+  variant: "variantă",
   available: "disponibil",
 };
 
@@ -293,16 +293,16 @@ export function RuleForm({
           id="description"
           name="description"
           defaultValue={initial?.description}
-          placeholder="de ce exista aceasta regula"
+          placeholder="de ce există această regulă"
           className={`${inputCls} mt-1.5 h-10 w-full`}
         />
       </div>
 
       {/* Conditii */}
       <fieldset className="rounded-xl border border-line bg-surface-raised p-4">
-        <legend className="sr-only">Conditii</legend>
+        <legend className="sr-only">Condiții</legend>
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold">Conditii (DACA…)</p>
+          <p className="text-sm font-semibold">Condiții (DACĂ…)</p>
           <button
             type="button"
             onClick={() => {
@@ -341,8 +341,8 @@ export function RuleForm({
                   onChange={(e) => setRootOp(e.target.value as "AND" | "OR")}
                   className={`${inputCls} cursor-pointer`}
                 >
-                  <option value="AND">toate conditiile (SI)</option>
-                  <option value="OR">oricare conditie (SAU)</option>
+                  <option value="AND">toate condițiile (ȘI)</option>
+                  <option value="OR">oricare condiție (SAU)</option>
                 </select>
               </motion.div>
             )}
@@ -414,7 +414,7 @@ export function RuleForm({
                         onChange={(e) => updateRow(i, { value: e.target.value })}
                         className={`${inputCls} cursor-pointer`}
                       >
-                        <option value="true">adevarat</option>
+                        <option value="true">adevărat</option>
                         <option value="false">fals</option>
                       </select>
                     ) : (
@@ -430,7 +430,7 @@ export function RuleForm({
                           onChange={(e) => updateRow(i, { value: e.target.value })}
                           placeholder={
                             ["in", "notIn", "containsAny", "containsAll"].includes(row.operator)
-                              ? "valori separate prin virgula"
+                              ? "valori separate prin virgulă"
                               : (facts.find((f) => f.path === row.fact)?.example ?? "valoare")
                           }
                           className={`${inputCls} min-w-40 flex-1`}
@@ -449,7 +449,7 @@ export function RuleForm({
                     <button
                       type="button"
                       onClick={() => setRows((prev) => prev.filter((_, idx) => idx !== i))}
-                      aria-label="Sterge conditia"
+                      aria-label="Șterge condiția"
                       className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-red-50 hover:text-critical"
                     >
                       <X className="size-4" />
@@ -470,7 +470,7 @@ export function RuleForm({
               }
               className="inline-flex cursor-pointer items-center gap-1.5 text-sm text-accent transition-colors hover:text-accent-ink hover:underline"
             >
-              <Plus className="size-4" /> Adauga o conditie
+              <Plus className="size-4" /> Adaugă o condiție
             </button>
           </div>
         )}
@@ -478,9 +478,9 @@ export function RuleForm({
 
       {/* Actiuni — acelasi layout de randuri ca la conditii */}
       <fieldset className="rounded-xl border border-line bg-surface-raised p-4">
-        <legend className="sr-only">Actiuni</legend>
+        <legend className="sr-only">Acțiuni</legend>
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold">Actiuni (ATUNCI…)</p>
+          <p className="text-sm font-semibold">Acțiuni (ATUNCI…)</p>
         </div>
         <div className="mt-3 space-y-2.5">
           <AnimatePresence initial={false}>
@@ -576,7 +576,7 @@ export function RuleForm({
                     onClick={() =>
                       setActionRows((prev) => prev.filter((_, idx) => idx !== i))
                     }
-                    aria-label="Sterge actiunea"
+                    aria-label="Șterge acțiunea"
                     className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-red-50 hover:text-critical"
                   >
                     <X className="size-4" />
@@ -597,7 +597,7 @@ export function RuleForm({
             }
             className="inline-flex cursor-pointer items-center gap-1.5 text-sm text-accent transition-colors hover:text-accent-ink hover:underline"
           >
-            <Plus className="size-4" /> Adauga o actiune
+            <Plus className="size-4" /> Adaugă o acțiune
           </button>
         </div>
       </fieldset>
@@ -606,7 +606,7 @@ export function RuleForm({
       <div className="flex items-start gap-2.5 rounded-xl border border-blue-100 bg-blue-50 p-4">
         <Sparkles className="mt-0.5 size-4 shrink-0 text-accent" strokeWidth={1.75} />
         <div className="min-w-0 text-sm leading-relaxed">
-          <p className="font-medium text-accent-ink">Asa se citeste regula ta:</p>
+          <p className="font-medium text-accent-ink">Așa se citește regula ta:</p>
           {preview ? (
             <motion.p
               key={`${preview.if}|${preview.then}`}
@@ -615,12 +615,12 @@ export function RuleForm({
               transition={{ duration: 0.2 }}
               className="mt-1 text-ink"
             >
-              <span className="font-semibold">DACA</span> {preview.if}{" "}
+              <span className="font-semibold">DACĂ</span> {preview.if}{" "}
               <span className="font-semibold">ATUNCI</span> {preview.then}.
             </motion.p>
           ) : (
             <p className="mt-1 text-ink-muted">
-              Completeaza conditiile si actiunile — previzualizarea apare aici.
+              Completează condițiile și acțiunile — previzualizarea apare aici.
             </p>
           )}
         </div>
@@ -633,19 +633,19 @@ export function RuleForm({
           defaultChecked={initial?.enabled ?? true}
           className="size-4 accent-ink"
         />
-        Regula activata (intra in urmatoarea publicare)
+        Regulă activată (intră în următoarea publicare)
       </label>
 
       <div className="flex items-center gap-3 border-t border-line pt-5">
         <Button type="submit" disabled={pending}>
           {pending && <Spinner />}
-          {pending ? "Se salveaza…" : "Salveaza regula"}
+          {pending ? "Se salvează…" : "Salvează regula"}
         </Button>
         <Link href="." className="text-sm text-ink-muted hover:text-ink">
-          Renunta
+          Renunță
         </Link>
         <p className="ml-auto text-xs text-ink-faint">
-          Modificarile devin live abia dupa publicare.
+          Modificările devin live abia după publicare.
         </p>
       </div>
     </form>

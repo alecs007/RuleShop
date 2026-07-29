@@ -21,7 +21,7 @@ export const getActiveStore = cache(async () => {
 
   if (!store) {
     throw new Error(
-      "Niciun magazin configurat. Ruleaza `npm run db:seed` pentru datele demo.",
+      "Niciun magazin configurat. Rulează `npm run db:seed` pentru datele demo.",
     );
   }
   return store;
