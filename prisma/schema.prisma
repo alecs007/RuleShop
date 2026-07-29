@@ -13,7 +13,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
@@ -142,7 +142,7 @@ enum AuditAction {
 /// Un magazin independent. Radacina izolarii datelor: nimic dintr-un magazin
 /// nu trebuie sa fie accesibil din alt magazin.
 model Store {
-  id       String  @id @default(cuid())
+  id       String  @id @default(cuid()) @map("_id")
   slug     String  @unique
   name     String
   domain   String? @unique
@@ -179,7 +179,7 @@ model Store {
 /// Utilizator. `storeId` este null doar pentru PLATFORM_ADMIN (cont global).
 /// Pentru toti ceilalti, contul apartine unui singur magazin.
 model User {
-  id           String  @id @default(cuid())
+  id           String  @id @default(cuid()) @map("_id")
   storeId      String?
   email        String
   name         String?
@@ -223,7 +223,7 @@ model User {
 // ---------------------------------------------------------------------------
 
 model Product {
-  id          String  @id @default(cuid())
+  id          String  @id @default(cuid()) @map("_id")
   storeId     String
   sku         String
   slug        String
@@ -261,7 +261,7 @@ model Product {
 }
 
 model Order {
-  id          String @id @default(cuid())
+  id          String @id @default(cuid()) @map("_id")
   storeId     String
   orderNumber String
 
@@ -324,7 +324,7 @@ model Order {
 /// Linie de comanda. Pastreaza un snapshot al produsului si al deciziei de
 /// pret, astfel incat istoricul sa ramana corect chiar daca produsul se schimba.
 model OrderItem {
-  id        String  @id @default(cuid())
+  id        String  @id @default(cuid()) @map("_id")
   orderId   String
   productId String?
 
@@ -359,7 +359,7 @@ model OrderItem {
 /// Detine si starea de publicare: versiunea stabila, versiunea canary,
 /// procentul canary si kill switch-ul pe categorie.
 model RuleSet {
-  id          String           @id @default(cuid())
+  id          String           @id @default(cuid()) @map("_id")
   storeId     String
   key         String
   name        String
@@ -387,8 +387,10 @@ model RuleSet {
   store         Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
   rules         Rule[]
   versions      RuleVersion[] @relation("RuleSetVersions")
-  activeVersion RuleVersion?  @relation("ActiveVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
-  canaryVersion RuleVersion?  @relation("CanaryVersion", fields: [canaryVersionId], references: [id], onDelete: SetNull)
+  // NoAction: pe MongoDB relatiile sunt emulate si ciclul RuleSet <-> RuleVersion
+  // trebuie rupt; repointarea/curatarea se face in service-ul de publicare.
+  activeVersion RuleVersion?  @relation("ActiveVersion", fields: [activeVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  canaryVersion RuleVersion?  @relation("CanaryVersion", fields: [canaryVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([storeId, key])
   @@unique([storeId, category])
@@ -404,7 +406,7 @@ model RuleSet {
 ///                   "operator": "gte", "value": 20000 } ] }
 /// actions:    [ { "type": "SET_DISCOUNT_PERCENT", "params": { "value": 15 } } ]
 model Rule {
-  id          String @id @default(cuid())
+  id          String @id @default(cuid()) @map("_id")
   storeId     String
   ruleSetId   String
   key         String
@@ -449,7 +451,7 @@ model Rule {
 /// EXCLUSIV snapshot-uri — de aceea rollback-ul inseamna doar repointarea
 /// `RuleSet.activeVersionId` catre o versiune anterioara.
 model RuleVersion {
-  id        String @id @default(cuid())
+  id        String @id @default(cuid()) @map("_id")
   storeId   String
   ruleSetId String
   version   Int
@@ -501,7 +503,7 @@ model RuleVersion {
 /// Jurnal de audit pentru operatiile importante (publicari, rollback, kill
 /// switch, aprobari IA, modificari de catalog si roluri).
 model AuditLog {
-  id      String  @id @default(cuid())
+  id      String  @id @default(cuid()) @map("_id")
   /// Null pentru actiuni la nivel de platforma.
   storeId String?
 
@@ -538,7 +540,7 @@ model AuditLog {
 /// Incident antifrauda produs de rulesetul FRAUD la checkout. Serveste si ca
 /// set de date pentru clasificarea/analiza asistata de IA.
 model FraudIncident {
-  id      String  @id @default(cuid())
+  id      String  @id @default(cuid()) @map("_id")
   storeId String
   orderId String?
   userId  String?
