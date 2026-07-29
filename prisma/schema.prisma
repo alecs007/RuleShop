@@ -1,0 +1,589 @@
+// RuleShop — Rule Engine pentru un magazin online
+// Schema Prisma. Principii:
+//  - multi-tenancy strict: fiecare entitate de business are `storeId`, iar
+//    unicitatea este compusa ([storeId, ...]) astfel incat doua magazine sa
+//    poata folosi acelasi SKU / slug / email fara coliziuni;
+//  - regulile sunt date structurate (JSON), niciodata cod executabil;
+//  - lifecycle-ul regulilor: Rule (draft de lucru) -> RuleVersion (snapshot
+//    imutabil) -> RuleSet.activeVersion / canaryVersion (ce ruleaza in prod);
+//  - toate sumele de bani sunt stocate in unitati minime (bani/cents, Int).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  CUSTOMER
+  OPERATOR
+  STORE_ADMIN
+  PLATFORM_ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  AWAITING_REVIEW
+  PAID
+  FULFILLED
+  CANCELLED
+  REJECTED
+  REFUNDED
+}
+
+/// Punctele de decizie controlate de rule engine.
+enum DecisionCategory {
+  PRICING
+  SHIPPING
+  FRAUD
+  AVAILABILITY
+  LOYALTY
+  THEME
+}
+
+/// Strategia de rezolvare a conflictelor intre reguli, la nivel de ruleset.
+enum ConflictStrategy {
+  PRIORITY_FIRST_MATCH
+  PRIORITY_ALL_MATCHES
+  MOST_SPECIFIC
+  BEST_FOR_CUSTOMER
+}
+
+enum RuleStatus {
+  DRAFT
+  ACTIVE
+  DISABLED
+  ARCHIVED
+}
+
+enum RuleVersionStatus {
+  DRAFT
+  PUBLISHED
+  SUPERSEDED
+  ROLLED_BACK
+  ARCHIVED
+}
+
+/// Canalul pe care a fost publicata o versiune.
+enum PublishChannel {
+  STABLE
+  CANARY
+}
+
+/// Sursa unei reguli / versiuni — necesara pentru trasabilitatea sugestiilor IA.
+enum AuthoringSource {
+  HUMAN
+  AI_SUGGESTION
+  IMPORT
+  SEED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+/// Decizia antifrauda aplicata la checkout.
+enum FraudDecision {
+  ALLOW
+  CHALLENGE
+  REVIEW
+  BLOCK
+}
+
+enum FraudReviewStatus {
+  OPEN
+  CONFIRMED_FRAUD
+  FALSE_POSITIVE
+  DISMISSED
+}
+
+enum AuditAction {
+  RULE_CREATED
+  RULE_UPDATED
+  RULE_DELETED
+  RULE_ENABLED
+  RULE_DISABLED
+  RULESET_CREATED
+  RULESET_UPDATED
+  VERSION_CREATED
+  VERSION_PUBLISHED
+  VERSION_CANARY_PUBLISHED
+  VERSION_ROLLED_BACK
+  KILL_SWITCH_ON
+  KILL_SWITCH_OFF
+  AI_SUGGESTION_GENERATED
+  AI_SUGGESTION_APPROVED
+  AI_SUGGESTION_REJECTED
+  PRODUCT_CREATED
+  PRODUCT_UPDATED
+  PRODUCT_DELETED
+  ORDER_STATUS_CHANGED
+  USER_ROLE_CHANGED
+  LOGIN_SUCCEEDED
+  LOGIN_FAILED
+  STORE_SETTINGS_UPDATED
+  FRAUD_INCIDENT_REVIEWED
+}
+
+// ---------------------------------------------------------------------------
+// Tenancy
+// ---------------------------------------------------------------------------
+
+/// Un magazin independent. Radacina izolarii datelor: nimic dintr-un magazin
+/// nu trebuie sa fie accesibil din alt magazin.
+model Store {
+  id       String  @id @default(cuid())
+  slug     String  @unique
+  name     String
+  domain   String? @unique
+  currency String  @default("RON")
+  locale   String  @default("ro-RO")
+  active   Boolean @default(true)
+
+  /// Tema implicita (culori, logo, layout). Regulile de tip THEME pot
+  /// suprascrie aceste valori la runtime, fara deploy.
+  themeDefaults Json @default("{}")
+  /// Setari generale ale magazinului (praguri livrare, TVA, contact etc).
+  settings      Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users          User[]
+  products       Product[]
+  orders         Order[]
+  ruleSets       RuleSet[]
+  rules          Rule[]
+  ruleVersions   RuleVersion[]
+  auditLogs      AuditLog[]
+  fraudIncidents FraudIncident[]
+
+  @@index([active])
+  @@map("stores")
+}
+
+// ---------------------------------------------------------------------------
+// Identitate & autorizare
+// ---------------------------------------------------------------------------
+
+/// Utilizator. `storeId` este null doar pentru PLATFORM_ADMIN (cont global).
+/// Pentru toti ceilalti, contul apartine unui singur magazin.
+model User {
+  id           String  @id @default(cuid())
+  storeId      String?
+  email        String
+  name         String?
+  /// Hash Argon2/bcrypt. Parola in clar nu este stocata niciodata.
+  passwordHash String
+  role         Role    @default(CUSTOMER)
+  active       Boolean @default(true)
+
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+
+  // Semnale folosite de reguli (loialitate, segmentare, antifrauda).
+  loyaltyTier    String @default("STANDARD")
+  loyaltyPoints  Int    @default(0)
+  lifetimeSpend  Int    @default(0) // in bani/cents
+  completedOrders Int   @default(0)
+  /// Atribute libere disponibile in contextul de evaluare (ex: country, segment).
+  attributes     Json   @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store           Store?          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  orders          Order[]
+  createdRules    Rule[]          @relation("RuleAuthor")
+  createdVersions RuleVersion[]   @relation("VersionAuthor")
+  publishedVersions RuleVersion[] @relation("VersionPublisher")
+  auditLogs       AuditLog[]
+  fraudIncidents  FraudIncident[] @relation("FraudSubject")
+  reviewedIncidents FraudIncident[] @relation("FraudReviewer")
+
+  /// Acelasi email poate exista in magazine diferite, dar o singura data per magazin.
+  @@unique([storeId, email])
+  @@index([storeId, role])
+  @@index([email])
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Catalog & comenzi
+// ---------------------------------------------------------------------------
+
+model Product {
+  id          String  @id @default(cuid())
+  storeId     String
+  sku         String
+  slug        String
+  name        String
+  description String  @default("")
+  category    String
+  brand       String?
+
+  /// Pretul de baza, in bani/cents. Pretul final este intotdeauna rezultatul
+  /// evaluarii rulesetului PRICING peste aceasta valoare.
+  basePriceCents Int
+  currency       String   @default("RON")
+  stock          Int      @default(0)
+  /// Stoc rezervat de comenzi in curs (pentru deciziile de AVAILABILITY).
+  reservedStock  Int      @default(0)
+  weightGrams    Int      @default(0)
+  tags           String[] @default([])
+  imageUrls      String[] @default([])
+  active         Boolean  @default(true)
+
+  /// Atribute arbitrare expuse motorului de reguli (ex: fragile, hazmat, isNew).
+  attributes Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store      Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+
+  @@unique([storeId, sku])
+  @@unique([storeId, slug])
+  @@index([storeId, active, category])
+  @@index([storeId, name])
+  @@map("products")
+}
+
+model Order {
+  id          String @id @default(cuid())
+  storeId     String
+  orderNumber String
+
+  // Cumparare autentificata (userId) SAU in regim guest (guestEmail).
+  userId     String?
+  guestEmail String?
+  guestName  String?
+  /// Identificator stabil de sesiune — folosit pentru repartizarea canary
+  /// determinista atunci cand nu exista user autentificat.
+  sessionKey String
+
+  status OrderStatus @default(PENDING)
+
+  subtotalCents Int
+  discountCents Int    @default(0)
+  shippingCents Int    @default(0)
+  taxCents      Int    @default(0)
+  totalCents    Int
+  currency      String @default("RON")
+
+  shippingMethod  String?
+  shippingAddress Json    @default("{}")
+  billingAddress  Json    @default("{}")
+  paymentMethod   String?
+  /// Plata este simulata; pastram doar referinta si rezultatul.
+  paymentRef      String?
+
+  // --- Trasabilitatea deciziilor luate de engine pentru aceasta comanda ---
+  /// Snapshot al deciziilor finale (pret, livrare, frauda, loialitate).
+  decisionSnapshot Json    @default("{}")
+  /// Cheile regulilor care au contribuit la decizia finala.
+  matchedRuleKeys  String[] @default([])
+  /// Versiunile de ruleset folosite, pe categorie: { "PRICING": 7, ... }
+  rulesetVersions  Json     @default("{}")
+  traceId          String?
+  /// Ramura canary vs stable pe care a cazut aceasta sesiune.
+  canaryCohort     Boolean  @default(false)
+
+  loyaltyPointsEarned Int @default(0)
+  loyaltyPointsSpent  Int @default(0)
+  riskScore           Int @default(0)
+
+  placedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  store          Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user           User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items          OrderItem[]
+  fraudIncidents FraudIncident[]
+
+  @@unique([storeId, orderNumber])
+  @@index([storeId, status, createdAt])
+  @@index([storeId, userId])
+  @@index([storeId, guestEmail])
+  @@index([traceId])
+  @@map("orders")
+}
+
+/// Linie de comanda. Pastreaza un snapshot al produsului si al deciziei de
+/// pret, astfel incat istoricul sa ramana corect chiar daca produsul se schimba.
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String?
+
+  sku         String
+  name        String
+  quantity    Int
+  /// Pretul de baza la momentul comenzii (inainte de reguli).
+  basePriceCents  Int
+  /// Pretul unitar dupa aplicarea regulilor de PRICING.
+  finalPriceCents Int
+  discountCents   Int @default(0)
+  lineTotalCents  Int
+
+  /// Regulile care au modificat aceasta linie + explicatia lor.
+  appliedRules Json @default("[]")
+
+  createdAt DateTime @default(now())
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+// ---------------------------------------------------------------------------
+// Rule engine: RuleSet -> Rule (draft) -> RuleVersion (snapshot publicabil)
+// ---------------------------------------------------------------------------
+
+/// Colectie de reguli pentru un punct de decizie al unui magazin.
+/// Detine si starea de publicare: versiunea stabila, versiunea canary,
+/// procentul canary si kill switch-ul pe categorie.
+model RuleSet {
+  id          String           @id @default(cuid())
+  storeId     String
+  key         String
+  name        String
+  description String           @default("")
+  category    DecisionCategory
+
+  conflictStrategy ConflictStrategy @default(PRIORITY_FIRST_MATCH)
+  /// Decizia returnata cand nicio regula nu se potriveste sau cand engine-ul
+  /// este oprit prin kill switch (fail-safe).
+  defaultDecision  Json             @default("{}")
+
+  // --- Stare de publicare ---
+  activeVersionId  String? @unique
+  canaryVersionId  String? @unique
+  /// Procent de utilizatori/sesiuni directionati catre versiunea canary (0-100).
+  canaryPercentage Int     @default(0)
+  /// Oprire rapida a intregii categorii de decizii; se cade pe defaultDecision.
+  killSwitch       Boolean @default(false)
+  killSwitchReason String?
+  killSwitchAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store         Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  rules         Rule[]
+  versions      RuleVersion[] @relation("RuleSetVersions")
+  activeVersion RuleVersion?  @relation("ActiveVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
+  canaryVersion RuleVersion?  @relation("CanaryVersion", fields: [canaryVersionId], references: [id], onDelete: SetNull)
+
+  @@unique([storeId, key])
+  @@unique([storeId, category])
+  @@index([storeId, killSwitch])
+  @@map("rule_sets")
+}
+
+/// Regula de lucru (draft editabil). Conditiile si actiunile sunt structuri
+/// JSON validate de aplicatie (AST), NU cod executabil.
+///
+/// conditions: { "type": "group", "op": "AND" | "OR" | "NOT", "children": [
+///                 { "type": "condition", "fact": "cart.total",
+///                   "operator": "gte", "value": 20000 } ] }
+/// actions:    [ { "type": "SET_DISCOUNT_PERCENT", "params": { "value": 15 } } ]
+model Rule {
+  id          String @id @default(cuid())
+  storeId     String
+  ruleSetId   String
+  key         String
+  name        String
+  description String @default("")
+
+  /// Prioritate: valoare mai mare = evaluata mai devreme.
+  priority Int        @default(100)
+  status   RuleStatus @default(DRAFT)
+  enabled  Boolean    @default(true)
+
+  conditions Json
+  actions    Json
+  /// Metadate libere: owner, ticket, motivatie business, note de test.
+  metadata   Json     @default("{}")
+  tags       String[] @default([])
+
+  /// Fereastra de valabilitate (ex: campanie de Black Friday).
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+
+  source          AuthoringSource @default(HUMAN)
+  /// Explicatia in limbaj natural generata de modulul IA, daca exista.
+  aiRationale     String?
+  aiConfidence    Float?
+  createdById     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  ruleSet   RuleSet  @relation(fields: [ruleSetId], references: [id], onDelete: Cascade)
+  createdBy User?    @relation("RuleAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([ruleSetId, key])
+  @@index([storeId, ruleSetId, status])
+  @@index([ruleSetId, priority])
+  @@map("rules")
+}
+
+/// Snapshot imutabil al unui ruleset la momentul publicarii. Motorul evalueaza
+/// EXCLUSIV snapshot-uri — de aceea rollback-ul inseamna doar repointarea
+/// `RuleSet.activeVersionId` catre o versiune anterioara.
+model RuleVersion {
+  id        String @id @default(cuid())
+  storeId   String
+  ruleSetId String
+  version   Int
+
+  status         RuleVersionStatus @default(DRAFT)
+  publishChannel PublishChannel?
+  /// Procentul canary cu care a fost publicata versiunea (istoric).
+  canaryPercentage Int             @default(0)
+
+  /// Continutul inghetat: { conflictStrategy, defaultDecision, rules: [...] }.
+  snapshot      Json
+  /// Diff structurat fata de versiunea precedenta (added/removed/changed).
+  diff          Json    @default("{}")
+  changeSummary String  @default("")
+  /// Hash al snapshot-ului, pentru detectarea publicarilor identice.
+  checksum      String
+
+  source AuthoringSource @default(HUMAN)
+  /// Rezultatele simularii pe evenimente istorice (metrici comparabile cu
+  /// versiunea curenta), calculate de aplicatie, nu declarate de IA.
+  simulationMetrics Json @default("{}")
+
+  createdById   String?
+  publishedById String?
+  publishedAt   DateTime?
+  rolledBackAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  ruleSet     RuleSet  @relation("RuleSetVersions", fields: [ruleSetId], references: [id], onDelete: Cascade)
+  createdBy   User?    @relation("VersionAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  publishedBy User?    @relation("VersionPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+
+  activeFor RuleSet? @relation("ActiveVersion")
+  canaryFor RuleSet? @relation("CanaryVersion")
+
+  @@unique([ruleSetId, version])
+  @@index([storeId, ruleSetId, status])
+  @@index([ruleSetId, publishedAt])
+  @@map("rule_versions")
+}
+
+// ---------------------------------------------------------------------------
+// Observabilitate
+// ---------------------------------------------------------------------------
+
+/// Jurnal de audit pentru operatiile importante (publicari, rollback, kill
+/// switch, aprobari IA, modificari de catalog si roluri).
+model AuditLog {
+  id      String  @id @default(cuid())
+  /// Null pentru actiuni la nivel de platforma.
+  storeId String?
+
+  action     AuditAction
+  entityType String
+  entityId   String?
+
+  actorId    String?
+  actorEmail String?
+  actorRole  Role?
+
+  /// Starea inainte/dupa, pentru reconstituirea modificarii.
+  before   Json    @default("{}")
+  after    Json    @default("{}")
+  metadata Json    @default("{}")
+
+  ipAddress String?
+  userAgent String?
+  /// Coreleaza intrarea de audit cu o evaluare a engine-ului.
+  traceId   String?
+
+  createdAt DateTime @default(now())
+
+  store Store? @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  actor User?  @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([storeId, createdAt])
+  @@index([storeId, action, createdAt])
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@map("audit_logs")
+}
+
+/// Incident antifrauda produs de rulesetul FRAUD la checkout. Serveste si ca
+/// set de date pentru clasificarea/analiza asistata de IA.
+model FraudIncident {
+  id      String  @id @default(cuid())
+  storeId String
+  orderId String?
+  userId  String?
+
+  sessionKey String
+  email      String?
+  ipAddress  String?
+  userAgent  String?
+  /// Amprenta device/browser, daca este disponibila.
+  fingerprint String?
+
+  riskScore Int
+  riskLevel RiskLevel
+  decision  FraudDecision
+
+  /// Semnalele care au declansat incidentul (viteza comenzilor, tara IP,
+  /// nepotrivire adresa de livrare/facturare, cos anormal etc).
+  signals         Json     @default("{}")
+  matchedRuleKeys String[] @default([])
+  rulesetVersion  Int?
+  traceId         String?
+  /// Explicatia deciziei, in forma redata in interfata.
+  explanation     Json     @default("{}")
+
+  // --- Analiza IA + control uman ---
+  aiClassification String?
+  aiConfidence     Float?
+  aiRationale      String?
+
+  reviewStatus FraudReviewStatus @default(OPEN)
+  reviewedById String?
+  reviewedAt   DateTime?
+  reviewNotes  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store      Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  order      Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  user       User?  @relation("FraudSubject", fields: [userId], references: [id], onDelete: SetNull)
+  reviewedBy User?  @relation("FraudReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([storeId, createdAt])
+  @@index([storeId, reviewStatus, riskLevel])
+  @@index([storeId, sessionKey])
+  @@index([traceId])
+  @@map("fraud_incidents")
+}
