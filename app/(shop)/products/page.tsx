@@ -10,6 +10,7 @@ import {
 import { getPriceViews } from "@/lib/shop/pricing";
 import { ProductCard } from "@/components/shop/product-card";
 import { CatalogFilters } from "@/components/shop/catalog-filters";
+import { AppearItem, AppearList } from "@/components/ui/appear";
 
 export const metadata: Metadata = { title: "Produse" };
 
@@ -82,15 +83,20 @@ export default async function ProductsPage({
           </Link>
         </div>
       ) : (
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {result.products.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              price={prices.get(product.id)!}
-            />
+        <AppearList
+          // Orice schimbare de filtru, sortare sau pagină redă intrarea cardurilor.
+          resetKey={`${params.category ?? ""}|${params.q ?? ""}|${sort}|${page}`}
+          className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
+        >
+          {result.products.map((product, index) => (
+            <AppearItem key={product.id} index={index} className="h-full">
+              <ProductCard
+                product={product}
+                price={prices.get(product.id)!}
+              />
+            </AppearItem>
           ))}
-        </div>
+        </AppearList>
       )}
 
       {/* Paginare */}

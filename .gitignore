@@ -31,3 +31,6 @@ yarn-error.log*
 
 # prisma
 /prisma/*.db
+
+# imagini incarcate local (driverul de rezerva al lib/storage)
+/storage/uploads

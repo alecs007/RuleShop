@@ -7,6 +7,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { requireAdmin } from "@/lib/auth/guards";
 import { logAudit } from "@/lib/audit";
+import { keyFromMediaUrl } from "@/lib/storage";
 import { slugify } from "@/lib/utils/slug";
 
 const productSchema = z.object({
@@ -31,7 +32,41 @@ const productSchema = z.object({
   stock: z.coerce.number().int().min(0).max(1_000_000),
   /** Greutatea de livrare, in grame — o citesc regulile prin `cart.weightGrams`. */
   weightGrams: z.coerce.number().int().min(0).max(1_000_000),
-  imageUrl: z.union([z.url(), z.literal("")]).optional(),
+  /**
+   * Imaginile vin din dropzone ca JSON. Se acceptă doar două forme: media
+   * proprie (`/api/v1/media/<cheie>`, deci ceva ce am stocat noi) sau un URL
+   * https extern — altfel un `javascript:` sau `data:` ar ajunge în `src`.
+   */
+  imageUrls: z
+    .string()
+    .optional()
+    .transform((raw, ctx) => {
+      if (!raw) return [] as string[];
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        ctx.addIssue({ code: "custom", message: "Lista de imagini este invalidă." });
+        return z.NEVER;
+      }
+      const list = z.array(z.string().max(500)).max(8).safeParse(parsed);
+      if (!list.success) {
+        ctx.addIssue({ code: "custom", message: "Lista de imagini este invalidă." });
+        return z.NEVER;
+      }
+      for (const url of list.data) {
+        const isOwnMedia = keyFromMediaUrl(url) !== null;
+        const isHttps = /^https:\/\//i.test(url);
+        if (!isOwnMedia && !isHttps) {
+          ctx.addIssue({
+            code: "custom",
+            message: "Imaginile trebuie încărcate aici sau date ca adresă https.",
+          });
+          return z.NEVER;
+        }
+      }
+      return list.data;
+    }),
   tags: z.string().max(300).optional().or(z.literal("")),
   active: z.coerce.boolean(),
 });
@@ -52,7 +87,7 @@ function parseForm(formData: FormData) {
     price: formData.get("price"),
     stock: formData.get("stock"),
     weightGrams: formData.get("weightGrams") || 0,
-    imageUrl: (formData.get("imageUrl") as string) || "",
+    imageUrls: (formData.get("imageUrls") as string) || "",
     tags: formData.get("tags") ?? "",
     active: formData.get("active") === "on",
   });
@@ -77,9 +112,11 @@ function toData(values: z.infer<typeof productSchema>, storeId: string) {
     basePriceCents: Math.round(values.price * 100),
     stock: values.stock,
     weightGrams: values.weightGrams,
-    imageUrls: values.imageUrl
-      ? [values.imageUrl]
-      : [`https://picsum.photos/seed/${storeId.slice(-4)}-${values.sku}/900/900`],
+    // Fără imagini încărcate rămâne una demo, ca produsul să nu apară gol.
+    imageUrls:
+      values.imageUrls.length > 0
+        ? values.imageUrls
+        : [`https://picsum.photos/seed/${storeId.slice(-4)}-${values.sku}/900/900`],
     tags: values.tags
       ? values.tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean)
       : [],

@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Product } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { ImageDropzone } from "./image-dropzone";
 import type { ProductFormState } from "@/app/(control-plane)/admin/products/actions";
 
 type FormAction = (
@@ -174,27 +175,26 @@ export function ProductForm({
         />
       </Field>
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="URL imagine (opțional)" name="imageUrl" error={errors.imageUrl}>
-          <input
-            id="imageUrl"
-            name="imageUrl"
-            type="url"
-            defaultValue={product?.imageUrls[0] ?? ""}
-            placeholder="gol = imagine demo automată"
-            className={inputCls}
-          />
-        </Field>
-        <Field label="Etichete (separate prin virgulă)" name="tags" error={errors.tags}>
-          <input
-            id="tags"
-            name="tags"
-            defaultValue={product?.tags.join(", ")}
-            placeholder="ex: wireless, promo"
-            className={inputCls}
-          />
-        </Field>
+      {/* Grup, nu câmp: eticheta nu trimite spre un singur input */}
+      <div>
+        <p className="text-sm font-medium">Imagini</p>
+        <div className="mt-1.5">
+          <ImageDropzone name="imageUrls" initial={product?.imageUrls ?? []} />
+        </div>
+        {errors.imageUrls && (
+          <p className="mt-1 text-xs text-critical">{errors.imageUrls}</p>
+        )}
       </div>
+
+      <Field label="Etichete (separate prin virgulă)" name="tags" error={errors.tags}>
+        <input
+          id="tags"
+          name="tags"
+          defaultValue={product?.tags.join(", ")}
+          placeholder="ex: wireless, promo"
+          className={inputCls}
+        />
+      </Field>
 
       <label className="flex w-fit cursor-pointer items-center gap-2.5 text-sm">
         <input

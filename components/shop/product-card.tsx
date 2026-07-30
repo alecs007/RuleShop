@@ -18,7 +18,8 @@ export function ProductCard({
   return (
     <Link
       href={`/products/${product.slug}`}
-      className="group flex flex-col overflow-hidden rounded-xl border border-line bg-surface-raised transition-all hover:border-ink-faint hover:shadow-subtle"
+      // `h-full`: cardul umple celula de grilă, care acum e învelișul de animație.
+      className="group flex h-full flex-col overflow-hidden rounded-xl border border-line bg-surface-raised transition-all hover:border-ink-faint hover:shadow-subtle"
     >
       <div className="relative aspect-square overflow-hidden bg-zinc-100">
         {image ? (
