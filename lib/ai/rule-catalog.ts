@@ -46,6 +46,8 @@ export function describeCatalog(category: DecisionCategory): string {
             p.min !== undefined ? `min ${p.min}` : null,
             p.max !== undefined ? `max ${p.max}` : null,
             p.oneOf ? `una din: ${p.oneOf.join("|")}` : null,
+            p.maxLength !== undefined ? `max ${p.maxLength} caractere` : null,
+            p.pattern ? `format impus: ${p.pattern}` : null,
           ]
             .filter(Boolean)
             .join(", ");

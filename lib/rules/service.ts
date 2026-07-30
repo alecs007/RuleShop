@@ -1,5 +1,4 @@
 import "server-only";
-import { createHash } from "crypto";
 import { cache } from "react";
 import { Prisma, type RuleSet, type User } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
@@ -12,6 +11,7 @@ import {
   type RuleSetSnapshot,
   type ValidationIssue,
 } from "@/lib/engine";
+import { snapshotChecksum } from "./checksum";
 import { CATEGORY_DEFAULTS } from "./defaults";
 import { getEvaluationEvents } from "./evaluation-log";
 import { compareSnapshots, type SimulationComparison } from "./simulation";
@@ -67,9 +67,6 @@ async function buildEngineRules(ruleSetId: string): Promise<EngineRule[]> {
   }));
 }
 
-function checksumOf(snapshot: RuleSetSnapshot): string {
-  return createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
-}
 
 /** Diff structurat intre doua snapshot-uri (după cheia regulii). */
 function diffSnapshots(
@@ -160,7 +157,7 @@ export async function publishVersion(
     return { ok: false, issues, message: "Snapshot invalid — corectează regulile." };
   }
 
-  const checksum = checksumOf(snapshot);
+  const checksum = snapshotChecksum(snapshot);
   if (lastVersion?.checksum === checksum && ruleSet.activeVersionId === lastVersion.id) {
     return { ok: false, message: "Nicio modificare față de versiunea publicată." };
   }

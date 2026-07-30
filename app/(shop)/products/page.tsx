@@ -14,6 +14,8 @@ import {
   getAvailabilityViews,
   getHiddenProductIds,
 } from "@/lib/shop/availability";
+import { getThemeView } from "@/lib/shop/theme";
+import { CATALOG_GRID_CLASSES } from "@/lib/shop/theme-view";
 import { ProductCard } from "@/components/shop/product-card";
 import { CatalogFilters } from "@/components/shop/catalog-filters";
 import { AppearItem, AppearList } from "@/components/ui/appear";
@@ -38,9 +40,12 @@ export default async function ProductsPage({
     queryCatalog(store.id, { ...selection, excludeIds: hiddenIds }),
     getCatalogFacets(store.id, hiddenIds),
   ]);
-  const [prices, availability] = await Promise.all([
+  const [prices, availability, theme] = await Promise.all([
     getPriceViews(result.products),
     getAvailabilityViews(result.products),
+    // Aceeasi evaluare THEME ca in layout (cache per request) — decide doar
+    // densitatea grilei; restul temei se aplica mai sus.
+    getThemeView(store.id),
   ]);
 
   const singleCategory =
@@ -86,7 +91,7 @@ export default async function ProductsPage({
         <AppearList
           // Orice schimbare de filtru, sortare sau pagină redă intrarea cardurilor.
           resetKey={catalogSearchParams(selection).toString()}
-          className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
+          className={`mt-6 ${CATALOG_GRID_CLASSES[theme.layoutVariant]}`}
         >
           {result.products.map((product, index) => (
             <AppearItem key={product.id} index={index} className="h-full">

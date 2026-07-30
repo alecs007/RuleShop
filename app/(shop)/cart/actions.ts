@@ -1,9 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
-import { withFlash } from "@/lib/ui/flash";
 import { getActiveStore } from "@/lib/shop/store";
 import { getOrCreateSessionKey } from "@/lib/shop/session";
 import * as cartService from "@/lib/shop/cart";
@@ -87,6 +85,11 @@ export async function selectShippingMethodAction(
   revalidatePath("/", "layout");
 }
 
+/**
+ * Sterge o linie din cos. Fara `redirect()`: coșul aplică ștergerea optimist,
+ * iar o navigare ar arunca starea locala si ar aprinde ecranul de incarcare.
+ * Confirmarea o afiseaza clientul, nu un mesaj flash prin URL.
+ */
 export async function removeItemAction(formData: FormData): Promise<void> {
   const productId = formData.get("productId");
   if (typeof productId !== "string" || !productId) return;
@@ -95,6 +98,4 @@ export async function removeItemAction(formData: FormData): Promise<void> {
   const sessionKey = await getOrCreateSessionKey();
   await cartService.removeItem(store.id, sessionKey, productId);
   revalidatePath("/", "layout");
-
-  redirect(withFlash("/cart", "cart-item-removed"));
 }

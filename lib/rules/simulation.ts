@@ -212,6 +212,41 @@ function loyaltyAggregator(): AggregateAccumulator {
   };
 }
 
+function themeAggregator(): AggregateAccumulator {
+  let themed = 0;
+  let withBanner = 0;
+  let customLayout = 0;
+  let counted = 0;
+  return {
+    add(_context, decision) {
+      counted += 1;
+      const tokens =
+        typeof decision.tokens === "object" && decision.tokens !== null
+          ? Object.keys(decision.tokens as Record<string, unknown>).length
+          : 0;
+      if (tokens > 0) themed += 1;
+      if (typeof decision.banner === "string" && decision.banner.trim() !== "") {
+        withBanner += 1;
+      }
+      if (
+        typeof decision.layoutVariant === "string" &&
+        decision.layoutVariant !== "default"
+      ) {
+        customLayout += 1;
+      }
+    },
+    finish() {
+      const share = (n: number) =>
+        counted > 0 ? Math.round((n / counted) * 100) : 0;
+      return {
+        themedShare: share(themed),
+        bannerShare: share(withBanner),
+        customLayoutShare: share(customLayout),
+      };
+    },
+  };
+}
+
 function aggregatorFor(snapshot: RuleSetSnapshot): AggregateAccumulator {
   switch (snapshot.category) {
     case "PRICING":
@@ -224,6 +259,8 @@ function aggregatorFor(snapshot: RuleSetSnapshot): AggregateAccumulator {
       return availabilityAggregator();
     case "LOYALTY":
       return loyaltyAggregator();
+    case "THEME":
+      return themeAggregator();
     default:
       return { add() {}, finish: () => ({}) };
   }

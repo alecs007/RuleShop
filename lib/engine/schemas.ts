@@ -230,6 +230,18 @@ function validateActionsSemantics(
             message: `Parametrul "${spec.name}" trebuie să fie unul din: ${spec.oneOf.join(", ")}`,
             severity: "error",
           });
+        } else if (spec.maxLength !== undefined && value.length > spec.maxLength) {
+          issues.push({
+            path: actionPath,
+            message: `Parametrul "${spec.name}" poate avea cel mult ${spec.maxLength} caractere`,
+            severity: "error",
+          });
+        } else if (spec.pattern && !new RegExp(spec.pattern).test(value)) {
+          issues.push({
+            path: actionPath,
+            message: `Parametrul "${spec.name}" nu are o formă acceptată: „${value}"`,
+            severity: "error",
+          });
         }
       } else if (spec.type === "boolean" && typeof value !== "boolean") {
         issues.push({

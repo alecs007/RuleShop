@@ -99,10 +99,17 @@ npm run db:push
 npm run db:seed
 ```
 
-Seed-ul creează două magazine independente (`ruleshop-ro`, `ruleshop-de`) și un
-catalog demo de 19 produse în cinci categorii. Regulile le creezi din control
-plane — categoriile de decizie pornesc goale, cu comportamentul implicit al unui
-magazin obișnuit. Creează-ți un cont de administrator:
+Seed-ul creează două magazine independente (`ruleshop-ro`, `ruleshop-de`), un
+catalog demo de 19 produse în cinci categorii și — pentru fiecare dintre cele
+**șase categorii de decizie** — un set de reguli plauzibile, publicate ca
+versiunea 1: reduceri VIP și pe categorii, livrare gratuită peste un prag,
+verificări antifraudă cu scor, plafoane de cantitate la stoc redus, puncte de
+loialitate cu multiplicatori și o temă care se schimbă în funcție de client.
+Regulile trec prin aceeași validare a motorului ca o publicare din control
+plane, iar re-rularea seed-ului nu creează versiuni noi dacă nimic nu s-a
+schimbat. Toate se pot edita, dezactiva sau șterge din interfață.
+
+Creează-ți un cont de administrator:
 
 ```bash
 npm run create-admin -- --email admin@ruleshop.dev --store ruleshop-ro

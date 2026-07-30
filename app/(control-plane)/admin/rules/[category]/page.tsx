@@ -43,6 +43,10 @@ import {
   LoyaltyTester,
   parseLoyaltySimulation,
 } from "@/components/control-plane/loyalty-tester";
+import {
+  parseThemeSimulation,
+  ThemeTester,
+} from "@/components/control-plane/theme-tester";
 import { AiPanel } from "@/components/control-plane/ai-panel";
 import {
   deleteRuleAction,
@@ -472,6 +476,15 @@ export default async function RuleSetPage({
           currency={store?.currency ?? "RON"}
           hasDraftChanges={hasDraftChanges}
           simulation={parseFraudSimulation(query)}
+        />
+      )}
+
+      {/* Tester de temă — doar pentru THEME */}
+      {category === "THEME" && (
+        <ThemeTester
+          storeId={storeId}
+          hasDraftChanges={hasDraftChanges}
+          simulation={parseThemeSimulation(query)}
         />
       )}
 

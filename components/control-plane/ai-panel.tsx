@@ -58,6 +58,9 @@ const AGGREGATE_LABELS: Record<string, string> = {
   boostedShare: "Evaluări cu bonus (%)",
   totalBonusPoints: "Puncte bonus acordate",
   avgPointsMultiplierX100: "Multiplicator mediu (×100)",
+  themedShare: "Vizite cu temă modificată (%)",
+  bannerShare: "Vizite cu banner (%)",
+  customLayoutShare: "Vizite cu alt layout (%)",
 };
 
 function formatAggregate(key: string, value: number, currency: string): string {

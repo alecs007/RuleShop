@@ -26,6 +26,18 @@ html {
   text-rendering: optimizeLegibility;
 }
 
+/* Variantele de layout decise de rulesetul THEME. `data-layout` este pus de
+   layoutul magazinului; densitatea grilei de catalog vine din clase
+   (CATALOG_GRID_CLASSES), iar lățimea conținutului de aici. Selectorul cu
+   atribut are specificitate mai mare decât utilitarul `max-w-7xl`, deci câștigă. */
+[data-layout="compact"] main {
+  max-width: 96rem;
+}
+
+[data-layout="spacious"] main {
+  max-width: 72rem;
+}
+
 body {
   background-color: var(--color-surface);
   color: var(--color-ink);

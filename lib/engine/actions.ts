@@ -31,6 +31,14 @@ export interface ActionParamSpec {
   max?: number;
   /** Valori permise pentru string (enum). */
   oneOf?: string[];
+  /**
+   * Forma permisa a unui string, ca sursa de RegExp ancorata. Folosita cand
+   * mulțimea valorilor e prea mare pentru un enum, dar tot inchisa — de exemplu
+   * o culoare de tema, care ajunge intr-o proprietate CSS.
+   */
+  pattern?: string;
+  /** Lungimea maxima a unui string (ex: textul unui banner). */
+  maxLength?: number;
 }
 
 export interface ActionDef {
@@ -57,6 +65,48 @@ function appendUnique(list: unknown, items: string[]): string[] {
     : [];
   return [...new Set([...base, ...items])];
 }
+
+// ---------------------------------------------------------------------------
+// Vocabularul temei
+// ---------------------------------------------------------------------------
+
+/**
+ * Tokenurile de tema pe care le poate schimba o regula. Lista este INCHISA:
+ * valoarea unui token ajunge intr-o proprietate CSS, deci un nume liber ar
+ * insemna scriere arbitrara in stilul paginii. Maparea la variabilele CSS reale
+ * o face stratul de prezentare (`lib/shop/theme-view.ts`).
+ */
+export const THEME_TOKENS = [
+  "accent",
+  "accent-ink",
+  "surface",
+  "surface-raised",
+  "ink",
+  "ink-muted",
+  "line",
+  "positive",
+  "caution",
+  "critical",
+  "radius-card",
+] as const;
+
+export type ThemeToken = (typeof THEME_TOKENS)[number];
+
+/** Variantele de layout pe care magazinul le stie randa. */
+export const THEME_LAYOUT_VARIANTS = ["default", "compact", "spacious"] as const;
+
+export type ThemeLayoutVariant = (typeof THEME_LAYOUT_VARIANTS)[number];
+
+/**
+ * Formele acceptate pentru valoarea unui token: culoare hex, functie de culoare
+ * cu argumente strict numerice, sau o lungime. Nimic altceva — fara `url(`,
+ * fara `;`, fara acolade, deci fara evadare din declaratia CSS.
+ */
+export const THEME_VALUE_PATTERN =
+  "^(#[0-9a-fA-F]{3,8}|(rgb|rgba|hsl|hsla)\\( *[0-9]{1,3}(\\.[0-9]+)?(%| *deg)? *(( *[,/] *| +)[0-9]{1,3}(\\.[0-9]+)?%?){2,3} *\\)|[0-9]{1,4}(\\.[0-9]{1,3})?(px|rem|em|%)?)$";
+
+/** Lungimea maxima a textului de banner. */
+export const THEME_BANNER_MAX_LENGTH = 160;
 
 const defs: ActionDef[] = [
   // -------------------------------------------------------------- PRICING --
@@ -282,8 +332,14 @@ const defs: ActionDef[] = [
     category: "THEME",
     label: "Setează un token de temă (ex: culoare accent)",
     params: [
-      { name: "token", type: "string", required: true },
-      { name: "value", type: "string", required: true },
+      { name: "token", type: "string", required: true, oneOf: [...THEME_TOKENS] },
+      {
+        name: "value",
+        type: "string",
+        required: true,
+        pattern: THEME_VALUE_PATTERN,
+        maxLength: 32,
+      },
     ],
     apply: (d, p) => ({
       ...d,
@@ -297,14 +353,28 @@ const defs: ActionDef[] = [
     type: "SET_BANNER",
     category: "THEME",
     label: "Setează bannerul magazinului",
-    params: [{ name: "message", type: "string", required: true }],
+    params: [
+      {
+        name: "message",
+        type: "string",
+        required: true,
+        maxLength: THEME_BANNER_MAX_LENGTH,
+      },
+    ],
     apply: (d, p) => ({ ...d, banner: str(p, "message") }),
   },
   {
     type: "SET_LAYOUT_VARIANT",
     category: "THEME",
     label: "Setează varianta de layout",
-    params: [{ name: "variant", type: "string", required: true }],
+    params: [
+      {
+        name: "variant",
+        type: "string",
+        required: true,
+        oneOf: [...THEME_LAYOUT_VARIANTS],
+      },
+    ],
     apply: (d, p) => ({ ...d, layoutVariant: str(p, "variant") }),
   },
 ];

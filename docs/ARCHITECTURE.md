@@ -123,13 +123,22 @@ verificare fraudă la checkout, disponibilitate, puncte loialitate și temă.
 
 O variantă **nu este un fork al site-ului**, ci un pachet de reguli THEME +
 PRICING + SHIPPING condiționate pe segment (`customer.country eq "DE"`,
-`session.locale`, etc.):
+`customer.loyaltyTier eq "VIP"`, etc.):
 tema schimbă tokens CSS/banner/layout prin acțiunile THEME, prețurile și
 livrarea prin categoriile lor. Comutarea între variante = activarea/
 dezactivarea regulilor sau publicarea altei versiuni — fără cunoștințe
 tehnice, din control plane. IA (prin MCP) poate genera un asemenea pachet
 dintr-o cerință în limbaj natural, dar publicarea cere aprobare umană
 (cerință barem: control uman obligatoriu).
+
+Tema se aplică în `app/(shop)/layout.tsx`: tokenurile devin **proprietăți CSS
+custom** pe învelișul magazinului (obiectul `style` al lui React), nu text CSS
+concatenat. Trei bariere independente țin regulile departe de stilul paginii:
+catalogul de acțiuni acceptă doar tokenuri din `THEME_TOKENS` și valori care
+trec `THEME_VALUE_PATTERN` (verificate la salvare **și** la publicare);
+`computeTheme` re-validează ambele pentru snapshot-uri vechi sau scrise prin
+API; iar aplicarea prin CSSOM nu are sintaxă de evadat. Ce nu trece se
+raportează în `rejectedTokens`, vizibil în testerul din control plane.
 
 ## Modulul AI + MCP — implementat
 
@@ -167,7 +176,8 @@ de aplicație, aprobarea umană e obligatorie înainte de publicare — sunt des
 7. ✅ Control plane: CRUD reguli, editor structurat, validare, testere per categorie
 8. ✅ Versionare: publicare, diff, rollback, kill switch, audit
 9. ✅ Modul AI + server MCP + simulare pe evenimente istorice + aprobare umană
-10. ✅ Puncte de decizie: prețuri, livrare, antifraudă, disponibilitate,
-    loialitate
-11. ⬜ Rămase: publicare canary în interfață, decizii THEME în magazin,
-    pagină de istoric al evaluărilor, endpoint public de decisioning
+10. ✅ Toate cele șase puncte de decizie: prețuri, livrare, antifraudă,
+    disponibilitate, loialitate, temă — plus reguli demonstrative publicate de
+    seed pentru fiecare categorie, în ambele magazine
+11. ⬜ Rămase: publicare canary în interfață, pagină de istoric al evaluărilor,
+    endpoint public de decisioning
