@@ -41,7 +41,7 @@ export function Footer({ storeName = "RuleShop" }: { storeName?: string }) {
               </Link>
             </li>
             <li>
-              <Link href="/account/orders" className="hover:text-ink">
+              <Link href="/orders" className="hover:text-ink">
                 Comenzile mele
               </Link>
             </li>

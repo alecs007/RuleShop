@@ -25,6 +25,7 @@ import {
   recordFraudIncident,
 } from "@/lib/shop/fraud";
 import { createOrder, OutOfStockError, type OrderAddress } from "@/lib/shop/orders";
+import { syncCustomerStats } from "@/lib/shop/customer-stats";
 import { getPaymentProvider, isPaymentMethod } from "@/lib/shop/payment";
 import type { OrderStatus, Prisma } from "@prisma/client";
 
@@ -321,6 +322,10 @@ export async function placeOrderAction(
     throw error;
   }
 
+  // Faptele de client folosite de reguli (comenzi finalizate, total cheltuit)
+  // se resincronizeaza imediat: urmatoarea evaluare trebuie sa vada realitatea.
+  await syncCustomerStats(store.id, viewer?.id ?? null);
+
   await recordIncident(order.id);
   if (assessment.decision !== "ALLOW") {
     await logAudit({
@@ -421,6 +426,7 @@ export async function verifyChallengeAction(
       } as Prisma.InputJsonValue,
     },
   });
+  await syncCustomerStats(store.id, order.userId);
   await logAudit({
     storeId: store.id,
     action: "ORDER_STATUS_CHANGED",
@@ -432,5 +438,6 @@ export async function verifyChallengeAction(
   });
 
   revalidatePath(`/orders/${order.orderNumber}`);
+  revalidatePath("/account/orders");
   return { ok: true, message: "Comandă confirmată." };
 }

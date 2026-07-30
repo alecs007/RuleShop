@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ChevronRight, Package } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
+import { formatMoney } from "@/lib/utils/money";
 import { Badge } from "@/components/ui/badge";
 
 export const metadata: Metadata = { title: "Contul meu" };
@@ -55,8 +58,33 @@ export default async function AccountPage() {
             <dt className="text-xs uppercase tracking-wide text-ink-faint">Comenzi finalizate</dt>
             <dd className="mt-1 font-medium tabular-nums">{user.completedOrders}</dd>
           </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-ink-faint">
+              Total cheltuit
+            </dt>
+            <dd className="mt-1 font-medium tabular-nums">
+              {formatMoney(user.lifetimeSpend, "RON")}
+            </dd>
+          </div>
         </dl>
       </div>
+
+      <Link
+        href="/orders"
+        className="group mt-4 flex items-center gap-3 rounded-xl border border-line bg-surface-raised p-5 transition-all hover:border-ink-faint hover:shadow-subtle"
+      >
+        <Package className="size-5 shrink-0 text-ink-muted" strokeWidth={1.75} />
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">Comenzile mele</span>
+          <span className="block text-sm text-ink-muted">
+            Urmărește statusul comenzilor și vezi istoricul.
+          </span>
+        </span>
+        <ChevronRight
+          className="size-4 shrink-0 text-ink-faint transition-transform group-hover:translate-x-0.5"
+          strokeWidth={2}
+        />
+      </Link>
     </div>
   );
 }

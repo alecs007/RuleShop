@@ -6,6 +6,7 @@ import { FraudReviewStatus, type OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { requireStaff } from "@/lib/auth/guards";
 import { logAudit } from "@/lib/audit";
+import { syncCustomerStatsForOrder } from "@/lib/shop/customer-stats";
 
 const reviewSchema = z.object({
   incidentId: z.string().min(1),
@@ -101,6 +102,8 @@ export async function reviewIncidentAction(
       where: { id: order.id },
       data: { status: nextStatus },
     });
+    // Confirmarea/respingerea schimba si faptele de client folosite de reguli.
+    await syncCustomerStatsForOrder(storeId, order.id);
     await logAudit({
       storeId,
       action: "ORDER_STATUS_CHANGED",
@@ -115,6 +118,7 @@ export async function reviewIncidentAction(
     });
   }
 
+  // `layout`: comanda clientului isi arata noul status imediat.
   revalidatePath("/admin/fraud");
   revalidatePath("/", "layout");
   return { ok: true, message: "Incident actualizat." };

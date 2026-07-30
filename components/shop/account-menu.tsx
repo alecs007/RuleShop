@@ -98,7 +98,7 @@ export function AccountMenu({ user }: { user: SessionUser | null }) {
                 <UserRound className="size-4" strokeWidth={1.75} /> Contul meu
               </Link>
               <Link
-                href="/account/orders"
+                href="/orders"
                 role="menuitem"
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-zinc-100"

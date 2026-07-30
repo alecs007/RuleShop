@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db/prisma";
 import { requireStaff } from "@/lib/auth/guards";
 import { logAudit } from "@/lib/audit";
 import { allowedTransitions } from "@/lib/shop/order-status";
+import { syncCustomerStats } from "@/lib/shop/customer-stats";
 
 export async function updateOrderStatusAction(formData: FormData): Promise<void> {
   const { user, storeId } = await requireStaff();
@@ -39,6 +40,9 @@ export async function updateOrderStatusAction(formData: FormData): Promise<void>
     where: { id: order.id },
     data: { status: nextStatus },
   });
+  // Statusul a intrat sau a ieșit din categoria „incasat" ⇒ faptele de client
+  // folosite de reguli trebuie recalculate.
+  await syncCustomerStats(storeId, order.userId);
   await logAudit({
     storeId,
     action: "ORDER_STATUS_CHANGED",
@@ -52,6 +56,8 @@ export async function updateOrderStatusAction(formData: FormData): Promise<void>
     metadata: { orderNumber: order.orderNumber },
   });
 
+  // `layout` acopera si paginile clientului: comanda lui isi arata noul status
+  // la prima navigare, fara sa fie nevoie de vreo acțiune din partea lui.
   revalidatePath("/admin/orders");
   revalidatePath("/", "layout");
 }

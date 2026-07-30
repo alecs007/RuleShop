@@ -195,6 +195,38 @@ export class OutOfStockError extends Error {
   }
 }
 
+export interface OrderViewer {
+  userId: string | null;
+  sessionKey: string | null;
+}
+
+/**
+ * Comenzile pe care le poate urmari vizitatorul curent: cele ale contului lui
+ * SI cele plasate din aceasta sesiune de browser. A doua parte e ce face
+ * urmarirea posibila in regim guest — si face ca un client care isi creeaza
+ * cont dupa cumparare sa-si vada in continuare comanda, fara nicio migrare.
+ *
+ * Potrivirea se face pe cookie de sesiune (httpOnly), nu pe email: un email
+ * introdus la checkout nu da acces la comenzile altcuiva.
+ */
+export async function listOrdersForViewer(
+  storeId: string,
+  viewer: OrderViewer,
+) {
+  const identities: Prisma.OrderWhereInput[] = [
+    ...(viewer.userId ? [{ userId: viewer.userId }] : []),
+    ...(viewer.sessionKey ? [{ sessionKey: viewer.sessionKey }] : []),
+  ];
+  if (identities.length === 0) return [];
+
+  return prisma.order.findMany({
+    where: { storeId, OR: identities },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    include: { items: { select: { id: true, quantity: true, name: true } } },
+  });
+}
+
 /** Comanda unui client/vizitator, cu verificarea dreptului de acces. */
 export async function findOrderForViewer(
   storeId: string,

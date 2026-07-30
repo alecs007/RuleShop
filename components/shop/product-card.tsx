@@ -28,6 +28,15 @@ export function ProductCard({
     ? availability.lowStock
     : product.stock > 0 && product.stock <= 5;
 
+  // Etichetele de sub preț, ca valori gata de randat. Condiția de afișare
+  // trebuie sa fie BOOLEANA: `array.length && <JSX>` ar randa „0" pe cardurile
+  // fara etichete, pentru ca 0 este o valoare pe care React o afiseaza.
+  const badges = availability?.badges ?? [];
+  const showLowStock = lowStock && !unavailable;
+  const message =
+    availability?.available && availability.message ? availability.message : null;
+  const hasBadges = badges.length > 0 || showLowStock || message !== null;
+
   return (
     <Link
       href={`/products/${product.slug}`}
@@ -65,23 +74,19 @@ export function ProductCard({
         <div className="mt-auto pt-2">
           <Price view={price} />
         </div>
-        {(lowStock ||
-          (availability && availability.available && availability.message) ||
-          availability?.badges.length) && (
+        {hasBadges && (
           <div className="flex flex-wrap gap-1.5">
-            {availability?.badges.map((badge) => (
+            {badges.map((badge) => (
               <Badge key={badge} tone="accent" className="w-fit uppercase">
                 {badge}
               </Badge>
             ))}
-            {lowStock && !unavailable && (
+            {showLowStock && (
               <Badge tone="caution" className="w-fit">
                 Ultimele {availability?.stock ?? product.stock} bucăți
               </Badge>
             )}
-            {availability && availability.available && availability.message && (
-              <Badge className="w-fit">{availability.message}</Badge>
-            )}
+            {message && <Badge className="w-fit">{message}</Badge>}
           </div>
         )}
       </div>

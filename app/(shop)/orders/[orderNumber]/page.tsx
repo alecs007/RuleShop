@@ -1,20 +1,93 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CheckCircle2, Clock, ShieldCheck, Truck } from "lucide-react";
+import {
+  Ban,
+  CheckCircle2,
+  Clock,
+  PackageCheck,
+  ShieldCheck,
+  Truck,
+  Undo2,
+  XCircle,
+} from "lucide-react";
+import type { OrderStatus } from "@prisma/client";
 import { getSessionUser } from "@/lib/auth/guards";
 import { getActiveStore } from "@/lib/shop/store";
 import { getSessionKey } from "@/lib/shop/session";
 import { findOrderForViewer } from "@/lib/shop/orders";
 import { getRuleNames } from "@/lib/rules/service";
-import { ORDER_STATUS_LABELS, ORDER_STATUS_TONES } from "@/lib/shop/order-status";
+import {
+  ORDER_STATUS_DESCRIPTIONS,
+  ORDER_STATUS_LABELS,
+  ORDER_STATUS_TONES,
+} from "@/lib/shop/order-status";
 import { RISK_LEVEL_LABELS, type RiskLevelValue } from "@/lib/shop/fraud-risk";
 import { paymentMethodLabel } from "@/lib/shop/payment";
 import { formatMoney } from "@/lib/utils/money";
 import { Badge } from "@/components/ui/badge";
 import { ChallengeForm } from "@/components/shop/challenge-form";
+import { OrderTimeline } from "@/components/shop/order-timeline";
+import { CancelOrderButton } from "@/components/shop/cancel-order-button";
 
 export const metadata: Metadata = { title: "Comanda ta" };
+
+/**
+ * Prezentarea fiecarui status pentru client. Toate cele sapte stari au o
+ * intrare: altfel o comanda anulata sau rambursata ar rămâne fara explicatie.
+ */
+const STATUS_CARDS: Record<
+  OrderStatus,
+  {
+    icon: typeof Clock;
+    className: string;
+    iconClassName: string;
+    titleClassName: string;
+  }
+> = {
+  PENDING: {
+    icon: Clock,
+    className: "border-line bg-surface-raised",
+    iconClassName: "text-ink-muted",
+    titleClassName: "",
+  },
+  AWAITING_REVIEW: {
+    icon: ShieldCheck,
+    className: "border-amber-200 bg-amber-50",
+    iconClassName: "text-caution",
+    titleClassName: "text-caution",
+  },
+  PAID: {
+    icon: CheckCircle2,
+    className: "border-green-200 bg-green-50",
+    iconClassName: "text-positive",
+    titleClassName: "text-positive",
+  },
+  FULFILLED: {
+    icon: PackageCheck,
+    className: "border-green-200 bg-green-50",
+    iconClassName: "text-positive",
+    titleClassName: "text-positive",
+  },
+  CANCELLED: {
+    icon: Ban,
+    className: "border-line bg-surface-raised",
+    iconClassName: "text-ink-muted",
+    titleClassName: "",
+  },
+  REJECTED: {
+    icon: XCircle,
+    className: "border-red-200 bg-red-50",
+    iconClassName: "text-critical",
+    titleClassName: "text-critical",
+  },
+  REFUNDED: {
+    icon: Undo2,
+    className: "border-line bg-surface-raised",
+    iconClassName: "text-ink-muted",
+    titleClassName: "",
+  },
+};
 
 interface DecisionSnapshot {
   shipping?: {
@@ -60,6 +133,10 @@ export default async function OrderPage({
   const appliedRules = order.matchedRuleKeys.map(
     (key) => ruleNames.get(key) ?? key,
   );
+  const card = STATUS_CARDS[order.status];
+  // Anularea din cont e permisa doar inainte de incasare; dupa, e rambursare,
+  // adica o decizie a operatorului.
+  const canCancel = order.status === "PENDING" && !needsChallenge;
 
   return (
     <div className="mx-auto max-w-2xl py-8">
@@ -81,57 +158,36 @@ export default async function OrderPage({
         </Badge>
       </div>
 
-      {/* Rezultatul verificarii antifraudă, pe intelesul clientului */}
-      <div className="mt-6 space-y-3">
+      {/* Unde se afla comanda acum */}
+      <div className="mt-6 rounded-xl border border-line bg-surface-raised p-5">
+        <OrderTimeline status={order.status} />
+      </div>
+
+      {/* Ce inseamna statusul, plus pasii care mai cer ceva de la client */}
+      <div className="mt-3 space-y-3">
         {needsChallenge && challenge?.code && (
           <ChallengeForm orderNumber={order.orderNumber} demoCode={challenge.code} />
         )}
 
-        {order.status === "AWAITING_REVIEW" && (
-          <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
-            <Clock className="mt-0.5 size-5 shrink-0 text-caution" strokeWidth={1.75} />
-            <div>
-              <p className="font-medium text-caution">Comandă în verificare</p>
-              <p className="mt-0.5 text-ink-muted">
-                Un operator o va confirma în cel mai scurt timp. Nu s-a efectuat
-                nicio plată până atunci.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {order.status === "REJECTED" && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm">
-            <p className="font-medium text-critical">Comandă respinsă</p>
+        <div
+          className={`flex items-start gap-2.5 rounded-xl border p-4 text-sm ${card.className}`}
+        >
+          <card.icon
+            className={`mt-0.5 size-5 shrink-0 ${card.iconClassName}`}
+            strokeWidth={1.75}
+          />
+          <div>
+            <p className={`font-medium ${card.titleClassName}`}>
+              {ORDER_STATUS_LABELS[order.status]}
+            </p>
             <p className="mt-0.5 text-ink-muted">
-              În urma verificării, comanda nu a putut fi procesată.
+              {ORDER_STATUS_DESCRIPTIONS[order.status]}
+              {(order.status === "PENDING" || order.status === "PAID") &&
+                order.paymentMethod &&
+                ` Metodă de plată: ${paymentMethodLabel(order.paymentMethod)}.`}
             </p>
           </div>
-        )}
-
-        {(order.status === "PAID" || order.status === "FULFILLED") && (
-          <div className="flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm">
-            <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-positive" strokeWidth={1.75} />
-            <div>
-              <p className="font-medium text-positive">Comandă confirmată</p>
-              <p className="mt-0.5 text-ink-muted">
-                Plata a fost înregistrată ({paymentMethodLabel(order.paymentMethod ?? "")}).
-              </p>
-            </div>
-          </div>
-        )}
-
-        {order.status === "PENDING" && !needsChallenge && (
-          <div className="flex items-start gap-2.5 rounded-xl border border-line bg-surface-raised p-4 text-sm">
-            <Clock className="mt-0.5 size-5 shrink-0 text-ink-muted" strokeWidth={1.75} />
-            <div>
-              <p className="font-medium">Comandă înregistrată</p>
-              <p className="mt-0.5 text-ink-muted">
-                Plata se încasează la livrare ({paymentMethodLabel(order.paymentMethod ?? "")}).
-              </p>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Produsele */}
@@ -247,11 +303,12 @@ export default async function OrderPage({
           Continuă cumpărăturile
         </Link>
         <Link
-          href="/account/orders"
+          href="/orders"
           className="inline-flex h-11 items-center rounded-lg border border-line px-5 text-sm font-medium transition-colors hover:border-ink-faint"
         >
           Comenzile mele
         </Link>
+        {canCancel && <CancelOrderButton orderNumber={order.orderNumber} />}
       </div>
     </div>
   );
