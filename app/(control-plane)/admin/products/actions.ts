@@ -29,6 +29,8 @@ const productSchema = z.object({
   /** Pretul vine din formular in lei (ex: "349.90") si se stocheaza in bani. */
   price: z.coerce.number().positive().max(10_000_000),
   stock: z.coerce.number().int().min(0).max(1_000_000),
+  /** Greutatea de livrare, in grame — o citesc regulile prin `cart.weightGrams`. */
+  weightGrams: z.coerce.number().int().min(0).max(1_000_000),
   imageUrl: z.union([z.url(), z.literal("")]).optional(),
   tags: z.string().max(300).optional().or(z.literal("")),
   active: z.coerce.boolean(),
@@ -49,6 +51,7 @@ function parseForm(formData: FormData) {
     description: formData.get("description") ?? "",
     price: formData.get("price"),
     stock: formData.get("stock"),
+    weightGrams: formData.get("weightGrams") || 0,
     imageUrl: (formData.get("imageUrl") as string) || "",
     tags: formData.get("tags") ?? "",
     active: formData.get("active") === "on",
@@ -73,6 +76,7 @@ function toData(values: z.infer<typeof productSchema>, storeId: string) {
     description: values.description ?? "",
     basePriceCents: Math.round(values.price * 100),
     stock: values.stock,
+    weightGrams: values.weightGrams,
     imageUrls: values.imageUrl
       ? [values.imageUrl]
       : [`https://picsum.photos/seed/${storeId.slice(-4)}-${values.sku}/900/900`],

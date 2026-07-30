@@ -149,8 +149,9 @@ function buildActionsJson(rows: ActionRow[], actionDefs: ActionOption[]): string
 // Componenta
 // ---------------------------------------------------------------------------
 
+// `max-w-full`: pe telefon un select cu etichetă lungă nu trebuie să lățească pagina.
 const inputCls =
-  "h-9 rounded-lg border border-line bg-surface px-2.5 text-sm outline-none transition-colors focus:border-accent focus:bg-surface-raised";
+  "h-9 max-w-full rounded-lg border border-line bg-surface px-2.5 text-sm outline-none transition-colors focus:border-accent focus:bg-surface-raised";
 
 /** Nume prietenoase pentru parametrii actiunilor (in loc de cheile tehnice). */
 const PARAM_LABELS: Record<string, string> = {

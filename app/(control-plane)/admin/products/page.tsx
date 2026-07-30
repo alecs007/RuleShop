@@ -62,14 +62,17 @@ export default async function AdminProductsPage({
       </form>
 
       <div className="mt-4 overflow-x-auto rounded-xl border border-line bg-surface-raised">
-        <table className="w-full min-w-[720px] text-sm">
+        {/* Pe telefon rămân produsul, prețul si actiunile; restul se mută sub nume */}
+        <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-faint">
               <th className="px-4 py-3 font-medium">Produs</th>
-              <th className="px-4 py-3 font-medium">Categorie</th>
+              <th className="hidden px-4 py-3 font-medium lg:table-cell">
+                Categorie
+              </th>
               <th className="px-4 py-3 font-medium">Preț de bază</th>
-              <th className="px-4 py-3 font-medium">Stoc</th>
-              <th className="px-4 py-3 font-medium">Stare</th>
+              <th className="hidden px-4 py-3 font-medium sm:table-cell">Stoc</th>
+              <th className="hidden px-4 py-3 font-medium sm:table-cell">Stare</th>
               <th className="px-4 py-3 font-medium text-right">Acțiuni</th>
             </tr>
           </thead>
@@ -91,15 +94,31 @@ export default async function AdminProductsPage({
                     </div>
                     <div className="min-w-0">
                       <p className="truncate font-medium">{product.name}</p>
-                      <p className="text-xs text-ink-faint">{product.sku}</p>
+                      <p className="text-xs text-ink-faint">
+                        {product.sku}
+                        <span className="lg:hidden"> · {product.category}</span>
+                      </p>
+                      {/* Stoc si stare, cand nu au coloane proprii */}
+                      <p className="mt-1 flex items-center gap-1.5 sm:hidden">
+                        <span className="text-xs text-ink-faint tabular-nums">
+                          stoc {product.stock}
+                        </span>
+                        {product.active ? (
+                          <Badge tone="positive">Activ</Badge>
+                        ) : (
+                          <Badge>Inactiv</Badge>
+                        )}
+                      </p>
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3 capitalize text-ink-muted">{product.category}</td>
+                <td className="hidden px-4 py-3 capitalize text-ink-muted lg:table-cell">
+                  {product.category}
+                </td>
                 <td className="px-4 py-3 tabular-nums">
                   {formatMoney(product.basePriceCents, product.currency)}
                 </td>
-                <td className="px-4 py-3 tabular-nums">
+                <td className="hidden px-4 py-3 tabular-nums sm:table-cell">
                   {product.stock === 0 ? (
                     <Badge tone="critical">0</Badge>
                   ) : product.stock <= 5 ? (
@@ -108,7 +127,7 @@ export default async function AdminProductsPage({
                     product.stock
                   )}
                 </td>
-                <td className="px-4 py-3">
+                <td className="hidden px-4 py-3 sm:table-cell">
                   <form action={toggleProductAction}>
                     <input type="hidden" name="productId" value={product.id} />
                     <button

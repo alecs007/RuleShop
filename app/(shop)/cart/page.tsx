@@ -110,8 +110,16 @@ export default async function CartPage() {
                     {/* Cantitate: butoane +/- ca formulare separate (functioneaza fara JS) */}
                     <div className="flex h-9 items-center rounded-lg border border-line">
                       <form action={setQuantityAction}>
-                        <input type="hidden" name="productId" value={item.productId} />
-                        <input type="hidden" name="quantity" value={item.quantity - 1} />
+                        <input
+                          type="hidden"
+                          name="productId"
+                          value={item.productId}
+                        />
+                        <input
+                          type="hidden"
+                          name="quantity"
+                          value={item.quantity - 1}
+                        />
                         <button
                           aria-label="Scade cantitatea"
                           className="flex h-9 w-9 cursor-pointer items-center justify-center text-ink-muted transition-colors hover:text-ink"
@@ -123,8 +131,16 @@ export default async function CartPage() {
                         {item.quantity}
                       </span>
                       <form action={setQuantityAction}>
-                        <input type="hidden" name="productId" value={item.productId} />
-                        <input type="hidden" name="quantity" value={item.quantity + 1} />
+                        <input
+                          type="hidden"
+                          name="productId"
+                          value={item.productId}
+                        />
+                        <input
+                          type="hidden"
+                          name="quantity"
+                          value={item.quantity + 1}
+                        />
                         <button
                           aria-label="Crește cantitatea"
                           disabled={item.quantity >= item.product.stock}
@@ -136,7 +152,11 @@ export default async function CartPage() {
                     </div>
 
                     <form action={removeItemAction}>
-                      <input type="hidden" name="productId" value={item.productId} />
+                      <input
+                        type="hidden"
+                        name="productId"
+                        value={item.productId}
+                      />
                       <button
                         aria-label="Șterge din coș"
                         className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-red-50 hover:text-critical"
@@ -157,7 +177,8 @@ export default async function CartPage() {
           <dl className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between">
               <dt className="text-ink-muted">
-                Subtotal ({totals.itemCount} {totals.itemCount === 1 ? "produs" : "produse"})
+                Subtotal ({totals.itemCount}{" "}
+                {totals.itemCount === 1 ? "produs" : "produse"})
               </dt>
               <dd className="font-medium tabular-nums">
                 {formatMoney(totals.subtotalCents, totals.currency)}
@@ -173,7 +194,7 @@ export default async function CartPage() {
 
           {/* Metodele de livrare, cu costul decis de rulesetul SHIPPING */}
           <div className="mt-4 border-t border-line pt-4">
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-faint">
+            <p className="mb-2 text-xs font-medium tracking-wide text-ink-faint">
               Metodă de livrare
             </p>
             <ShippingOptions quote={quote} />
@@ -183,7 +204,10 @@ export default async function CartPage() {
           <div className="mt-4 flex justify-between border-t border-line pt-4">
             <span className="font-semibold">Total</span>
             <span className="font-semibold tabular-nums">
-              {formatMoney(totals.subtotalCents + shippingCents, totals.currency)}
+              {formatMoney(
+                totals.subtotalCents + shippingCents,
+                totals.currency,
+              )}
             </span>
           </div>
 
@@ -196,7 +220,7 @@ export default async function CartPage() {
             Continuă spre checkout
           </button>
           <p className="mt-3 text-center text-xs text-ink-faint">
-            Poți comanda ca vizitator sau autentificat.
+            Poți comanda ca guest sau autentificat.
           </p>
         </aside>
       </div>

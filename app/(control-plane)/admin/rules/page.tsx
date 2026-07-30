@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db/prisma";
 import { DECISION_CATEGORIES } from "@/lib/engine";
 import { CATEGORY_LABELS } from "@/lib/rules/defaults";
 import { Badge } from "@/components/ui/badge";
+import { CategoryIconBadge } from "@/components/control-plane/category-icon";
 
 export const metadata: Metadata = { title: "Reguli" };
 
@@ -37,9 +38,12 @@ export default async function RulesOverviewPage() {
               href={`/admin/rules/${category.toLowerCase()}`}
               className="group rounded-xl border border-line bg-surface-raised p-5 transition-all hover:border-ink-faint hover:shadow-subtle"
             >
-              <div className="flex items-center justify-between">
-                <p className="font-medium">{CATEGORY_LABELS[category]}</p>
-                <ChevronRight className="size-4 text-ink-faint transition-transform group-hover:translate-x-0.5" />
+              <div className="flex items-center gap-3">
+                <CategoryIconBadge category={category} />
+                <p className="min-w-0 flex-1 font-medium">
+                  {CATEGORY_LABELS[category]}
+                </p>
+                <ChevronRight className="size-4 shrink-0 text-ink-faint transition-transform group-hover:translate-x-0.5" />
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink-muted">
                 <span>{rs?._count.rules ?? 0} reguli</span>

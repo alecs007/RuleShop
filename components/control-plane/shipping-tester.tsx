@@ -235,8 +235,8 @@ export async function ShippingTester({
           </button>
         </form>
 
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[560px] text-sm">
+        <div className="mt-4 -mx-1 overflow-x-auto px-1">
+          <table className="w-full min-w-[420px] text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-faint">
                 <th className="py-2 pr-4 font-medium">Metodă</th>

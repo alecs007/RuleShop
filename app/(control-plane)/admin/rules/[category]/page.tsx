@@ -7,7 +7,6 @@ import {
   OctagonX,
   Pencil,
   Plus,
-  Rocket,
   Truck,
   Undo2,
   Zap,
@@ -24,6 +23,7 @@ import { tryHumanizeRule } from "@/lib/rules/humanize";
 import { priorityLabel } from "@/lib/rules/priority";
 import { getOrCreateRuleSet } from "@/lib/rules/service";
 import { Badge } from "@/components/ui/badge";
+import { CategoryIcon } from "@/components/control-plane/category-icon";
 import { PublishButton } from "@/components/control-plane/publish-button";
 import { PriceTester } from "@/components/control-plane/price-tester";
 import {
@@ -117,13 +117,14 @@ export default async function RuleSetPage({
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm text-ink-muted">
+          <p className="text-sm text-ink-muted mb-2">
             <Link href="/admin/rules" className="hover:text-ink">
               Reguli
             </Link>{" "}
             /
           </p>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
+            <CategoryIcon category={category} className="size-6 text-accent" />
             {CATEGORY_LABELS[category]}
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
@@ -146,13 +147,13 @@ export default async function RuleSetPage({
       </div>
 
       {/* Fluxul, intr-o singura linie */}
-      <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-muted">
+      {/* <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-muted">
         <Pencil className="size-3.5" strokeWidth={1.75} /> Modifici reguli
         <span aria-hidden>→</span>
         <Rocket className="size-3.5" strokeWidth={1.75} /> Publici
         <span aria-hidden>→</span>
         <Undo2 className="size-3.5" strokeWidth={1.75} /> Rollback oricând
-      </p>
+      </p> */}
 
       {/* Livrarea are si o parte de configurare, nu doar reguli */}
       {category === "SHIPPING" && (
@@ -406,12 +407,17 @@ export default async function RuleSetPage({
       {/* Versiuni */}
       <h2 className="mt-10 text-lg font-semibold">Istoric versiuni</h2>
       <div className="mt-3 overflow-x-auto rounded-xl border border-line bg-surface-raised">
-        <table className="w-full min-w-[640px] text-sm">
+        {/* Pe telefon rămân versiunea si actiunile; data si diff-ul se mută sub versiune */}
+        <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-faint">
               <th className="px-4 py-3 font-medium">Versiune</th>
-              <th className="px-4 py-3 font-medium">Publicată</th>
-              <th className="px-4 py-3 font-medium">Modificări</th>
+              <th className="hidden px-4 py-3 font-medium sm:table-cell">
+                Publicată
+              </th>
+              <th className="hidden px-4 py-3 font-medium md:table-cell">
+                Modificări
+              </th>
               <th className="px-4 py-3 font-medium text-right">Acțiuni</th>
             </tr>
           </thead>
@@ -428,36 +434,43 @@ export default async function RuleSetPage({
                   ? `−${diff.removed.length} eliminate`
                   : null,
               ].filter(Boolean);
+              const publishedLabel = version.publishedAt
+                ? new Intl.DateTimeFormat("ro-RO", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  }).format(version.publishedAt)
+                : "—";
               return (
                 <tr
                   key={version.id}
                   className="transition-colors hover:bg-zinc-50"
                 >
                   <td className="px-4 py-3">
-                    <Link
-                      href={`${base}/versions/${version.id}`}
-                      className="font-medium tabular-nums hover:underline"
-                    >
-                      v{version.version}
-                    </Link>
-                    {isActive && (
-                      <Badge tone="positive" className="ml-2">
-                        activă
-                      </Badge>
-                    )}
-                    {version.status === "ROLLED_BACK" && (
-                      <Badge tone="caution" className="ml-2">
-                        înlocuită prin rollback
-                      </Badge>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <Link
+                        href={`${base}/versions/${version.id}`}
+                        className="font-medium tabular-nums hover:underline"
+                      >
+                        v{version.version}
+                      </Link>
+                      {isActive && <Badge tone="positive">activă</Badge>}
+                      {version.status === "ROLLED_BACK" && (
+                        <Badge tone="caution">înlocuită prin rollback</Badge>
+                      )}
+                    </div>
+                    {/* Detaliile din coloanele ascunse, recuperate pe ecrane mici */}
+                    <p className="mt-1 text-xs text-ink-faint sm:hidden">
+                      {publishedLabel}
+                      {diffParts.length > 0 && ` · ${diffParts.join(", ")}`}
+                    </p>
+                    {diffParts.length > 0 && (
+                      <p className="mt-1 hidden text-xs text-ink-faint sm:block md:hidden">
+                        {diffParts.join(", ")}
+                      </p>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-ink-muted">
-                    {version.publishedAt
-                      ? new Intl.DateTimeFormat("ro-RO", {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        }).format(version.publishedAt)
-                      : "—"}
+                  <td className="hidden px-4 py-3 text-ink-muted sm:table-cell">
+                    {publishedLabel}
                     {version.publishedBy?.email && (
                       <span className="text-ink-faint">
                         {" "}
@@ -465,7 +478,7 @@ export default async function RuleSetPage({
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-ink-muted">
+                  <td className="hidden px-4 py-3 text-ink-muted md:table-cell">
                     {diffParts.length > 0 ? diffParts.join(", ") : "—"}
                   </td>
                   <td className="px-4 py-3">

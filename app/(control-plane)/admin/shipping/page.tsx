@@ -70,9 +70,7 @@ export default async function AdminShippingPage() {
             Livrare
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            Metodele pe care le vede clientul, cu costul de listă. Cât plătește
-            de fapt, ce metode îi apar și în câte zile primește comanda decide
-            rulesetul de livrare.
+            Metodele de livrare disponibile.
           </p>
         </div>
         <Link
@@ -86,7 +84,10 @@ export default async function AdminShippingPage() {
 
       {usesDefaults && (
         <div className="mt-6 flex items-start gap-2.5 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm">
-          <Info className="mt-0.5 size-4 shrink-0 text-accent" strokeWidth={1.75} />
+          <Info
+            className="mt-0.5 size-4 shrink-0 text-accent"
+            strokeWidth={1.75}
+          />
           <p className="text-ink-muted">
             <span className="font-medium text-accent-ink">
               Magazinul folosește lista implicită.
@@ -97,16 +98,22 @@ export default async function AdminShippingPage() {
       )}
 
       <div className="mt-6">
-        <ShippingMethodsForm action={saveShippingMethodsAction} initial={initial} />
+        <ShippingMethodsForm
+          action={saveShippingMethodsAction}
+          initial={initial}
+        />
       </div>
 
       {/* Ce fac regulile publicate cu aceste metode */}
       <h2 className="mt-10 text-lg font-semibold">Ce spun regulile acum</h2>
       {ruleLines.length === 0 ? (
         <p className="mt-2 text-sm text-ink-muted">
-          Nicio regulă de livrare publicată — clientul plătește exact costurile de
-          listă din tabel.{" "}
-          <Link href="/admin/rules/shipping" className="text-accent hover:underline">
+          Nicio regulă de livrare publicată — clientul plătește exact costurile
+          de listă din tabel.{" "}
+          <Link
+            href="/admin/rules/shipping"
+            className="text-accent hover:underline"
+          >
             Adaugă prima regulă
           </Link>
           .
@@ -115,8 +122,14 @@ export default async function AdminShippingPage() {
         <>
           <ul className="mt-3 space-y-1.5">
             {ruleLines.map((line) => (
-              <li key={line} className="flex items-start gap-2 text-sm text-ink-muted">
-                <Scale className="mt-0.5 size-3.5 shrink-0 text-positive" strokeWidth={1.75} />
+              <li
+                key={line}
+                className="flex items-start gap-2 text-sm text-ink-muted"
+              >
+                <Scale
+                  className="mt-0.5 size-3.5 shrink-0 text-positive"
+                  strokeWidth={1.75}
+                />
                 {line}
               </li>
             ))}
@@ -127,7 +140,9 @@ export default async function AdminShippingPage() {
               {[...referenced].map((id) => (
                 <Badge
                   key={id}
-                  tone={methods.some((m) => m.id === id) ? "neutral" : "critical"}
+                  tone={
+                    methods.some((m) => m.id === id) ? "neutral" : "critical"
+                  }
                   className="font-mono"
                 >
                   {id}

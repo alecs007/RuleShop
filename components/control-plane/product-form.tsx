@@ -16,11 +16,13 @@ function Field({
   label,
   name,
   error,
+  hint,
   children,
 }: {
   label: string;
   name: string;
   error?: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -29,7 +31,11 @@ function Field({
         {label}
       </label>
       <div className="mt-1.5">{children}</div>
-      {error && <p className="mt-1 text-xs text-critical">{error}</p>}
+      {error ? (
+        <p className="mt-1 text-xs text-critical">{error}</p>
+      ) : (
+        hint && <p className="mt-1 text-xs text-ink-faint">{hint}</p>
+      )}
     </div>
   );
 }
@@ -114,7 +120,7 @@ export function ProductForm({
         </Field>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid gap-5 sm:grid-cols-3">
         <Field label="Preț de bază (lei)" name="price" error={errors.price}>
           <input
             id="price"
@@ -136,6 +142,23 @@ export function ProductForm({
             step="1"
             required
             defaultValue={product?.stock ?? 0}
+            className={inputCls}
+          />
+        </Field>
+        {/* Greutatea alimenteaza faptul `cart.weightGrams` din regulile de livrare */}
+        <Field
+          label="Greutate (grame)"
+          name="weightGrams"
+          error={errors.weightGrams}
+          hint="Folosită de regulile de livrare (1200 = 1,2 kg)"
+        >
+          <input
+            id="weightGrams"
+            name="weightGrams"
+            type="number"
+            min="0"
+            step="1"
+            defaultValue={product?.weightGrams ?? 0}
             className={inputCls}
           />
         </Field>
