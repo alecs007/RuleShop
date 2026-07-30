@@ -18,7 +18,11 @@ export const PRODUCT_SORTS = {
 
 export type ProductSort = CatalogSort;
 
-export type CatalogQuery = Partial<CatalogSelection> & { pageSize?: number };
+export type CatalogQuery = Partial<CatalogSelection> & {
+  pageSize?: number;
+  /** Produse scoase din catalog de regulile AVAILABILITY (HIDE_PRODUCT). */
+  excludeIds?: string[];
+};
 
 /** Traduce selectia de filtre in `where`-ul Prisma al catalogului public. */
 function catalogWhere(
@@ -27,6 +31,9 @@ function catalogWhere(
 ): Prisma.ProductWhereInput {
   const and: Prisma.ProductWhereInput[] = [];
 
+  // Ascunderea prin reguli se aplica inaintea paginarii, altfel numaratorile
+  // si paginile ar fi gresite.
+  if (query.excludeIds?.length) and.push({ id: { notIn: query.excludeIds } });
   if (query.categories?.length) and.push({ category: { in: query.categories } });
   if (query.brands?.length) and.push({ brand: { in: query.brands } });
   // `hasSome`: produsul trece daca are cel putin una din etichetele cerute.
@@ -133,9 +140,16 @@ function toOptions(map: Map<string, number>): FacetOption[] {
  * (nu peste rezultatul filtrat) — altfel opțiunile ar dispărea pe măsură ce
  * utilizatorul filtrează și nu ar mai putea reveni.
  */
-export async function getCatalogFacets(storeId: string): Promise<CatalogFacets> {
+export async function getCatalogFacets(
+  storeId: string,
+  excludeIds: string[] = [],
+): Promise<CatalogFacets> {
   const rows = await prisma.product.findMany({
-    where: { storeId, active: true },
+    where: {
+      storeId,
+      active: true,
+      ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
+    },
     select: {
       category: true,
       brand: true,
@@ -184,9 +198,17 @@ export async function getProductBySlug(storeId: string, slug: string) {
   });
 }
 
-export async function getFeaturedProducts(storeId: string, take = 8) {
+export async function getFeaturedProducts(
+  storeId: string,
+  take = 8,
+  excludeIds: string[] = [],
+) {
   return prisma.product.findMany({
-    where: { storeId, active: true },
+    where: {
+      storeId,
+      active: true,
+      ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
+    },
     orderBy: { createdAt: "desc" },
     take,
   });

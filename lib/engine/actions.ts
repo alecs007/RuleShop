@@ -12,7 +12,8 @@
  *  SHIPPING     -> { costCents, freeShipping, disabledMethods[],
  *                    forcedMethod, etaDaysMin, etaDaysMax }
  *  FRAUD        -> { riskScore, decision: ALLOW|CHALLENGE|REVIEW|BLOCK, signals[] }
- *  AVAILABILITY -> { available, hidden, maxQuantityPerOrder, badges[], message }
+ *  AVAILABILITY -> { available, hidden, maxQuantityPerOrder, lowStockThreshold,
+ *                    badges[], message }
  *  LOYALTY      -> { pointsMultiplier, bonusPoints, benefits[] }
  *  THEME        -> { tokens: {cheie->valoare CSS}, banner, layoutVariant }
  */
@@ -220,6 +221,20 @@ const defs: ActionDef[] = [
     label: "Mesaj de disponibilitate (ex: Stoc limitat)",
     params: [{ name: "message", type: "string", required: true }],
     apply: (d, p) => ({ ...d, message: str(p, "message") }),
+  },
+  {
+    type: "ADD_AVAILABILITY_BADGE",
+    category: "AVAILABILITY",
+    label: "Adaugă badge de disponibilitate (ex: PRECOMANDĂ)",
+    params: [{ name: "badge", type: "string", required: true }],
+    apply: (d, p) => ({ ...d, badges: appendUnique(d.badges, [str(p, "badge")]) }),
+  },
+  {
+    type: "SET_LOW_STOCK_THRESHOLD",
+    category: "AVAILABILITY",
+    label: "Sub ce stoc se avertizează „ultimele bucăți”",
+    params: [{ name: "threshold", type: "number", required: true, min: 0, max: 1000 }],
+    apply: (d, p) => ({ ...d, lowStockThreshold: num(p, "threshold") }),
   },
 
   // -------------------------------------------------------------- LOYALTY --

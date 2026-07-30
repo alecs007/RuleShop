@@ -14,11 +14,14 @@ export function AddToCartButton({
   productName,
   maxQuantity,
   disabled,
+  disabledLabel = "Stoc epuizat",
 }: {
   productId: string;
   productName: string;
   maxQuantity: number;
   disabled?: boolean;
+  /** Motivul indisponibilitatii (poate veni dintr-o regula, nu doar din stoc). */
+  disabledLabel?: string;
 }) {
   const router = useRouter();
   const [quantity, setQuantity] = useState(1);
@@ -84,7 +87,7 @@ export function AddToCartButton({
           ) : (
             <ShoppingBag className="size-5" strokeWidth={1.75} />
           )}
-          {pending ? "Se adaugă…" : disabled ? "Stoc epuizat" : "Adaugă în coș"}
+          {pending ? "Se adaugă…" : disabled ? disabledLabel : "Adaugă în coș"}
         </Button>
       </div>
     </form>

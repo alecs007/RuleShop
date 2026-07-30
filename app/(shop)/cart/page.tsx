@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { Minus, Plus, ShoppingBag, Trash2, TriangleAlert } from "lucide-react";
 import { getActiveStore } from "@/lib/shop/store";
 import { computeTotals, readCart } from "@/lib/shop/cart";
 import { getPriceViews } from "@/lib/shop/pricing";
+import {
+  getAvailabilityViews,
+  unavailableMessage,
+} from "@/lib/shop/availability";
 import { cartShippingFacts, quoteShipping } from "@/lib/shop/shipping";
 import { getRuleNames } from "@/lib/rules/service";
 import { formatMoney } from "@/lib/utils/money";
@@ -42,7 +46,7 @@ export default async function CartPage() {
   }
 
   // Livrarea: metodele magazinului trecute prin rulesetul SHIPPING publicat.
-  const [quote, ruleNames] = await Promise.all([
+  const [quote, ruleNames, availability] = await Promise.all([
     quoteShipping({
       storeId: store.id,
       storeSettings: store.settings,
@@ -51,8 +55,21 @@ export default async function CartPage() {
       selectedMethodId: cart.shippingMethodId,
     }),
     getRuleNames(store.id),
+    // Disponibilitatea se reverifica la fiecare afisare: o regula publicata
+    // intre timp poate bloca un produs care era deja in cos.
+    getAvailabilityViews(cart.items.map((i) => i.product)),
   ]);
   const shippingCents = quote.selected?.costCents ?? 0;
+
+  // Cat timp un produs e indisponibil sau peste plafon, checkout-ul asteapta.
+  const blockedItems = cart.items.filter(
+    (item) => !availability.get(item.productId)!.available,
+  );
+  const overLimitItems = cart.items.filter((item) => {
+    const view = availability.get(item.productId)!;
+    return view.available && item.quantity > view.maxPerOrder;
+  });
+  const checkoutBlocked = blockedItems.length > 0 || overLimitItems.length > 0;
 
   return (
     <div className="appear-content py-8">
@@ -66,6 +83,9 @@ export default async function CartPage() {
             const view = prices.get(item.productId);
             const unitCents = view?.finalCents ?? item.product.basePriceCents;
             const lineTotal = item.quantity * unitCents;
+            const stockView = availability.get(item.productId)!;
+            const overLimit =
+              stockView.available && item.quantity > stockView.maxPerOrder;
             return (
               <li key={item.id} className="flex gap-4 p-4">
                 <Link
@@ -100,6 +120,27 @@ export default async function CartPage() {
                           </span>
                         )}
                       </p>
+                      {/* Produs blocat de o regula sau ramas fara stoc */}
+                      {!stockView.available && (
+                        <p className="mt-1 flex items-center gap-1.5 text-xs text-critical">
+                          <TriangleAlert
+                            className="size-3.5 shrink-0"
+                            strokeWidth={1.75}
+                          />
+                          {unavailableMessage(stockView, item.product.name)}
+                        </p>
+                      )}
+                      {overLimit && (
+                        <p className="mt-1 flex items-center gap-1.5 text-xs text-caution">
+                          <TriangleAlert
+                            className="size-3.5 shrink-0"
+                            strokeWidth={1.75}
+                          />
+                          Poți comanda maximum {stockView.maxPerOrder}{" "}
+                          {stockView.maxPerOrder === 1 ? "bucată" : "bucăți"} —
+                          scade cantitatea.
+                        </p>
+                      )}
                     </div>
                     <p className="shrink-0 text-sm font-semibold tabular-nums">
                       {formatMoney(lineTotal, item.product.currency)}
@@ -143,7 +184,7 @@ export default async function CartPage() {
                         />
                         <button
                           aria-label="Crește cantitatea"
-                          disabled={item.quantity >= item.product.stock}
+                          disabled={item.quantity >= stockView.maxPerOrder}
                           className="flex h-9 w-9 cursor-pointer items-center justify-center text-ink-muted transition-colors hover:text-ink disabled:cursor-not-allowed disabled:text-ink-faint"
                         >
                           <Plus className="size-3.5" />
@@ -211,15 +252,33 @@ export default async function CartPage() {
             </span>
           </div>
 
-          <Link
-            href="/checkout"
-            className="mt-5 flex h-12 w-full items-center justify-center rounded-lg bg-ink font-medium text-white transition-colors hover:bg-zinc-700"
-          >
-            Continuă spre checkout
-          </Link>
-          <p className="mt-3 text-center text-xs text-ink-faint">
-            Poți comanda ca guest sau autentificat.
-          </p>
+          {checkoutBlocked ? (
+            <>
+              <span
+                aria-disabled
+                className="mt-5 flex h-12 w-full cursor-not-allowed items-center justify-center rounded-lg bg-ink/40 font-medium text-white"
+              >
+                Continuă spre checkout
+              </span>
+              <p className="mt-3 text-center text-xs text-critical">
+                {blockedItems.length > 0
+                  ? "Scoate din coș produsele indisponibile pentru a continua."
+                  : "Scade cantitățile peste limită pentru a continua."}
+              </p>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/checkout"
+                className="mt-5 flex h-12 w-full items-center justify-center rounded-lg bg-ink font-medium text-white transition-colors hover:bg-zinc-700"
+              >
+                Continuă spre checkout
+              </Link>
+              <p className="mt-3 text-center text-xs text-ink-faint">
+                Poți comanda ca guest sau autentificat.
+              </p>
+            </>
+          )}
         </aside>
       </div>
     </div>

@@ -5,6 +5,11 @@ import { ChevronRight, Truck, RotateCcw, ShieldCheck } from "lucide-react";
 import { getActiveStore } from "@/lib/shop/store";
 import { getProductBySlug } from "@/lib/shop/products";
 import { getPriceView } from "@/lib/shop/pricing";
+import {
+  availabilityLabel,
+  availabilityTone,
+  getAvailabilityView,
+} from "@/lib/shop/availability";
 import { Price } from "@/components/shop/price";
 import { AddToCartButton } from "@/components/shop/add-to-cart-button";
 import { Badge } from "@/components/ui/badge";
@@ -27,10 +32,13 @@ export default async function ProductPage({ params }: Props) {
   const product = await getProductBySlug(store.id, slug);
   if (!product || !product.active) notFound();
 
-  const price = await getPriceView(product);
-  // TODO(rules): disponibilitatea si plafonul de cantitate vor veni din
-  // decizia AVAILABILITY; livrarea estimata din decizia SHIPPING.
-  const available = product.stock > 0;
+  const [price, availability] = await Promise.all([
+    getPriceView(product),
+    getAvailabilityView(product),
+  ]);
+  // Un produs ascuns de reguli nu exista pentru clienti — nici prin link direct.
+  if (availability.hidden) notFound();
+
   const image = product.imageUrls[0];
 
   return (
@@ -90,14 +98,17 @@ export default async function ProductPage({ params }: Props) {
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            {available ? (
-              product.stock <= 5 ? (
-                <Badge tone="caution">Ultimele {product.stock} bucăți</Badge>
-              ) : (
-                <Badge tone="positive">În stoc</Badge>
-              )
-            ) : (
-              <Badge tone="critical">Stoc epuizat</Badge>
+            {/* Starea de disponibilitate vine din decizia AVAILABILITY */}
+            <Badge tone={availabilityTone(availability)}>
+              {availabilityLabel(availability)}
+            </Badge>
+            {availability.badges.map((badge) => (
+              <Badge key={badge} tone="accent" className="uppercase">
+                {badge}
+              </Badge>
+            ))}
+            {availability.available && availability.ruleLimit !== null && (
+              <Badge>maximum {availability.maxPerOrder} bucăți / comandă</Badge>
             )}
             {product.tags.map((tag) => (
               <Badge key={tag}>{tag}</Badge>
@@ -114,8 +125,9 @@ export default async function ProductPage({ params }: Props) {
             <AddToCartButton
               productId={product.id}
               productName={product.name}
-              maxQuantity={product.stock}
-              disabled={!available}
+              maxQuantity={availability.maxPerOrder}
+              disabled={!availability.available}
+              disabledLabel={availabilityLabel(availability)}
             />
           </div>
 

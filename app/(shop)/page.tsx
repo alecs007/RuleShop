@@ -4,15 +4,23 @@ import { ArrowRight } from "lucide-react";
 import { getActiveStore } from "@/lib/shop/store";
 import { getCategories, getFeaturedProducts } from "@/lib/shop/products";
 import { getPriceViews } from "@/lib/shop/pricing";
+import {
+  getAvailabilityViews,
+  getHiddenProductIds,
+} from "@/lib/shop/availability";
 import { ProductCard } from "@/components/shop/product-card";
 
 export default async function HomePage() {
   const store = await getActiveStore();
+  const hiddenIds = await getHiddenProductIds(store.id);
   const [products, categories] = await Promise.all([
-    getFeaturedProducts(store.id, 8),
+    getFeaturedProducts(store.id, 8, hiddenIds),
     getCategories(store.id),
   ]);
-  const prices = await getPriceViews(products);
+  const [prices, availability] = await Promise.all([
+    getPriceViews(products),
+    getAvailabilityViews(products),
+  ]);
 
   return (
     <div className="appear-content py-8 sm:py-12">
@@ -119,6 +127,7 @@ export default async function HomePage() {
                 key={product.id}
                 product={product}
                 price={prices.get(product.id)!}
+                availability={availability.get(product.id)}
               />
             ))}
           </div>

@@ -9,6 +9,10 @@ import { getSessionUser } from "@/lib/auth/guards";
 import { getActiveStore } from "@/lib/shop/store";
 import { getOrCreateSessionKey } from "@/lib/shop/session";
 import { computeTotals, readCart } from "@/lib/shop/cart";
+import {
+  getAvailabilityViews,
+  unavailableMessage,
+} from "@/lib/shop/availability";
 import { getEvaluationActor } from "@/lib/shop/context";
 import { getPriceViews } from "@/lib/shop/pricing";
 import { cartShippingFacts, quoteShipping } from "@/lib/shop/shipping";
@@ -111,6 +115,27 @@ export async function placeOrderAction(
   const cart = await readCart(store.id);
   if (!cart || cart.items.length === 0) {
     return { ok: false, message: "Coșul este gol." };
+  }
+
+  // --- Decizia AVAILABILITY, reverificata la plasare: o regula publicata
+  // intre adaugarea in cos si checkout poate bloca sau plafona un produs ---
+  const availability = await getAvailabilityViews(
+    cart.items.map((i) => i.product),
+  );
+  for (const item of cart.items) {
+    const view = availability.get(item.productId)!;
+    if (!view.available) {
+      return {
+        ok: false,
+        message: `${unavailableMessage(view, item.product.name)} Scoate-l din coș pentru a continua.`,
+      };
+    }
+    if (item.quantity > view.maxPerOrder) {
+      return {
+        ok: false,
+        message: `Poți comanda maximum ${view.maxPerOrder} bucăți din „${item.product.name}". Ajustează coșul pentru a continua.`,
+      };
+    }
   }
 
   const viewer = await getSessionUser();

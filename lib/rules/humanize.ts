@@ -270,6 +270,10 @@ export function humanizeAction(action: RuleAction): string {
       return `limitează la ${param(params, "maxQuantity")} bucăți per comandă`;
     case "SET_AVAILABILITY_MESSAGE":
       return `afișează mesajul ${quoted(params, "message")}`;
+    case "ADD_AVAILABILITY_BADGE":
+      return `afișează badge-ul ${quoted(params, "badge")}`;
+    case "SET_LOW_STOCK_THRESHOLD":
+      return `avertizează „ultimele bucăți" sub ${param(params, "threshold")} în stoc`;
 
     // Loialitate
     case "SET_POINTS_MULTIPLIER":

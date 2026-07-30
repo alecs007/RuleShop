@@ -10,6 +10,10 @@ import {
   EMPTY_SELECTION,
 } from "@/lib/shop/catalog-params";
 import { getPriceViews } from "@/lib/shop/pricing";
+import {
+  getAvailabilityViews,
+  getHiddenProductIds,
+} from "@/lib/shop/availability";
 import { ProductCard } from "@/components/shop/product-card";
 import { CatalogFilters } from "@/components/shop/catalog-filters";
 import { AppearItem, AppearList } from "@/components/ui/appear";
@@ -27,11 +31,17 @@ export default async function ProductsPage({
   const store = await getActiveStore();
   const selection = parseCatalogSelection(params);
 
+  // Produsele ascunse de regulile AVAILABILITY ies din catalog inaintea
+  // paginarii si a numaratorilor, ca si cum nu ar exista.
+  const hiddenIds = await getHiddenProductIds(store.id);
   const [result, facets] = await Promise.all([
-    queryCatalog(store.id, selection),
-    getCatalogFacets(store.id),
+    queryCatalog(store.id, { ...selection, excludeIds: hiddenIds }),
+    getCatalogFacets(store.id, hiddenIds),
   ]);
-  const prices = await getPriceViews(result.products);
+  const [prices, availability] = await Promise.all([
+    getPriceViews(result.products),
+    getAvailabilityViews(result.products),
+  ]);
 
   const singleCategory =
     selection.categories.length === 1 ? selection.categories[0] : null;
@@ -80,7 +90,11 @@ export default async function ProductsPage({
         >
           {result.products.map((product, index) => (
             <AppearItem key={product.id} index={index} className="h-full">
-              <ProductCard product={product} price={prices.get(product.id)!} />
+              <ProductCard
+                product={product}
+                price={prices.get(product.id)!}
+                availability={availability.get(product.id)}
+              />
             </AppearItem>
           ))}
         </AppearList>

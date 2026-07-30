@@ -36,6 +36,10 @@ import {
   parseFraudSimulation,
 } from "@/components/control-plane/fraud-tester";
 import {
+  AvailabilityTester,
+  parseWho,
+} from "@/components/control-plane/availability-tester";
+import {
   deleteRuleAction,
   killSwitchAction,
   publishAction,
@@ -437,6 +441,16 @@ export default async function RuleSetPage({
           currency={store?.currency ?? "RON"}
           hasDraftChanges={hasDraftChanges}
           simulation={parseSimulation(query)}
+        />
+      )}
+
+      {/* Tester de disponibilitate — doar pentru AVAILABILITY */}
+      {category === "AVAILABILITY" && (
+        <AvailabilityTester
+          storeId={storeId}
+          testedProductId={test}
+          who={parseWho(query.who)}
+          hasDraftChanges={hasDraftChanges}
         />
       )}
 

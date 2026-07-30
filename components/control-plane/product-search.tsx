@@ -24,9 +24,12 @@ export interface ProductOption {
 export function ProductSearch({
   products,
   selectedId,
+  extraParams,
 }: {
   products: ProductOption[];
   selectedId?: string;
+  /** Parametri de query pastrati la navigare (ex: `who` din tester). */
+  extraParams?: Record<string, string>;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -54,10 +57,17 @@ export function ProductSearch({
       )
     : products;
 
+  const hrefFor = (id?: string) => {
+    const params = new URLSearchParams(extraParams);
+    if (id) params.set("test", id);
+    const qs = params.toString();
+    return qs ? `${pathname}?${qs}` : pathname;
+  };
+
   const pick = (id: string) => {
     setOpen(false);
     setQuery("");
-    const href = `${pathname}?test=${id}`;
+    const href = hrefFor(id);
     startRouteLoading(href);
     // Testerul e stare de UI in pagina, nu pagina noua: rămânem unde suntem.
     skipNextScrollReset();
@@ -88,9 +98,10 @@ export function ProductSearch({
             type="button"
             aria-label="Renunță la produsul selectat"
             onClick={() => {
-              startRouteLoading(pathname);
+              const href = hrefFor();
+              startRouteLoading(href);
               skipNextScrollReset();
-              router.push(pathname, { scroll: false });
+              router.push(href, { scroll: false });
             }}
             className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-ink-faint transition-colors hover:bg-zinc-100 hover:text-ink"
           >

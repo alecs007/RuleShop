@@ -2,18 +2,31 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "@prisma/client";
 import type { PriceView } from "@/lib/shop/pricing";
+import {
+  availabilityLabel,
+  type AvailabilityView,
+} from "@/lib/shop/availability-view";
 import { Badge } from "@/components/ui/badge";
 import { Price } from "./price";
 
 export function ProductCard({
   product,
   price,
+  availability,
 }: {
   product: Product;
   price: PriceView;
+  /** Decizia AVAILABILITY; fara ea, cardul se ghideaza doar dupa stoc. */
+  availability?: AvailabilityView;
 }) {
   const image = product.imageUrls[0];
-  const outOfStock = product.stock <= 0;
+  const unavailable = availability ? !availability.available : product.stock <= 0;
+  const unavailableText = availability
+    ? availabilityLabel(availability)
+    : "Stoc epuizat";
+  const lowStock = availability
+    ? availability.lowStock
+    : product.stock > 0 && product.stock <= 5;
 
   return (
     <Link
@@ -35,9 +48,9 @@ export function ProductCard({
             {product.name.charAt(0)}
           </div>
         )}
-        {outOfStock && (
+        {unavailable && (
           <div className="absolute inset-x-0 bottom-0 bg-ink/70 py-1.5 text-center text-xs font-medium text-white">
-            Stoc epuizat
+            {unavailableText}
           </div>
         )}
       </div>
@@ -52,10 +65,24 @@ export function ProductCard({
         <div className="mt-auto pt-2">
           <Price view={price} />
         </div>
-        {product.stock > 0 && product.stock <= 5 && (
-          <Badge tone="caution" className="w-fit">
-            Ultimele {product.stock} bucăți
-          </Badge>
+        {(lowStock ||
+          (availability && availability.available && availability.message) ||
+          availability?.badges.length) && (
+          <div className="flex flex-wrap gap-1.5">
+            {availability?.badges.map((badge) => (
+              <Badge key={badge} tone="accent" className="w-fit uppercase">
+                {badge}
+              </Badge>
+            ))}
+            {lowStock && !unavailable && (
+              <Badge tone="caution" className="w-fit">
+                Ultimele {availability?.stock ?? product.stock} bucăți
+              </Badge>
+            )}
+            {availability && availability.available && availability.message && (
+              <Badge className="w-fit">{availability.message}</Badge>
+            )}
+          </div>
         )}
       </div>
     </Link>

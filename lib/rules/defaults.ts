@@ -49,7 +49,11 @@ export const CATEGORY_DEFAULTS: Record<DecisionCategory, CategoryDefaults> = {
     },
   },
   AVAILABILITY: {
-    conflictStrategy: "PRIORITY_FIRST_MATCH",
+    // Aceeasi situatie ca la SHIPPING: decizia are campuri independente
+    // (disponibil, ascuns, plafon, badge-uri, mesaj), deci un singur castigator
+    // ar arunca in silentiu regulile care nu au castigat. Se aplica toate;
+    // prioritatea mai mare are ultimul cuvant pe campurile suprascrise.
+    conflictStrategy: "PRIORITY_ALL_MATCHES",
     defaultDecision: { available: true, hidden: false },
   },
   LOYALTY: {

@@ -2,6 +2,11 @@ import "server-only";
 import { prisma } from "@/lib/db/prisma";
 import { auth } from "@/lib/auth";
 import { getSessionKey } from "./session";
+import {
+  clampQuantity,
+  getAvailabilityView,
+  unavailableMessage,
+} from "./availability";
 
 export type CartWithItems = NonNullable<Awaited<ReturnType<typeof readCart>>>;
 
@@ -56,16 +61,27 @@ export async function addItem(
   });
   if (!product) throw new Error("Produsul nu există în acest magazin.");
 
+  // Decizia AVAILABILITY: un produs ascuns/indisponibil nu intra in cos, iar
+  // plafonul per comanda (LIMIT_QUANTITY) taie cantitatea, nu doar stocul.
+  const view = await getAvailabilityView(product);
+  if (!view.available) throw new Error(unavailableMessage(view, product.name));
+
   const cart = await getOrCreateCart(storeId, sessionKey);
   const existing = await prisma.cartItem.findUnique({
     where: { cartId_productId: { cartId: cart.id, productId } },
   });
 
   const desired = (existing?.quantity ?? 0) + quantity;
-  // TODO(rules): plafonul per comanda va veni din decizia AVAILABILITY
-  // (LIMIT_QUANTITY); pana atunci limitam la stocul disponibil.
-  const capped = Math.min(desired, Math.max(0, product.stock));
-  if (capped <= 0) throw new Error("Produsul nu mai este în stoc.");
+  const { quantity: capped, limitedBy } = clampQuantity(view, desired);
+  if (capped <= 0) throw new Error(unavailableMessage(view, product.name));
+  if (existing && capped <= existing.quantity) {
+    // Plafonul era deja atins — un „succes" fara efect ar deruta clientul.
+    throw new Error(
+      limitedBy === "rule"
+        ? `Poți comanda maximum ${view.maxPerOrder} bucăți din „${product.name}".`
+        : `Stocul nu permite mai mult de ${view.maxPerOrder} bucăți din „${product.name}".`,
+    );
+  }
 
   await prisma.cartItem.upsert({
     where: { cartId_productId: { cartId: cart.id, productId } },
@@ -95,9 +111,16 @@ export async function setItemQuantity(
   });
   if (!product) return;
 
+  // Cantitatea nu poate depasi plafonul deciziei AVAILABILITY. Daca produsul a
+  // devenit indisponibil intre timp, linia rămâne neschimbata — clientul o vede
+  // marcata in cos si o poate sterge singur.
+  const view = await getAvailabilityView(product);
+  const { quantity: capped } = clampQuantity(view, quantity);
+  if (capped <= 0) return;
+
   await prisma.cartItem.update({
     where: { cartId_productId: { cartId: cart.id, productId } },
-    data: { quantity: Math.min(quantity, Math.max(1, product.stock)) },
+    data: { quantity: capped },
   });
 }
 
