@@ -39,6 +39,10 @@ import {
   AvailabilityTester,
   parseWho,
 } from "@/components/control-plane/availability-tester";
+import {
+  LoyaltyTester,
+  parseLoyaltySimulation,
+} from "@/components/control-plane/loyalty-tester";
 import { AiPanel } from "@/components/control-plane/ai-panel";
 import {
   deleteRuleAction,
@@ -68,6 +72,7 @@ export default async function RuleSetPage({
     items?: string;
     weight?: string;
     who?: string;
+    orders?: string;
     total?: string;
     fitems?: string;
     fwho?: string;
@@ -447,6 +452,16 @@ export default async function RuleSetPage({
           testedProductId={test}
           who={parseWho(query.who)}
           hasDraftChanges={hasDraftChanges}
+        />
+      )}
+
+      {/* Tester de loialitate — doar pentru LOYALTY */}
+      {category === "LOYALTY" && (
+        <LoyaltyTester
+          storeId={storeId}
+          currency={store?.currency ?? "RON"}
+          hasDraftChanges={hasDraftChanges}
+          simulation={parseLoyaltySimulation(query)}
         />
       )}
 

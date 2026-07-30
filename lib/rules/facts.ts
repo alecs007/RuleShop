@@ -67,12 +67,13 @@ export const FACTS: FactDef[] = [
   { path: "shipping.methodId", label: "Metoda de livrare", type: "string", example: "curier-express", categories: ["SHIPPING"], form: "f" },
   { path: "shipping.baseCostCents", label: "Costul de listă al metodei (bani)", type: "number", categories: ["SHIPPING"], phrase: "costul de listă al metodei" },
 
-  // Comanda care se plaseaza — exista doar la verificarea antifrauda
-  { path: "order.totalCents", label: "Total comandă (bani)", type: "number", example: "150000", categories: ["FRAUD"], phrase: "totalul comenzii" },
+  // Comanda care se plaseaza — exista la verificarea antifrauda si la calculul
+  // recompenselor, adica in punctele in care totalul e deja cunoscut.
+  { path: "order.totalCents", label: "Total comandă (bani)", type: "number", example: "150000", categories: ["FRAUD", "LOYALTY"], phrase: "totalul comenzii" },
   { path: "order.shippingCountry", label: "Țara de livrare", type: "string", example: "RO", categories: ["FRAUD"], form: "f" },
   { path: "order.billingCountry", label: "Țara de facturare", type: "string", example: "RO", categories: ["FRAUD"], form: "f" },
   { path: "order.addressMismatch", label: "Adresa de livrare diferă de facturare", type: "boolean", categories: ["FRAUD"] },
-  { path: "order.paymentMethod", label: "Metoda de plată", type: "string", example: "card", categories: ["FRAUD"], form: "f" },
+  { path: "order.paymentMethod", label: "Metoda de plată", type: "string", example: "card", categories: ["FRAUD", "LOYALTY"], form: "f" },
 
   // Sesiune
   { path: "session.isGuest", label: "Este vizitator (fără cont)", type: "boolean" },

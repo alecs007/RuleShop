@@ -52,6 +52,10 @@ const AGGREGATE_LABELS: Record<string, string> = {
   blockedCount: "Produse blocate",
   hiddenCount: "Produse ascunse",
   limitedCount: "Cu plafon de cantitate",
+  totalPointsAwarded: "Total puncte acordate",
+  extraPointsFromRules: "Puncte adăugate de reguli",
+  avgPointsPerEvaluation: "Puncte medii / evaluare",
+  boostedShare: "Evaluări cu bonus (%)",
   totalBonusPoints: "Puncte bonus acordate",
   avgPointsMultiplierX100: "Multiplicator mediu (×100)",
 };

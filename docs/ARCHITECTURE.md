@@ -167,6 +167,7 @@ de aplicație, aprobarea umană e obligatorie înainte de publicare — sunt des
 7. ✅ Control plane: CRUD reguli, editor structurat, validare, testere per categorie
 8. ✅ Versionare: publicare, diff, rollback, kill switch, audit
 9. ✅ Modul AI + server MCP + simulare pe evenimente istorice + aprobare umană
-10. ✅ Puncte de decizie: prețuri, livrare, antifraudă, disponibilitate
-11. ⬜ Rămase: publicare canary în interfață, decizii LOYALTY/THEME în magazin,
+10. ✅ Puncte de decizie: prețuri, livrare, antifraudă, disponibilitate,
+    loialitate
+11. ⬜ Rămase: publicare canary în interfață, decizii THEME în magazin,
     pagină de istoric al evaluărilor, endpoint public de decisioning

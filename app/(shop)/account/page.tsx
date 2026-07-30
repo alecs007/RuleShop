@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronRight, Package } from "lucide-react";
+import { ChevronRight, Gift, Package } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
+import { getActiveStore } from "@/lib/shop/store";
+import { getAccountLoyalty } from "@/lib/shop/loyalty";
 import { formatMoney } from "@/lib/utils/money";
 import { Badge } from "@/components/ui/badge";
 
@@ -18,6 +20,11 @@ export default async function AccountPage() {
     where: { id: session.user.id },
   });
   if (!user) redirect("/auth/signin");
+
+  // Nivelul si beneficiile vin din decizia LOYALTY, evaluata pe faptele
+  // contului (fara coș): un client isi vede statutul curent, nu unul stocat.
+  const store = await getActiveStore();
+  const loyalty = await getAccountLoyalty(store.id);
 
   return (
     <div className="appear-content mx-auto max-w-2xl py-8">
@@ -47,8 +54,12 @@ export default async function AccountPage() {
         <dl className="mt-6 grid gap-4 border-t border-line pt-6 sm:grid-cols-3">
           <div>
             <dt className="text-xs uppercase tracking-wide text-ink-faint">Nivel loialitate</dt>
-            {/* TODO(rules): nivelul si beneficiile vin din decizia LOYALTY */}
-            <dd className="mt-1"><Badge tone="accent">{user.loyaltyTier}</Badge></dd>
+            <dd className="mt-1 flex flex-wrap items-center gap-1.5">
+              <Badge tone="accent">{loyalty.tier}</Badge>
+              {loyalty.tierFromRule && (
+                <span className="text-xs text-ink-faint">stabilit de reguli</span>
+              )}
+            </dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-wide text-ink-faint">Puncte</dt>
@@ -67,6 +78,34 @@ export default async function AccountPage() {
             </dd>
           </div>
         </dl>
+
+        {/* Beneficiile acordate de reguli pentru acest cont */}
+        {loyalty.benefits.length > 0 && (
+          <div className="mt-6 border-t border-line pt-6">
+            <p className="text-xs uppercase tracking-wide text-ink-faint">
+              Beneficii active
+            </p>
+            <ul className="mt-2 space-y-1.5">
+              {loyalty.benefits.map((benefit) => (
+                <li key={benefit} className="flex items-start gap-2 text-sm">
+                  <Gift
+                    className="mt-0.5 size-4 shrink-0 text-accent"
+                    strokeWidth={1.75}
+                  />
+                  {benefit}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {loyalty.pointsMultiplier !== 1 && (
+          <p className="mt-4 text-sm text-ink-muted">
+            La comenzile tale se aplică un multiplicator de{" "}
+            <span className="font-medium text-ink">×{loyalty.pointsMultiplier}</span>{" "}
+            la puncte.
+          </p>
+        )}
       </div>
 
       <Link

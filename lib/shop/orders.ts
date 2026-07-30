@@ -5,6 +5,7 @@ import type { CartWithItems } from "./cart";
 import type { PriceView } from "./pricing";
 import type { ShippingQuote } from "./shipping-quote";
 import type { FraudAssessment } from "./fraud-risk";
+import type { LoyaltyView } from "./loyalty-view";
 
 /** Adresa, asa cum e completata la checkout. */
 export interface OrderAddress {
@@ -32,6 +33,8 @@ export interface CreateOrderInput {
   prices: Map<string, PriceView>;
   quote: ShippingQuote;
   assessment: FraudAssessment;
+  /** Decizia LOYALTY pentru aceasta comanda (puncte, beneficii, nivel). */
+  loyalty: LoyaltyView;
   status: OrderStatus;
   sessionKey: string;
   userId: string | null;
@@ -56,7 +59,7 @@ export interface CreateOrderInput {
  * produs — istoricul rămâne corect chiar daca produsul sau regulile se schimba.
  */
 export async function createOrder(input: CreateOrderInput) {
-  const { cart, prices, quote, assessment } = input;
+  const { cart, prices, quote, assessment, loyalty } = input;
 
   const items = cart.items.map((item) => {
     const view = prices.get(item.productId);
@@ -79,6 +82,7 @@ export async function createOrder(input: CreateOrderInput) {
       ...items.flatMap((i) => (i.appliedRules as string[]) ?? []),
       ...quote.options.flatMap((o) => o.matchedRules),
       ...assessment.matchedRules,
+      ...loyalty.matchedRules,
     ]),
   ];
 
@@ -89,6 +93,11 @@ export async function createOrder(input: CreateOrderInput) {
   if (typeof pricingVersion === "number") rulesetVersions.PRICING = pricingVersion;
   if (quote.rulesetVersion !== null) rulesetVersions.SHIPPING = quote.rulesetVersion;
   if (assessment.rulesetVersion !== null) rulesetVersions.FRAUD = assessment.rulesetVersion;
+  if (loyalty.rulesetVersion !== null) rulesetVersions.LOYALTY = loyalty.rulesetVersion;
+
+  // Punctele se acorda doar unui cont; o comanda in regim guest nu are unde sa
+  // le acumuleze, deci se salveaza 0 (calculul rămâne in decisionSnapshot).
+  const loyaltyPointsEarned = loyalty.creditable ? loyalty.points : 0;
 
   const decisionSnapshot = {
     pricing: Object.fromEntries(
@@ -118,6 +127,16 @@ export async function createOrder(input: CreateOrderInput) {
       flaggedSignals: assessment.flaggedSignals,
       matchedRules: assessment.matchedRules,
       thresholds: assessment.thresholds,
+    },
+    loyalty: {
+      basePoints: loyalty.basePoints,
+      pointsMultiplier: loyalty.pointsMultiplier,
+      bonusPoints: loyalty.bonusPoints,
+      points: loyalty.points,
+      pointsCredited: loyaltyPointsEarned,
+      benefits: loyalty.benefits,
+      tier: loyalty.tier,
+      matchedRules: loyalty.matchedRules,
     },
     ...(input.challenge ? { challenge: input.challenge } : {}),
   };
@@ -167,6 +186,10 @@ export async function createOrder(input: CreateOrderInput) {
             rulesetVersions: rulesetVersions as Prisma.InputJsonValue,
             traceId: assessment.traceId,
             riskScore: assessment.riskScore,
+            // Punctele se scriu pe comanda, nu pe cont: soldul clientului este
+            // suma comenzilor incasate (vezi syncCustomerStats), deci o comanda
+            // anulata isi retrage punctele de la sine.
+            loyaltyPointsEarned,
             placedAt: new Date(),
             items: { create: items },
           },

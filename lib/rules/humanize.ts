@@ -282,6 +282,8 @@ export function humanizeAction(action: RuleAction): string {
       return `acordă ${param(params, "points")} puncte bonus`;
     case "GRANT_BENEFIT":
       return `acordă beneficiul ${quoted(params, "benefit")}`;
+    case "SET_LOYALTY_TIER":
+      return `nivelul de loialitate devine ${quoted(params, "tier")}`;
 
     // Temă
     case "SET_THEME_TOKEN":

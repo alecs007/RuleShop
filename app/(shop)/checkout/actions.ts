@@ -18,6 +18,7 @@ import {
 import { getEvaluationActor } from "@/lib/shop/context";
 import { getPriceViews } from "@/lib/shop/pricing";
 import { cartShippingFacts, quoteShipping } from "@/lib/shop/shipping";
+import { getLoyaltyView } from "@/lib/shop/loyalty";
 import {
   checkFraud,
   collectSessionSignals,
@@ -86,8 +87,8 @@ function challengeCode(): string {
  * datele din formular sunt doar adresa, emailul si metoda de plata — sumele
  * venite din client nu sunt niciodata de incredere.
  *
- * Ordinea deciziilor: PRICING -> SHIPPING -> FRAUD. Rezultatul antifraudei
- * decide ce se intampla cu comanda:
+ * Ordinea deciziilor: PRICING -> SHIPPING -> LOYALTY -> FRAUD. Rezultatul
+ * antifraudei decide ce se intampla cu comanda:
  *   ALLOW     -> se incaseaza plata, comanda e confirmata;
  *   CHALLENGE -> comanda asteapta o verificare suplimentara, fara plata;
  *   REVIEW    -> comanda merge la verificare manuala in control plane;
@@ -195,6 +196,20 @@ export async function placeOrderAction(
   }, 0);
   const totalCents = totals.subtotalCents + shippingCents;
 
+  // --- Decizia LOYALTY: cate puncte si ce beneficii aduce comanda ---
+  // Se evalueaza INAINTE de createOrder, cu faptele de client dinaintea acestei
+  // comenzi, si se ingheata pe comanda; recalculul soldului vine dupa.
+  const loyalty = await getLoyaltyView({
+    storeId: store.id,
+    cart: cartFacts,
+    order: {
+      totalCents,
+      shippingCents,
+      paymentMethod: parsed.data.paymentMethod,
+    },
+    record: "checkout",
+  });
+
   // --- Verificarea antifraudă ---
   const fingerprint = await readRequestFingerprint();
   const actor = await getEvaluationActor();
@@ -299,6 +314,7 @@ export async function placeOrderAction(
       prices,
       quote,
       assessment,
+      loyalty,
       status,
       sessionKey,
       userId: viewer?.id ?? null,
@@ -322,8 +338,9 @@ export async function placeOrderAction(
     throw error;
   }
 
-  // Faptele de client folosite de reguli (comenzi finalizate, total cheltuit)
-  // se resincronizeaza imediat: urmatoarea evaluare trebuie sa vada realitatea.
+  // Faptele de client folosite de reguli (comenzi finalizate, total cheltuit,
+  // sold de puncte) se resincronizeaza imediat: urmatoarea evaluare trebuie sa
+  // vada realitatea. Punctele intra in sold doar cand comanda e incasata.
   await syncCustomerStats(store.id, viewer?.id ?? null);
 
   await recordIncident(order.id);

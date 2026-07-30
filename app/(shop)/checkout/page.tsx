@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Gift, Sparkles } from "lucide-react";
 import { getSessionUser } from "@/lib/auth/guards";
 import { getActiveStore } from "@/lib/shop/store";
 import { computeTotals, readCart } from "@/lib/shop/cart";
 import { getPriceViews } from "@/lib/shop/pricing";
 import { cartShippingFacts, quoteShipping } from "@/lib/shop/shipping";
+import { explainLoyalty, getLoyaltyView, pointsLabel } from "@/lib/shop/loyalty";
 import { formatMoney } from "@/lib/utils/money";
+import { Badge } from "@/components/ui/badge";
 import { CheckoutForm } from "@/components/shop/checkout-form";
 
 export const metadata: Metadata = { title: "Finalizare comandă" };
@@ -22,16 +24,25 @@ export default async function CheckoutPage() {
     getPriceViews(cart.items.map((i) => i.product)),
   ]);
   const totals = computeTotals(cart, prices);
+  const cartFacts = cartShippingFacts(cart, totals);
   const quote = await quoteShipping({
     storeId: store.id,
     storeSettings: store.settings,
     currency: totals.currency,
-    cart: cartShippingFacts(cart, totals),
+    cart: cartFacts,
     selectedMethodId: cart.shippingMethodId,
   });
 
   const shippingCents = quote.selected?.costCents ?? 0;
   const totalCents = totals.subtotalCents + shippingCents;
+
+  // Aceeasi decizie LOYALTY pe care o va ingheta plasarea comenzii — clientul
+  // vede inainte ce câștiga, nu doar dupa.
+  const loyalty = await getLoyaltyView({
+    storeId: store.id,
+    cart: cartFacts,
+    order: { totalCents, shippingCents },
+  });
 
   return (
     <div className="py-8">
@@ -109,6 +120,45 @@ export default async function CheckoutPage() {
               Metoda de livrare aleasă nu mai este disponibilă — am trecut pe{" "}
               {quote.selected?.label}.
             </p>
+          )}
+
+          {/* Decizia LOYALTY, vizibila inainte de plasare */}
+          {(loyalty.points > 0 || loyalty.benefits.length > 0) && (
+            <div className="mt-4 rounded-lg border border-line bg-surface p-3">
+              <p className="flex items-center gap-1.5 text-sm font-medium">
+                <Sparkles className="size-4 text-accent" strokeWidth={1.75} />
+                {loyalty.creditable ? (
+                  <>Câștigi {pointsLabel(loyalty.points)}</>
+                ) : (
+                  <>Cu un cont ai câștiga {pointsLabel(loyalty.points)}</>
+                )}
+                {loyalty.extraPoints > 0 && (
+                  <Badge tone="positive">+{loyalty.extraPoints} din reguli</Badge>
+                )}
+              </p>
+              <p className="mt-1 text-xs text-ink-muted">
+                {explainLoyalty(loyalty)}
+                {!loyalty.creditable &&
+                  " · punctele se acumulează doar pe un cont autentificat"}
+              </p>
+
+              {loyalty.benefits.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {loyalty.benefits.map((benefit) => (
+                    <li
+                      key={benefit}
+                      className="flex items-start gap-1.5 text-xs text-ink-muted"
+                    >
+                      <Gift
+                        className="mt-0.5 size-3.5 shrink-0 text-accent"
+                        strokeWidth={1.75}
+                      />
+                      {benefit}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
         </aside>
       </div>

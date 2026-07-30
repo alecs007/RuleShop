@@ -14,6 +14,7 @@ import {
 } from "@/lib/engine";
 import { applyPricingDecision } from "@/lib/shop/pricing-decision";
 import { decisionFromScore, readThresholds } from "@/lib/shop/fraud-risk";
+import { basePointsFor } from "@/lib/shop/loyalty-view";
 
 export interface SimulationEvent {
   /** Contextul de fapte exact cum a intrat in motor la momentul evaluarii. */
@@ -174,17 +175,38 @@ function availabilityAggregator(): AggregateAccumulator {
 function loyaltyAggregator(): AggregateAccumulator {
   let bonusSum = 0;
   let multiplierSum = 0;
+  let pointsSum = 0;
+  let basePointsSum = 0;
+  let boosted = 0;
   let counted = 0;
   return {
-    add(_context, decision) {
+    add(context, decision) {
       counted += 1;
-      bonusSum += Math.max(0, num(decision.bonusPoints) ?? 0);
-      multiplierSum += Math.max(0, num(decision.pointsMultiplier) ?? 1);
+      const multiplier = Math.max(0, num(decision.pointsMultiplier) ?? 1);
+      const bonus = Math.max(0, num(decision.bonusPoints) ?? 0);
+      bonusSum += bonus;
+      multiplierSum += multiplier;
+
+      // Aceeasi formula ca in magazin: punctele de baza vin din subtotalul
+      // coșului, iar regulile le multiplica si adauga bonus peste.
+      const basePoints = basePointsFor(
+        contextNumber(context, ["cart", "subtotalCents"]) ?? 0,
+      );
+      const points = Math.round(basePoints * multiplier) + Math.floor(bonus);
+      basePointsSum += basePoints;
+      pointsSum += points;
+      if (points > basePoints) boosted += 1;
     },
     finish() {
       return {
+        totalPointsAwarded: pointsSum,
+        // Cat au adaugat regulile peste calculul de baza — costul campaniei.
+        extraPointsFromRules: pointsSum - basePointsSum,
+        avgPointsPerEvaluation: avg(pointsSum, counted),
+        boostedShare: counted > 0 ? Math.round((boosted / counted) * 100) : 0,
         totalBonusPoints: bonusSum,
-        avgPointsMultiplierX100: counted > 0 ? Math.round((multiplierSum / counted) * 100) : 100,
+        avgPointsMultiplierX100:
+          counted > 0 ? Math.round((multiplierSum / counted) * 100) : 100,
       };
     },
   };

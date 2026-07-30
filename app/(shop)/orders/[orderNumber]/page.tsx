@@ -5,8 +5,10 @@ import {
   Ban,
   CheckCircle2,
   Clock,
+  Gift,
   PackageCheck,
   ShieldCheck,
+  Sparkles,
   Truck,
   Undo2,
   XCircle,
@@ -103,8 +105,20 @@ interface DecisionSnapshot {
     flaggedSignals?: string[];
     matchedRules?: string[];
   };
+  loyalty?: {
+    basePoints?: number;
+    pointsMultiplier?: number;
+    bonusPoints?: number;
+    points?: number;
+    pointsCredited?: number;
+    benefits?: string[];
+    tier?: string;
+  };
   challenge?: { code?: string; verified?: boolean };
 }
+
+/** Statusurile in care punctele comenzii sunt efectiv in soldul clientului. */
+const POINTS_CREDITED_STATUSES: OrderStatus[] = ["PAID", "FULFILLED"];
 
 export default async function OrderPage({
   params,
@@ -129,6 +143,8 @@ export default async function OrderPage({
   const challenge = snapshot.challenge;
   const needsChallenge = Boolean(challenge?.code && !challenge.verified);
   const fraud = snapshot.fraud;
+  const loyalty = snapshot.loyalty;
+  const pointsCredited = POINTS_CREDITED_STATUSES.includes(order.status);
 
   const appliedRules = order.matchedRuleKeys.map(
     (key) => ruleNames.get(key) ?? key,
@@ -278,6 +294,33 @@ export default async function OrderPage({
                   scor {fraud.riskScore ?? 0}
                 </span>
               </dd>
+            </div>
+          )}
+          {order.loyaltyPointsEarned > 0 && (
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <dt className="flex items-center gap-1.5 text-ink-muted">
+                <Sparkles className="size-3.5" strokeWidth={1.75} />
+                Puncte de loialitate
+              </dt>
+              <dd className="flex items-center gap-2">
+                <span className="font-medium tabular-nums">
+                  +{order.loyaltyPointsEarned}
+                </span>
+                <span className="text-xs text-ink-faint">
+                  {pointsCredited
+                    ? "adăugate în cont"
+                    : "se adaugă la confirmarea comenzii"}
+                </span>
+              </dd>
+            </div>
+          )}
+          {loyalty?.benefits && loyalty.benefits.length > 0 && (
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <dt className="flex items-center gap-1.5 text-ink-muted">
+                <Gift className="size-3.5" strokeWidth={1.75} />
+                Beneficii acordate
+              </dt>
+              <dd className="text-right">{loyalty.benefits.join(", ")}</dd>
             </div>
           )}
           {appliedRules.length > 0 && (

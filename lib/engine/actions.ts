@@ -14,7 +14,7 @@
  *  FRAUD        -> { riskScore, decision: ALLOW|CHALLENGE|REVIEW|BLOCK, signals[] }
  *  AVAILABILITY -> { available, hidden, maxQuantityPerOrder, lowStockThreshold,
  *                    badges[], message }
- *  LOYALTY      -> { pointsMultiplier, bonusPoints, benefits[] }
+ *  LOYALTY      -> { pointsMultiplier, bonusPoints, benefits[], tier }
  *  THEME        -> { tokens: {cheie->valoare CSS}, banner, layoutVariant }
  */
 
@@ -242,14 +242,16 @@ const defs: ActionDef[] = [
     type: "SET_POINTS_MULTIPLIER",
     category: "LOYALTY",
     label: "Multiplicator de puncte",
-    params: [{ name: "factor", type: "number", required: true, min: 0 }],
+    // Plafonat: un multiplicator scris greșit (x1000) ar acorda puncte
+    // nerecuperabile, iar punctele sunt bani pentru magazin.
+    params: [{ name: "factor", type: "number", required: true, min: 0, max: 50 }],
     apply: (d, p) => ({ ...d, pointsMultiplier: num(p, "factor") }),
   },
   {
     type: "GRANT_BONUS_POINTS",
     category: "LOYALTY",
     label: "Acordă puncte bonus",
-    params: [{ name: "points", type: "number", required: true, min: 0 }],
+    params: [{ name: "points", type: "number", required: true, min: 0, max: 100000 }],
     apply: (d, p) => ({
       ...d,
       bonusPoints:
@@ -265,6 +267,13 @@ const defs: ActionDef[] = [
       ...d,
       benefits: appendUnique(d.benefits, [str(p, "benefit")]),
     }),
+  },
+  {
+    type: "SET_LOYALTY_TIER",
+    category: "LOYALTY",
+    label: "Setează nivelul de loialitate",
+    params: [{ name: "tier", type: "string", required: true }],
+    apply: (d, p) => ({ ...d, tier: str(p, "tier") }),
   },
 
   // ---------------------------------------------------------------- THEME --
