@@ -65,6 +65,20 @@ describe("CatalogFilters", () => {
     expect(dialog.parentElement?.className).toContain("items-end");
   });
 
+  it("randeaza panoul in body, ca sa acopere tot ecranul", async () => {
+    const { container } = render(<CatalogFilters facets={FACETS} />);
+    const { dialog } = await openPanel();
+
+    // Portal: învelișul e copil direct al lui `body`, nu al componentei. Altfel
+    // un strămoș cu `transform` (animația de intrare a paginii) ar deveni
+    // containing block si fundalul ar acoperi doar cutia conținutului.
+    const root = dialog.parentElement!;
+    expect(root.parentElement).toBe(document.body);
+    expect(container.contains(dialog)).toBe(false);
+    expect(root.className).toContain("fixed");
+    expect(root.className).toContain("inset-0");
+  });
+
   it("ofera toate grupele de filtre", async () => {
     render(<CatalogFilters facets={FACETS} />);
     const { dialog } = await openPanel();

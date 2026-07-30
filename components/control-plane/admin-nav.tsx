@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Package,
   Scale,
+  ShieldAlert,
   Truck,
   type LucideIcon,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const NAV: NavItem[] = [
   { href: "/admin/products", label: "Produse", icon: Package },
   { href: "/admin/rules", label: "Reguli", icon: Scale },
   { href: "/admin/shipping", label: "Livrare", icon: Truck },
+  { href: "/admin/fraud", label: "Antifraudă", icon: ShieldAlert },
 ];
 
 /**

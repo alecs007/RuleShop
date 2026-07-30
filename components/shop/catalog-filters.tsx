@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Check, ChevronDown, SlidersHorizontal, X } from "lucide-react";
 import type { CatalogFacets, FacetOption } from "@/lib/shop/products";
@@ -198,7 +199,11 @@ function FilterPanel({
     [facets.minPrice, facets.maxPrice],
   );
 
-  return (
+  // Panoul se randează în `document.body`, nu în locul lui din arbore: altfel
+  // orice strămoș cu `transform` (animația de intrare a paginii, o tranziție
+  // framer-motion) devine containing block pentru `position: fixed`, iar
+  // fundalul ar acoperi doar cutia conținutului, nu tot ecranul.
+  return createPortal(
     // Pe mobil: foaie de jos care lasă produsele la vedere deasupra.
     // De la `sm` in sus: panou pe stânga, langă coloana de filtre a paginii.
     <div className="fixed inset-0 z-50 flex items-end sm:items-stretch sm:justify-start">
@@ -386,7 +391,8 @@ function FilterPanel({
           </Button>
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

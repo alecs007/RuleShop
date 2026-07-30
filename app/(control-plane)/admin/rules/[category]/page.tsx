@@ -32,6 +32,10 @@ import {
   ShippingTester,
 } from "@/components/control-plane/shipping-tester";
 import {
+  FraudTester,
+  parseFraudSimulation,
+} from "@/components/control-plane/fraud-tester";
+import {
   deleteRuleAction,
   killSwitchAction,
   publishAction,
@@ -59,6 +63,12 @@ export default async function RuleSetPage({
     items?: string;
     weight?: string;
     who?: string;
+    total?: string;
+    fitems?: string;
+    fwho?: string;
+    country?: string;
+    velocity?: string;
+    mismatch?: string;
   }>;
 }) {
   const { category: rawCategory } = await params;
@@ -70,9 +80,9 @@ export default async function RuleSetPage({
   const { storeId } = await requireStaff();
   const ruleSet = await getOrCreateRuleSet(storeId, category);
 
-  // Metodele si moneda magazinului — necesare doar pentru testerul de livrare.
+  // Metodele si moneda magazinului — necesare testerelor de livrare si antifraudă.
   const store =
-    category === "SHIPPING"
+    category === "SHIPPING" || category === "FRAUD"
       ? await prisma.store.findUnique({ where: { id: storeId } })
       : null;
 
@@ -430,6 +440,16 @@ export default async function RuleSetPage({
         />
       )}
 
+      {/* Tester antifraudă — doar pentru FRAUD */}
+      {category === "FRAUD" && (
+        <FraudTester
+          storeId={storeId}
+          currency={store?.currency ?? "RON"}
+          hasDraftChanges={hasDraftChanges}
+          simulation={parseFraudSimulation(query)}
+        />
+      )}
+
       {/* Versiuni */}
       <h2 className="mt-10 text-lg font-semibold">Istoric versiuni</h2>
       <div className="mt-3 overflow-x-auto rounded-xl border border-line bg-surface-raised">
@@ -480,9 +500,6 @@ export default async function RuleSetPage({
                         v{version.version}
                       </Link>
                       {isActive && <Badge tone="positive">activă</Badge>}
-                      {version.status === "ROLLED_BACK" && (
-                        <Badge tone="caution">înlocuită prin rollback</Badge>
-                      )}
                     </div>
                     {/* Detaliile din coloanele ascunse, recuperate pe ecrane mici */}
                     <p className="mt-1 text-xs text-ink-faint sm:hidden">

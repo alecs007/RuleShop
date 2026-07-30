@@ -211,14 +211,12 @@ export default async function CartPage() {
             </span>
           </div>
 
-          {/* Checkout-ul vine in pasul urmator */}
-          <button
-            disabled
-            title="Checkout-ul este în lucru"
-            className="mt-5 h-12 w-full cursor-not-allowed rounded-lg bg-zinc-300 font-medium text-zinc-500"
+          <Link
+            href="/checkout"
+            className="mt-5 flex h-12 w-full items-center justify-center rounded-lg bg-ink font-medium text-white transition-colors hover:bg-zinc-700"
           >
             Continuă spre checkout
-          </button>
+          </Link>
           <p className="mt-3 text-center text-xs text-ink-faint">
             Poți comanda ca guest sau autentificat.
           </p>

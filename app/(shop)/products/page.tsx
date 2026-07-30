@@ -62,7 +62,9 @@ export default async function ProductsPage({
 
       {result.products.length === 0 ? (
         <div className="mt-16 text-center">
-          <p className="text-ink-muted">Niciun produs nu corespunde căutării.</p>
+          <p className="text-ink-muted">
+            Niciun produs nu corespunde căutării.
+          </p>
           <Link
             href={catalogHref({ ...EMPTY_SELECTION, q: selection.q })}
             className="mt-2 inline-block text-sm text-accent hover:underline"
@@ -78,10 +80,7 @@ export default async function ProductsPage({
         >
           {result.products.map((product, index) => (
             <AppearItem key={product.id} index={index} className="h-full">
-              <ProductCard
-                product={product}
-                price={prices.get(product.id)!}
-              />
+              <ProductCard product={product} price={prices.get(product.id)!} />
             </AppearItem>
           ))}
         </AppearList>
@@ -89,21 +88,26 @@ export default async function ProductsPage({
 
       {/* Paginare */}
       {result.pageCount > 1 && (
-        <nav className="mt-10 flex items-center justify-center gap-2" aria-label="Paginare">
-          {Array.from({ length: result.pageCount }, (_, i) => i + 1).map((p) => (
-            <Link
-              key={p}
-              href={catalogHref({ ...selection, page: p })}
-              aria-current={p === result.page ? "page" : undefined}
-              className={
-                p === result.page
-                  ? "flex size-9 items-center justify-center rounded-lg bg-ink text-sm font-medium text-white"
-                  : "flex size-9 items-center justify-center rounded-lg border border-line text-sm transition-colors hover:border-ink-faint"
-              }
-            >
-              {p}
-            </Link>
-          ))}
+        <nav
+          className="mt-10 flex items-center justify-center gap-2"
+          aria-label="Paginare"
+        >
+          {Array.from({ length: result.pageCount }, (_, i) => i + 1).map(
+            (p) => (
+              <Link
+                key={p}
+                href={catalogHref({ ...selection, page: p })}
+                aria-current={p === result.page ? "page" : undefined}
+                className={
+                  p === result.page
+                    ? "flex size-9 items-center justify-center rounded-lg bg-ink text-sm font-medium text-white"
+                    : "flex size-9 items-center justify-center rounded-lg border border-line text-sm transition-colors hover:border-ink-faint"
+                }
+              >
+                {p}
+              </Link>
+            ),
+          )}
         </nav>
       )}
     </div>

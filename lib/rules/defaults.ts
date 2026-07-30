@@ -40,7 +40,13 @@ export const CATEGORY_DEFAULTS: Record<DecisionCategory, CategoryDefaults> = {
   },
   FRAUD: {
     conflictStrategy: "PRIORITY_ALL_MATCHES",
-    defaultDecision: { riskScore: 0, decision: "ALLOW", signals: [] },
+    // Fara cheia `decision`: prezenta ei in rezultat inseamna ca o regula a
+    // fixat decizia explicit. Altfel decizia se deduce din scor, prin praguri.
+    defaultDecision: {
+      riskScore: 0,
+      signals: [],
+      thresholds: { challenge: 30, review: 55, block: 80 },
+    },
   },
   AVAILABILITY: {
     conflictStrategy: "PRIORITY_FIRST_MATCH",
