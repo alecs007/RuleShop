@@ -1,10 +1,12 @@
 "use server";
 
+import { timingSafeEqual } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { logAudit } from "@/lib/audit";
+import { rateLimit } from "@/lib/redis/rate-limit";
 import { getSessionUser } from "@/lib/auth/guards";
 import { getActiveStore } from "@/lib/shop/store";
 import { getOrCreateSessionKey } from "@/lib/shop/session";
@@ -112,6 +114,21 @@ export async function placeOrderAction(
 
   const store = await getActiveStore();
   const sessionKey = await getOrCreateSessionKey();
+
+  // O sesiune nu poate bombarda checkout-ul: plasarile repetate rapid sunt
+  // fie o eroare de UI, fie un abuz — ambele se opresc aici.
+  const gate = await rateLimit({
+    key: `checkout:${store.id}:${sessionKey}`,
+    limit: 5,
+    windowSeconds: 60,
+  });
+  if (!gate.allowed) {
+    return {
+      ok: false,
+      message: `Prea multe încercări — așteaptă ${gate.resetSeconds}s și încearcă din nou.`,
+    };
+  }
+
   const cart = await readCart(store.id);
   if (!cart || cart.items.length === 0) {
     return { ok: false, message: "Coșul este gol." };
@@ -341,6 +358,20 @@ export async function verifyChallengeAction(
   const sessionKey = await getOrCreateSessionKey();
   const viewer = await getSessionUser();
 
+  // Codul are 6 cifre — fara limitare, ar putea fi ghicit prin incercari
+  // repetate. 5 incercari / 15 minute per comanda inchid fereastra.
+  const gate = await rateLimit({
+    key: `challenge:${store.id}:${orderNumber}`,
+    limit: 5,
+    windowSeconds: 900,
+  });
+  if (!gate.allowed) {
+    return {
+      ok: false,
+      message: "Prea multe încercări greșite — reîncearcă peste câteva minute.",
+    };
+  }
+
   const order = await prisma.order.findUnique({
     where: { storeId_orderNumber: { storeId: store.id, orderNumber } },
   });
@@ -358,7 +389,13 @@ export async function verifyChallengeAction(
   if (!challenge?.code || challenge.verified) {
     return { ok: false, message: "Această comandă nu așteaptă verificare." };
   }
-  if (code !== challenge.code) {
+  // Comparatie in timp constant — durata raspunsului nu spune cate caractere
+  // au fost corecte.
+  const expected = Buffer.from(challenge.code);
+  const provided = Buffer.from(code);
+  const codeMatches =
+    expected.length === provided.length && timingSafeEqual(expected, provided);
+  if (!codeMatches) {
     return { ok: false, message: "Codul introdus nu este corect." };
   }
 

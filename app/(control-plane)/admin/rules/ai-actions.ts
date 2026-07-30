@@ -139,6 +139,7 @@ export async function generateAiRuleAction(
   let proposal;
   try {
     proposal = await generateRuleProposal({
+      storeId,
       category: cat,
       request,
       existingRuleKeys: existing.map((r) => r.key),

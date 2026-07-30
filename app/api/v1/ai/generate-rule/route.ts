@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const proposal = await generateRuleProposal({
+      storeId: actor.storeId,
       category: parsed.data.category,
       request: parsed.data.request,
       existingRuleKeys: existing.map((r) => r.key),

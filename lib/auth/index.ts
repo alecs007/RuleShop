@@ -7,6 +7,7 @@ import { compare } from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { isStaff } from "@/lib/auth/roles";
+import { rateLimit } from "@/lib/redis/rate-limit";
 import type { Role } from "@prisma/client";
 
 declare module "next-auth" {
@@ -59,8 +60,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           .safeParse(credentials);
         if (!parsed.success) return null;
 
+        const email = parsed.data.email.trim().toLowerCase();
+
+        // Anti brute-force pe cont: dupa 10 incercari in 10 minute, login-ul
+        // pentru acel email se refuza indiferent de parola (fail-open la Redis
+        // cazut — protectia nu blocheaza autentificarea legitima).
+        const gate = await rateLimit({
+          key: `login:${email}`,
+          limit: 10,
+          windowSeconds: 600,
+        });
+        if (!gate.allowed) return null;
+
         const user = await prisma.user.findUnique({
-          where: { email: parsed.data.email.trim().toLowerCase() },
+          where: { email },
         });
         // doar staff activ, cu parola setata
         if (!user?.passwordHash || !user.active || !isStaff(user.role)) {

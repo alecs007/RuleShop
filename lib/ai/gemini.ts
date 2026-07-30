@@ -1,5 +1,6 @@
 import "server-only";
 import type { z } from "zod";
+import { rateLimit } from "@/lib/redis/rate-limit";
 
 /**
  * Providerul IA al platformei — Google Gemini, prin REST (generateContent).
@@ -53,6 +54,28 @@ export class AiInvalidResponseError extends Error {
 
 export function isAiConfigured(): boolean {
   return Boolean(process.env.GEMINI_API_KEY);
+}
+
+/**
+ * Plafon pe apelurile AI ale unui magazin — cheile Gemini au cote si costuri,
+ * iar un buton apasat in bucla nu trebuie sa le consume. Aruncat inainte de
+ * orice apel spre model; UI-ul afiseaza mesajul ca atare.
+ */
+export async function assertAiQuota(
+  storeId: string,
+  feature: "analyze" | "generate" | "classify",
+): Promise<void> {
+  const limits = { analyze: 10, generate: 20, classify: 30 } as const;
+  const gate = await rateLimit({
+    key: `ai:${feature}:${storeId}`,
+    limit: limits[feature],
+    windowSeconds: 3600,
+  });
+  if (!gate.allowed) {
+    throw new AiRequestError(
+      `Limita de ${limits[feature]} cereri AI pe oră a fost atinsă — reîncearcă în ${Math.ceil(gate.resetSeconds / 60)} minute.`,
+    );
+  }
 }
 
 export function aiModelName(): string {

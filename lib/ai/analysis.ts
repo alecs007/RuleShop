@@ -18,7 +18,7 @@ import {
 } from "@/lib/rules/evaluation-log";
 import { compareSnapshots, type SimulationComparison } from "@/lib/rules/simulation";
 import { tryHumanizeRule } from "@/lib/rules/humanize";
-import { generateJson } from "./gemini";
+import { assertAiQuota, generateJson } from "./gemini";
 import { describeCatalog, RULE_FORMAT_SPEC } from "./rule-catalog";
 
 /**
@@ -111,6 +111,8 @@ export async function runRulesetAnalysis(
   category: DecisionCategory,
   actor: { id: string; email: string | null },
 ): Promise<AnalysisRun> {
+  await assertAiQuota(storeId, "analyze");
+
   // 1) Datele calculate de aplicatie.
   const [candidate, active, events] = await Promise.all([
     buildCandidateSnapshot(storeId, category),

@@ -10,7 +10,7 @@ import {
   type ValidationIssue,
 } from "@/lib/engine";
 import { getOrCreateRuleSet } from "@/lib/rules/service";
-import { generateJson } from "./gemini";
+import { assertAiQuota, generateJson } from "./gemini";
 import { describeCatalog, RULE_FORMAT_SPEC } from "./rule-catalog";
 
 /**
@@ -71,10 +71,13 @@ function normalizeKey(raw: string, existingKeys: Set<string>): string {
 const ALLOWED_PRIORITIES = new Set([50, 100, 500, 1000]);
 
 export async function generateRuleProposal(input: {
+  storeId: string;
   category: DecisionCategory;
   request: string;
   existingRuleKeys: string[];
 }): Promise<RuleProposal> {
+  await assertAiQuota(input.storeId, "generate");
+
   const system = `Ești asistentul de reguli al platformei RuleShop (magazin online cu rule engine propriu).
 Transformi cerințe de business exprimate în limbaj natural în EXACT O regulă structurată JSON.
 Reguli stricte:

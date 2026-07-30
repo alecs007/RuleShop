@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { logAudit } from "@/lib/audit";
-import { generateJson } from "./gemini";
+import { assertAiQuota, generateJson } from "./gemini";
 
 /**
  * Clasificarea asistata a unui incident antifrauda.
@@ -40,6 +40,8 @@ export async function classifyIncident(
   incidentId: string,
   actor: { id: string; email: string | null },
 ): Promise<IncidentClassification> {
+  await assertAiQuota(storeId, "classify");
+
   const incident = await prisma.fraudIncident.findFirst({
     where: { id: incidentId, storeId },
   });
