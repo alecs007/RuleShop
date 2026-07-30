@@ -10,6 +10,13 @@ import {
 
 export type CartWithItems = NonNullable<Awaited<ReturnType<typeof readCart>>>;
 
+export class CartError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CartError";
+  }
+}
+
 /** Cosul curent (sau null daca nu exista inca), cu produsele incluse. */
 export async function readCart(storeId: string) {
   const sessionKey = await getSessionKey();
@@ -59,12 +66,13 @@ export async function addItem(
     // storeId in filtru: un produs din alt magazin nu poate ajunge in cos.
     where: { id: productId, storeId, active: true },
   });
-  if (!product) throw new Error("Produsul nu există în acest magazin.");
+  if (!product) throw new CartError("Produsul nu există în acest magazin.");
 
   // Decizia AVAILABILITY: un produs ascuns/indisponibil nu intra in cos, iar
   // plafonul per comanda (LIMIT_QUANTITY) taie cantitatea, nu doar stocul.
   const view = await getAvailabilityView(product);
-  if (!view.available) throw new Error(unavailableMessage(view, product.name));
+  if (!view.available)
+    throw new CartError(unavailableMessage(view, product.name));
 
   const cart = await getOrCreateCart(storeId, sessionKey);
   const existing = await prisma.cartItem.findUnique({
@@ -73,10 +81,10 @@ export async function addItem(
 
   const desired = (existing?.quantity ?? 0) + quantity;
   const { quantity: capped, limitedBy } = clampQuantity(view, desired);
-  if (capped <= 0) throw new Error(unavailableMessage(view, product.name));
+  if (capped <= 0) throw new CartError(unavailableMessage(view, product.name));
   if (existing && capped <= existing.quantity) {
     // Plafonul era deja atins — un „succes" fara efect ar deruta clientul.
-    throw new Error(
+    throw new CartError(
       limitedBy === "rule"
         ? `Poți comanda maximum ${view.maxPerOrder} bucăți din „${product.name}".`
         : `Stocul nu permite mai mult de ${view.maxPerOrder} bucăți din „${product.name}".`,
@@ -172,7 +180,8 @@ export function computeTotals(
   let itemCount = 0;
   let subtotalCents = 0;
   for (const item of cart.items) {
-    const unit = prices?.get(item.productId)?.finalCents ?? item.product.basePriceCents;
+    const unit =
+      prices?.get(item.productId)?.finalCents ?? item.product.basePriceCents;
     itemCount += item.quantity;
     subtotalCents += item.quantity * unit;
   }

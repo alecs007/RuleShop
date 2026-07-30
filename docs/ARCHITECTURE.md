@@ -94,7 +94,12 @@ Rule (draft editabil)
   `rulesetVersions`, `traceId`, `canaryCohort` ⇒ trasabilitate completă și
   set de date pentru simulare.
 
-## API de decisioning (pasul următor)
+## API de decisioning
+
+Magazinul consumă deciziile prin stratul de servicii din `lib/shop/` (fiecare
+punct de decizie are un nucleu pur, folosit identic de magazin, de testerele din
+control plane și de teste). Expunerea lor ca endpoint HTTP public rămâne un pas
+următor; forma răspunsului este deja cea de mai jos:
 
 `POST /api/v1/stores/{store}/decisions/{category}` — corpul = contextul
 (cart, customer, session), răspunsul:
@@ -126,17 +131,16 @@ tehnice, din control plane. IA (prin MCP) poate genera un asemenea pachet
 dintr-o cerință în limbaj natural, dar publicarea cere aprobare umană
 (cerință barem: control uman obligatoriu).
 
-## Modulul IA + MCP (pas ulterior)
+## Modulul AI + MCP — implementat
 
-Server MCP propriu (`lib/ai/mcp`) expunând tools peste control plane:
-`list_rules`, `get_ruleset`, `draft_rule` (generează structura validată Zod),
-`simulate_version` (rulează candidatul pe evenimente istorice — metricile le
-calculează aplicația, nu IA), `explain_decision`, `analyze_rule_performance`,
-`classify_fraud_incident`. Toate scrierile produc **draft-uri** cu
-`source: AI_SUGGESTION` + `aiRationale`; publicarea trece obligatoriu prin
-aprobarea unui utilizator autorizat (audit: `AI_SUGGESTION_APPROVED`).
-IA nu evaluează niciodată reguli — doar le propune/explica; evaluarea este
-exclusiv `lib/engine`.
+Providerul (Google Gemini) e în `lib/ai/`, serverul MCP în `mcp/server.mjs`
+(pornit cu `npm run mcp`), rutele HTTP sub `app/api/v1/ai/`. Funcții: analiza
+regulilor, generarea unei reguli din limbaj natural, clasificarea incidentelor
+antifraudă, simularea pe evenimente istorice.
+
+Garanțiile arhitecturale — AI-ul nu evaluează reguli, statisticile sunt calculate
+de aplicație, aprobarea umană e obligatorie înainte de publicare — sunt descrise
+în [`AI.md`](AI.md).
 
 ## Securitate & multi-tenancy
 
@@ -152,15 +156,17 @@ exclusiv `lib/engine`.
 - Audit log pentru toate operațiile importante (publicări, rollback, kill
   switch, aprobări IA, schimbări de rol).
 
-## Roadmap (ordinea pașilor următori)
+## Stadiu
 
 1. ✅ Fundație: config, schema Prisma (MongoDB), **nucleul rule engine + teste**
-2. `lib/db` (client Prisma, repository-uri scoped) + seed cu 2 magazine demo
-3. NextAuth v5: roluri, register/login, sesiuni guest cu `sessionKey` stabil
-4. API v1: decisioning + cache Redis + istoric evaluări
-5. Magazin: catalog, produs, căutare/filtrare, coș (guest + auth)
-6. Checkout cu plată simulată + decizii vizibile în UI; comenzi + istoric
-7. Control plane: CRUD reguli, editor structurat, validare live, test sandbox
-8. Versionare: publish stable/canary, diff, rollback, kill switch, audit UI
-9. Modul IA + server MCP + simulare pe evenimente istorice + aprobare umană
-10. Temă/variante, finisaje responsive, documentație, date demo, Dockerfile
+2. ✅ `lib/db` (client Prisma, acces scoped pe magazin) + seed cu 2 magazine demo
+3. ✅ NextAuth v5: roluri, login staff, sesiuni guest cu `sessionKey` stabil
+4. ✅ Istoric de evaluări (`EvaluationEvent`) + rate limiting pe Redis
+5. ✅ Magazin: catalog, produs, căutare/filtrare, coș (guest + auth)
+6. ✅ Checkout cu plată simulată + decizii vizibile în UI; comenzi + urmărire
+7. ✅ Control plane: CRUD reguli, editor structurat, validare, testere per categorie
+8. ✅ Versionare: publicare, diff, rollback, kill switch, audit
+9. ✅ Modul AI + server MCP + simulare pe evenimente istorice + aprobare umană
+10. ✅ Puncte de decizie: prețuri, livrare, antifraudă, disponibilitate
+11. ⬜ Rămase: publicare canary în interfață, decizii LOYALTY/THEME în magazin,
+    pagină de istoric al evaluărilor, endpoint public de decisioning

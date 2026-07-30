@@ -3,6 +3,8 @@ import { Header } from "@/components/shop/header";
 import { Footer } from "@/components/shop/footer";
 import { getActiveStore } from "@/lib/shop/store";
 
+export const dynamic = "force-dynamic";
+
 export default async function ShopLayout({
   children,
 }: {

@@ -43,10 +43,13 @@ export async function addToCartAction(
       parsed.data.quantity,
     );
   } catch (error) {
-    return {
-      ok: false,
-      message: error instanceof Error ? error.message : "A apărut o eroare.",
-    };
+    // Doar problemele de coș se explică clientului; orice altceva (eroare de
+    // bază de date, bug) rămâne în loguri, ca să nu scape detalii interne.
+    if (error instanceof cartService.CartError) {
+      return { ok: false, message: error.message };
+    }
+    console.error("[cart] adăugarea a eșuat:", error);
+    return { ok: false, message: "Produsul nu a putut fi adăugat în coș." };
   }
 
   revalidatePath("/", "layout");

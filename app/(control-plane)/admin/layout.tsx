@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db/prisma";
 import { withFlash } from "@/lib/ui/flash";
 import { AdminShell } from "@/components/control-plane/admin-shell";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({
   children,
 }: {
