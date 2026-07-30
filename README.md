@@ -125,6 +125,30 @@ npm run dev
 Magazinul e la [localhost:3000](http://localhost:3000), control plane-ul la
 `/admin` (login la `/auth/admin`).
 
+### Mai multe magazine
+
+Platforma servește mai multe magazine din aceeași instanță, complet izolate
+(catalog, reguli, comenzi, clienți). Două noțiuni distincte:
+
+- **magazinul activ** — cel pe care îl văd clienții. Este magazinul marcat
+  `isDefault` în baza de date; se schimbă din **Magazine → „Fă-l activ"**, fără
+  deploy și fără restart. `DEFAULT_STORE_SLUG` din `.env` este doar un override
+  de dezvoltare și, cât timp e setat, are prioritate;
+- **magazinul administrat** — cel pe care lucrezi în panou. Un `PLATFORM_ADMIN`
+  îl comută din comutatorul din capul sidebar-ului (pe ecrane mici, direct din
+  header); un `STORE_ADMIN` sau `OPERATOR` rămâne legat de magazinul din contul
+  lui și nu poate comuta (verificat pe server, nu ascuns doar în interfață).
+
+Separat de acestea, un magazin poate fi **pornit sau oprit** (`Store.active`):
+unul oprit nu se servește clienților și nu poate fi administrat. Magazinul activ
+nu poate fi oprit — mai întâi faci activ alt magazin.
+
+Un magazin nou se creează din **Magazine → Magazin nou** (nume, slug, monedă,
+limbă) și pornește funcțional: metodele de livrare implicite și toate cele șase
+rulesete publicate ca versiunea 1, aceleași pe care le primește un magazin din
+seed. Produsele se adaugă după, din `Produse`. Doar `PLATFORM_ADMIN` vede pagina
+și poate crea magazine.
+
 **Opțional** — modulul AI: pune o cheie de la
 [Google AI Studio](https://aistudio.google.com/apikey) în `GEMINI_API_KEY`. Fără
 ea, platforma funcționează normal, doar funcțiile AI sunt dezactivate și

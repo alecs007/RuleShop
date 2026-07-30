@@ -156,6 +156,12 @@ de aplicație, aprobarea umană e obligatorie înainte de publicare — sunt des
 - Fiecare entitate are `storeId`; unicități compuse `[storeId, ...]`.
 - Acces la date doar prin repository-uri care primesc `storeId` din sesiune
   (niciodată din request) — izolarea nu depinde de disciplina rutelor.
+- Două rezolvări distincte de magazin, ambele pe server: ce văd clienții vine din
+  `getActiveStore()` (override `DEFAULT_STORE_SLUG` → `Store.isDefault` → primul
+  pornit, toate cerând `active: true`), iar panoul folosește `getAdminStoreId()`.
+  Comutarea din panou este posibilă **doar** pentru `PLATFORM_ADMIN`: pentru
+  restul, `User.storeId` are prioritate peste orice cookie
+  (`resolveAdminStoreId`, testat separat).
 - Roluri: CUSTOMER, OPERATOR, STORE_ADMIN, PLATFORM_ADMIN — verificate pe
   server (middleware + guards per handler).
 - Parole: hash bcrypt; secrete doar în `.env` (necomis).

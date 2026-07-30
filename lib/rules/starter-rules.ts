@@ -10,14 +10,17 @@
  *
  * Regulile sunt DATE, deci se pot descrie aici la fel ca in editor. Faptele,
  * operatorii si actiunile folosite sunt exact cele din cataloagele motorului —
- * `validateSnapshot` le verifica inainte de publicare (vezi seed.ts), deci un
- * seed cu reguli invalide nu trece in silentiu.
+ * `validateSnapshot` le verifica inainte de publicare (vezi
+ * `lib/rules/provision.ts`), deci un set de start invalid nu trece in silentiu.
+ *
+ * Le foloseste si seed-ul demonstrativ, si crearea unui magazin nou din control
+ * plane: un magazin proaspat porneste cu motorul deja functional.
  */
 import type {
   ConditionNode,
   DecisionCategory,
   EngineRule,
-} from "../lib/engine";
+} from "../engine";
 
 export interface SeedRule {
   key: string;

@@ -3,16 +3,9 @@
  * fiecare cu propriul catalog si propriul set de reguli publicate.
  * Scriptul este idempotent (upsert).
  */
-import { PrismaClient, Prisma, type DecisionCategory } from "@prisma/client";
-import {
-  DECISION_CATEGORIES,
-  validateSnapshot,
-  type EngineRule,
-  type RuleSetSnapshot,
-} from "../lib/engine";
-import { snapshotChecksum } from "../lib/rules/checksum";
-import { CATEGORY_DEFAULTS } from "../lib/rules/defaults";
-import { seedRulesFor, type StoreRuleOptions } from "./seed-rules";
+import { PrismaClient } from "@prisma/client";
+import { provisionStarterRulesets } from "../lib/rules/provision";
+import type { StoreRuleOptions } from "../lib/rules/starter-rules";
 
 const prisma = new PrismaClient();
 
@@ -79,155 +72,6 @@ const deProducts: SeedProduct[] = [
   { sku: "DE-ACC-001", name: "Ladegerät Blitz 45W", category: "accesorii", brand: "Blitz", priceCents: 9900, stock: 40, weightGrams: 90, description: "Kompaktes GaN-Ladegerät mit USB-C Power Delivery.", tags: ["usb-c"] },
 ];
 
-/**
- * Creeaza regulile de start ale unui magazin si le publica ca versiunea 1.
- *
- * Publicarea la runtime trece prin `lib/rules/service.ts` (validare, diff,
- * simulare, audit). Aici, in seed, se scrie direct minimul echivalent — dar
- * snapshotul trece prin ACEEASI validare a motorului, deci un seed cu reguli
- * invalide se opreste cu eroare in loc sa strecoare date stricate in magazin.
- *
- * Idempotent: regulile se fac upsert pe [ruleSetId, key], iar versiunea se
- * publica doar daca checksumul difera de al versiunii active.
- */
-async function seedRuleSets(storeId: string, options: StoreRuleOptions) {
-  const rulesByCategory = seedRulesFor(options);
-  let published = 0;
-
-  for (const category of DECISION_CATEGORIES) {
-    const defaults = CATEGORY_DEFAULTS[category];
-    const seedRules = rulesByCategory[category];
-
-    const ruleSet = await prisma.ruleSet.upsert({
-      where: {
-        storeId_category: { storeId, category: category as DecisionCategory },
-      },
-      create: {
-        storeId,
-        key: category.toLowerCase(),
-        name: category,
-        category: category as DecisionCategory,
-        conflictStrategy: defaults.conflictStrategy,
-        defaultDecision: defaults.defaultDecision as Prisma.InputJsonValue,
-      },
-      // Strategia si decizia implicita se pot fi schimbat din control plane —
-      // un re-seed nu trebuie sa le anuleze.
-      update: {},
-    });
-
-    for (const rule of seedRules) {
-      await prisma.rule.upsert({
-        where: { ruleSetId_key: { ruleSetId: ruleSet.id, key: rule.key } },
-        create: {
-          storeId,
-          ruleSetId: ruleSet.id,
-          key: rule.key,
-          name: rule.name,
-          description: rule.description,
-          priority: rule.priority,
-          status: "ACTIVE",
-          enabled: true,
-          conditions: rule.conditions as unknown as Prisma.InputJsonValue,
-          actions: rule.actions as unknown as Prisma.InputJsonValue,
-        },
-        update: {
-          name: rule.name,
-          description: rule.description,
-          priority: rule.priority,
-          conditions: rule.conditions as unknown as Prisma.InputJsonValue,
-          actions: rule.actions as unknown as Prisma.InputJsonValue,
-        },
-      });
-    }
-
-    // Snapshotul candidat: exact ce ar produce publicarea din control plane.
-    const engineRules: EngineRule[] = seedRules.map((r) => ({
-      key: r.key,
-      name: r.name,
-      priority: r.priority,
-      enabled: true,
-      conditions: r.conditions,
-      actions: r.actions,
-      effectiveFrom: null,
-      effectiveTo: null,
-    }));
-
-    const lastVersion = await prisma.ruleVersion.findFirst({
-      where: { ruleSetId: ruleSet.id },
-      orderBy: { version: "desc" },
-      select: { id: true, version: true, checksum: true },
-    });
-
-    const snapshot: RuleSetSnapshot = {
-      key: ruleSet.key,
-      category,
-      version: (lastVersion?.version ?? 0) + 1,
-      conflictStrategy: ruleSet.conflictStrategy,
-      defaultDecision: (ruleSet.defaultDecision ?? {}) as Record<string, unknown>,
-      rules: engineRules,
-    };
-
-    const errors = validateSnapshot(snapshot).filter(
-      (issue) => issue.severity === "error",
-    );
-    if (errors.length > 0) {
-      throw new Error(
-        `Reguli demo invalide pentru ${category}:\n` +
-          errors.map((e) => `  ${e.path}: ${e.message}`).join("\n"),
-      );
-    }
-
-    // Aceeasi formula ca la publicarea din control plane.
-    const checksum = snapshotChecksum(snapshot);
-
-    // Nimic nou de publicat: acelasi conținut e deja activ.
-    if (
-      lastVersion &&
-      lastVersion.checksum === checksum &&
-      ruleSet.activeVersionId === lastVersion.id
-    ) {
-      continue;
-    }
-
-    const version = await prisma.ruleVersion.create({
-      data: {
-        storeId,
-        ruleSetId: ruleSet.id,
-        version: snapshot.version,
-        status: "PUBLISHED",
-        publishChannel: "STABLE",
-        snapshot: snapshot as unknown as Prisma.InputJsonValue,
-        diff: {
-          added: engineRules.map((r) => r.key),
-          removed: [],
-          changed: [],
-        } as Prisma.InputJsonValue,
-        changeSummary: "Reguli demonstrative de start (seed).",
-        checksum,
-        publishedAt: new Date(),
-      },
-      select: { id: true },
-    });
-
-    await prisma.$transaction([
-      ...(ruleSet.activeVersionId
-        ? [
-            prisma.ruleVersion.update({
-              where: { id: ruleSet.activeVersionId },
-              data: { status: "SUPERSEDED" },
-            }),
-          ]
-        : []),
-      prisma.ruleSet.update({
-        where: { id: ruleSet.id },
-        data: { activeVersionId: version.id },
-      }),
-    ]);
-    published += 1;
-  }
-
-  return { published, categories: DECISION_CATEGORIES.length };
-}
 
 async function seedStore(
   slug: string,
@@ -284,7 +128,12 @@ async function seedStore(
     });
   }
 
-  const rules = await seedRuleSets(store.id, ruleOptions);
+  const rules = await provisionStarterRulesets({
+    db: prisma,
+    storeId: store.id,
+    options: ruleOptions,
+    changeSummary: "Reguli demonstrative de start (seed).",
+  });
 
   console.log(
     `✔ ${name} (${slug}): ${products.length} produse, ${shippingMethods.length} metode de livrare, ` +
@@ -322,6 +171,18 @@ async function main() {
       theme: { hex: "#0f766e", ink: "#115e59", countryCode: "DE" },
     },
   );
+
+  // Clientii au nevoie de un magazin activ. Un re-seed NU il schimba:
+  // administratorul poate fi mutat magazinul activ din panou, iar seed-ul nu are
+  // ce sa corecteze acolo.
+  const withDefault = await prisma.store.count({ where: { isDefault: true } });
+  if (withDefault === 0) {
+    const store = await prisma.store.update({
+      where: { slug: "ruleshop-ro" },
+      data: { isDefault: true },
+    });
+    console.log(`✔ magazin activ (cel văzut de clienți): ${store.slug}`);
+  }
 }
 
 main()

@@ -152,6 +152,10 @@ enum AuditAction {
   LOGIN_SUCCEEDED
   LOGIN_FAILED
   STORE_SETTINGS_UPDATED
+  STORE_CREATED
+  STORE_ACTIVATED
+  STORE_DEACTIVATED
+  STORE_DEFAULT_CHANGED
   FRAUD_INCIDENT_REVIEWED
 }
 
@@ -171,6 +175,11 @@ model Store {
   currency String  @default("RON")
   locale   String  @default("ro-RO")
   active   Boolean @default(true)
+  /// Magazinul activ: cel servit clientilor cand cererea nu indica altul
+  /// (domeniu sau override de mediu). Exact unul il are true — se impune in aplicatie
+  /// (`setDefaultStore`), pentru ca un index unic pe boolean nu ar permite
+  /// mai multe valori false.
+  isDefault Boolean @default(false)
 
   /// Tema implicita (culori, logo, layout). Regulile de tip THEME pot
   /// suprascrie aceste valori la runtime, fara deploy.

@@ -8,6 +8,7 @@ import {
   Scale,
   ShieldAlert,
   ShoppingCart,
+  Store,
   Truck,
   Users,
   type LucideIcon,
@@ -30,16 +31,22 @@ const NAV: NavItem[] = [
   { href: "/admin/fraud", label: "Antifraudă", icon: ShieldAlert },
 ];
 
+/** Intrari de platforma, nu de magazin — doar pentru PLATFORM_ADMIN. */
+const PLATFORM_NAV: NavItem[] = [
+  { href: "/admin/stores", label: "Magazine", icon: Store },
+];
+
 /**
  * Navigatia control plane-ului: aceleasi intrari in sidebar-ul fix de pe desktop
  * si in panoul mobil. Pagina curenta e marcata vizual si prin `aria-current`.
  */
-export function AdminNav() {
+export function AdminNav({ platformAdmin = false }: { platformAdmin?: boolean }) {
   const pathname = usePathname();
+  const items = platformAdmin ? [...NAV, ...PLATFORM_NAV] : NAV;
 
   return (
     <nav className="flex-1 space-y-1 p-3">
-      {NAV.map(({ href, label, icon: Icon }) => {
+      {items.map(({ href, label, icon: Icon }) => {
         const active =
           href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
         return (
