@@ -3,27 +3,11 @@ import { FlaskConical, MoveRight, TriangleAlert } from "lucide-react";
 import { prisma } from "@/lib/db/prisma";
 import { evaluateRuleSet, type RuleSetSnapshot } from "@/lib/engine";
 import { buildCandidateSnapshot, getActiveRuleset } from "@/lib/rules/service";
+import { applyPricingDecision } from "@/lib/shop/pricing-decision";
 import { formatMoney } from "@/lib/utils/money";
 import { Badge } from "@/components/ui/badge";
 import { ProductSearch } from "./product-search";
 import type { Product } from "@prisma/client";
-
-/** Aceeasi aritmetica de pret ca in magazin (lib/shop/pricing.ts). */
-function applyDecision(baseCents: number, decision: Record<string, unknown>): number {
-  const override = decision.priceOverrideCents;
-  if (typeof override === "number" && override >= 0) return Math.round(override);
-  let final = baseCents;
-  if (typeof decision.priceMultiplier === "number" && decision.priceMultiplier >= 0) {
-    final *= decision.priceMultiplier;
-  }
-  if (typeof decision.discountPercent === "number") {
-    final -= (final * Math.min(100, Math.max(0, decision.discountPercent))) / 100;
-  }
-  if (typeof decision.discountFixedCents === "number") {
-    final -= Math.max(0, decision.discountFixedCents);
-  }
-  return Math.max(0, Math.min(Math.round(final), baseCents * 10));
-}
 
 function evaluateForProduct(snapshot: RuleSetSnapshot, product: Product) {
   const result = evaluateRuleSet(snapshot, {
@@ -41,7 +25,7 @@ function evaluateForProduct(snapshot: RuleSetSnapshot, product: Product) {
     session: { isGuest: true, isAuthenticated: false },
   });
   return {
-    finalCents: applyDecision(product.basePriceCents, result.decision),
+    finalCents: applyPricingDecision(product.basePriceCents, result.decision),
     matchedRules: result.matchedRules,
     version: result.rulesetVersion,
   };

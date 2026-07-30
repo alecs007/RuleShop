@@ -13,6 +13,11 @@ import {
   type ValidationIssue,
 } from "@/lib/engine";
 import { CATEGORY_DEFAULTS } from "./defaults";
+import { getEvaluationEvents } from "./evaluation-log";
+import { compareSnapshots, type SimulationComparison } from "./simulation";
+
+/** Cate evenimente istorice se folosesc la simularea din fluxul de publicare. */
+const PUBLISH_SIMULATION_EVENTS = 500;
 
 // ---------------------------------------------------------------------------
 // RuleSet
@@ -164,6 +169,24 @@ export async function publishVersion(
     ? (lastVersion.snapshot as unknown as RuleSetSnapshot)
     : null;
 
+  // Simularea pe evenimente istorice: cum s-ar fi comportat noua versiune fata
+  // de cea activa, pe evaluari REALE. Calculata de aplicatie si inghetata pe
+  // versiune — dovada masurabila a schimbarii, nu o estimare declarata.
+  const activeSnapshot = ruleSet.activeVersionId
+    ? (((await prisma.ruleVersion.findUnique({
+        where: { id: ruleSet.activeVersionId },
+        select: { snapshot: true },
+      }))?.snapshot ?? null) as RuleSetSnapshot | null)
+    : null;
+  const events = await getEvaluationEvents(storeId, category, PUBLISH_SIMULATION_EVENTS);
+  const simulation: SimulationComparison | null = events.length
+    ? compareSnapshots(
+        activeSnapshot,
+        snapshot,
+        events.map((e) => ({ context: e.context as Record<string, unknown> })),
+      )
+    : null;
+
   const version = await prisma.ruleVersion.create({
     data: {
       storeId,
@@ -174,6 +197,7 @@ export async function publishVersion(
       snapshot: snapshot as unknown as Prisma.InputJsonValue,
       diff: diffSnapshots(prevSnapshot, snapshot) as Prisma.InputJsonValue,
       checksum,
+      simulationMetrics: (simulation ?? {}) as unknown as Prisma.InputJsonValue,
       createdById: actor.id,
       publishedById: actor.id,
       publishedAt: new Date(),

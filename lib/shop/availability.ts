@@ -3,6 +3,7 @@ import { cache } from "react";
 import type { Product } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { getActiveRuleset } from "@/lib/rules/service";
+import { recordEvaluation } from "@/lib/rules/evaluation-log";
 import { getEvaluationActor } from "./context";
 import {
   computeAvailability,
@@ -64,16 +65,58 @@ export function availabilityFacts(
  */
 export async function getAvailabilityView(
   product: Product,
+  options: { record?: "product-page" | "cart" | "checkout" } = {},
 ): Promise<AvailabilityView> {
   const ruleset = await getAvailabilityRuleset(product.storeId);
   const actor = ruleset && !ruleset.killSwitch ? await getEvaluationActor() : undefined;
 
-  return computeAvailability({
-    product: availabilityFacts(product),
+  const facts = availabilityFacts(product);
+  const view = computeAvailability({
+    product: facts,
     snapshot: ruleset?.snapshot ?? null,
     killSwitch: ruleset?.killSwitch,
     actor,
   });
+
+  // Doar evaluarile pe ruleset real intra in istoric: fara versiune publicata
+  // nu exista nimic de re-simulat.
+  if (options.record && ruleset && !ruleset.killSwitch) {
+    recordEvaluation({
+      storeId: product.storeId,
+      category: "AVAILABILITY",
+      // Acelasi context pe care il construieste computeAvailability.
+      context: {
+        product: {
+          id: facts.id,
+          sku: facts.sku,
+          name: facts.name,
+          category: facts.category,
+          brand: facts.brand,
+          basePriceCents: facts.basePriceCents,
+          stock: Math.max(0, facts.stock),
+          tags: facts.tags,
+          ...(facts.attributes ?? {}),
+        },
+        customer: actor?.customer ?? {},
+        session: actor?.session ?? {},
+      },
+      decision: {
+        available: view.available,
+        hidden: view.hidden,
+        maxPerOrder: view.maxPerOrder,
+        badges: view.badges,
+        message: view.message,
+        reason: view.reason,
+      },
+      matchedRuleKeys: view.matchedRules,
+      rulesetVersion: view.rulesetVersion ?? 0,
+      traceId: view.traceId,
+      usedDefault: view.matchedRules.length === 0,
+      source: options.record,
+    });
+  }
+
+  return view;
 }
 
 export async function getAvailabilityViews(

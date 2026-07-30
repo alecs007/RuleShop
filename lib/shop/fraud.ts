@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { Prisma, type FraudDecision, type RiskLevel } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { getActiveRuleset } from "@/lib/rules/service";
+import { recordEvaluation } from "@/lib/rules/evaluation-log";
 import {
   assessFraud,
   explainAssessment,
@@ -134,21 +135,45 @@ export async function checkFraud(
   input: FraudCheckInput,
 ): Promise<FraudAssessment> {
   const ruleset = await getActiveRuleset(input.storeId, "FRAUD");
-  return assessFraud({
+  const facts = {
+    cart: {
+      subtotalCents: input.cart.subtotalCents,
+      itemCount: input.cart.itemCount,
+      categories: input.cart.categories,
+      weightGrams: input.cart.weightGrams,
+    },
+    customer: input.customer,
+    session: input.session,
+    order: input.order,
+  };
+  const assessment = assessFraud({
     snapshot: ruleset?.snapshot ?? null,
     killSwitch: ruleset?.killSwitch,
-    facts: {
-      cart: {
-        subtotalCents: input.cart.subtotalCents,
-        itemCount: input.cart.itemCount,
-        categories: input.cart.categories,
-        weightGrams: input.cart.weightGrams,
-      },
-      customer: input.customer,
-      session: input.session,
-      order: input.order,
-    },
+    facts,
   });
+
+  // Fiecare verificare reala intra in istoric — pe ele se simuleaza pragurile.
+  if (ruleset && !ruleset.killSwitch) {
+    recordEvaluation({
+      storeId: input.storeId,
+      category: "FRAUD",
+      context: facts as unknown as Record<string, unknown>,
+      decision: {
+        riskScore: assessment.riskScore,
+        decision: assessment.decision,
+        riskLevel: assessment.riskLevel,
+        decisionSource: assessment.decisionSource,
+        signals: assessment.flaggedSignals,
+      },
+      matchedRuleKeys: assessment.matchedRules,
+      rulesetVersion: assessment.rulesetVersion ?? 0,
+      traceId: assessment.traceId,
+      usedDefault: assessment.matchedRules.length === 0,
+      source: "checkout",
+    });
+  }
+
+  return assessment;
 }
 
 export interface RecordIncidentInput {

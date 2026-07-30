@@ -21,7 +21,7 @@ import {
 import { CATEGORY_LABELS, STRATEGY_LABELS } from "@/lib/rules/defaults";
 import { tryHumanizeRule } from "@/lib/rules/humanize";
 import { priorityLabel } from "@/lib/rules/priority";
-import { getOrCreateRuleSet } from "@/lib/rules/service";
+import { getOrCreateRuleSet, getRuleNames } from "@/lib/rules/service";
 import { Badge } from "@/components/ui/badge";
 import { ActionForm } from "@/components/ui/action-form";
 import { CategoryIcon } from "@/components/control-plane/category-icon";
@@ -39,6 +39,7 @@ import {
   AvailabilityTester,
   parseWho,
 } from "@/components/control-plane/availability-tester";
+import { AiPanel } from "@/components/control-plane/ai-panel";
 import {
   deleteRuleAction,
   killSwitchAction,
@@ -84,11 +85,8 @@ export default async function RuleSetPage({
   const { storeId } = await requireStaff();
   const ruleSet = await getOrCreateRuleSet(storeId, category);
 
-  // Metodele si moneda magazinului — necesare testerelor de livrare si antifraudă.
-  const store =
-    category === "SHIPPING" || category === "FRAUD"
-      ? await prisma.store.findUnique({ where: { id: storeId } })
-      : null;
+  // Metodele si moneda magazinului — necesare testerelor si panoului IA.
+  const store = await prisma.store.findUnique({ where: { id: storeId } });
 
   const [rules, versions] = await Promise.all([
     prisma.rule.findMany({
@@ -288,9 +286,7 @@ export default async function RuleSetPage({
             }
           >
             <OctagonX className="size-4" strokeWidth={1.75} />
-            {ruleSet.killSwitch
-              ? "Repornește regulile"
-              : "Oprește tot (kill switch)"}
+            {ruleSet.killSwitch ? "Repornește regulile" : "Oprește tot"}
           </button>
         </ActionForm>
       </div>
@@ -349,7 +345,7 @@ export default async function RuleSetPage({
                         <Badge tone="caution">draft</Badge>
                       )}
                       {rule.source === "AI_SUGGESTION" && (
-                        <Badge tone="accent">IA</Badge>
+                        <Badge tone="accent">AI</Badge>
                       )}
                       {!rule.enabled && <Badge>dezactivată</Badge>}
                     </div>
@@ -463,6 +459,15 @@ export default async function RuleSetPage({
           simulation={parseFraudSimulation(query)}
         />
       )}
+
+      {/* Asistentul IA: simulare pe istoric + sugestii cu aprobare umana */}
+      <AiPanel
+        storeId={storeId}
+        category={category}
+        hasDraftChanges={hasDraftChanges}
+        currency={store?.currency ?? "RON"}
+        ruleNames={await getRuleNames(storeId)}
+      />
 
       {/* Versiuni */}
       <h2 className="mt-10 text-lg font-semibold">Istoric versiuni</h2>

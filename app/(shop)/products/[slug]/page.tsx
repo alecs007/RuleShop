@@ -32,9 +32,11 @@ export default async function ProductPage({ params }: Props) {
   const product = await getProductBySlug(store.id, slug);
   if (!product || !product.active) notFound();
 
+  // `record`: vizita pe pagina de produs e un eveniment real de evaluare —
+  // intra in istoricul pe care ruleaza simularea si analiza IA.
   const [price, availability] = await Promise.all([
-    getPriceView(product),
-    getAvailabilityView(product),
+    getPriceView(product, { record: "product-page" }),
+    getAvailabilityView(product, { record: "product-page" }),
   ]);
   // Un produs ascuns de reguli nu exista pentru clienti — nici prin link direct.
   if (availability.hidden) notFound();

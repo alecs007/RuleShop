@@ -107,6 +107,25 @@ enum FraudReviewStatus {
   DISMISSED
 }
 
+/// Starea unei sugestii produse de modulul IA. Nimic nu se publica automat:
+/// o sugestie acceptata devine cel mult o regula DRAFT, publicata manual.
+enum AiSuggestionStatus {
+  PROPOSED
+  ACCEPTED
+  REJECTED
+  /// Rezultat care nu a trecut de validarea aplicatiei (schema/reguli).
+  INVALID
+}
+
+/// Ce propune o sugestie IA — determina efectul butonului „Acceptă".
+enum AiSuggestionKind {
+  NEW_RULE
+  MODIFY_RULE
+  DISABLE_RULE
+  /// Observatie fara actiune aplicabila (ex: statistici, avertisment).
+  INFO
+}
+
 enum AuditAction {
   RULE_CREATED
   RULE_UPDATED
@@ -171,6 +190,8 @@ model Store {
   ruleVersions   RuleVersion[]
   auditLogs      AuditLog[]
   fraudIncidents FraudIncident[]
+  evaluationEvents EvaluationEvent[]
+  aiSuggestions    AiSuggestion[]
 
   @@index([active])
   @@map("stores")
@@ -632,6 +653,91 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([actorId])
   @@map("audit_logs")
+}
+
+/// O evaluare reala a motorului, cu contextul complet de fapte. Serveste:
+///  - istoricul consultabil al evaluarilor (cu explicatie prin trace/decizie);
+///  - simularea versiunilor candidat pe evenimente ISTORICE — aplicatia
+///    re-evalueaza contextele stocate si calculeaza metricile ea insasi
+///    (cerinta baremului: statisticile nu sunt declarate de serviciul IA).
+/// Volumul este plafonat prin rate limit la scriere; contextul nu contine
+/// emailul clientului.
+model EvaluationEvent {
+  id      String           @id @default(cuid()) @map("_id")
+  storeId String
+  category DecisionCategory
+
+  rulesetVersion  Int
+  traceId         String?
+  matchedRuleKeys String[] @default([])
+  /// Decizia finala a evaluarii (forma categoriei).
+  decision Json @default("{}")
+  /// Contextul de fapte cu care a rulat motorul — suficient pentru re-evaluare.
+  context  Json
+  usedDefault Boolean @default(false)
+  /// De unde vine evenimentul: product-page | checkout | cart.
+  source String @default("shop")
+
+  createdAt DateTime @default(now())
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, category, createdAt])
+  @@index([traceId])
+  @@map("evaluation_events")
+}
+
+/// Sugestie produsa de modulul IA (Gemini) asupra unui ruleset. Pastreaza tot
+/// ce e nevoie pentru trasabilitate si audit: modelul, versiunea promptului,
+/// digestul intrarii, statisticile pe care s-a bazat si raspunsul brut.
+/// Fluxul obligatoriu: PROPOSED -> (om) ACCEPTED/REJECTED; acceptarea creeaza
+/// sau modifica o regula DRAFT — publicarea rămâne intotdeauna manuala.
+model AiSuggestion {
+  id      String           @id @default(cuid()) @map("_id")
+  storeId String
+  category DecisionCategory
+
+  kind   AiSuggestionKind
+  status AiSuggestionStatus @default(PROPOSED)
+
+  title          String
+  explanation    String
+  /// Impactul de business estimat, in limbaj natural (estimare IA, marcata ca atare).
+  businessImpact String @default("")
+  confidence     Float
+
+  /// Regulile existente vizate (pentru MODIFY/DISABLE).
+  ruleKeys     String[] @default([])
+  /// Regula propusa (EngineRule JSON) — pentru NEW_RULE si MODIFY_RULE.
+  proposedRule Json?
+  /// Problemele gasite de validarea aplicatiei (goale = valida).
+  validationIssues Json @default("[]")
+
+  // --- Trasabilitate & audit ---
+  model         String
+  promptVersion Int    @default(1)
+  /// SHA-256 al intrarii (reguli + statistici) — leaga sugestia de datele exacte.
+  inputDigest   String
+  /// Statisticile calculate de aplicatie pe care s-a bazat analiza.
+  usageStats    Json   @default("{}")
+  rawResponse   Json?
+  /// Gruparea sugestiilor generate intr-o singura rulare de analiza.
+  analysisRunId String?
+
+  createdById   String?
+  decidedById   String?
+  decidedAt     DateTime?
+  /// Regula DRAFT creata/modificata la acceptare.
+  appliedRuleId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, category, status, createdAt])
+  @@index([analysisRunId])
+  @@map("ai_suggestions")
 }
 
 /// Incident antifrauda produs de rulesetul FRAUD la checkout. Serveste si ca

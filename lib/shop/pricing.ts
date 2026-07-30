@@ -3,7 +3,18 @@ import { cache } from "react";
 import type { Product } from "@prisma/client";
 import { evaluateRuleSet } from "@/lib/engine";
 import { getActiveRuleset } from "@/lib/rules/service";
+import { recordEvaluation } from "@/lib/rules/evaluation-log";
+import { applyPricingDecision } from "./pricing-decision";
 import { getEvaluationActor } from "./context";
+
+export interface PriceViewOptions {
+  /**
+   * Inregistreaza evaluarea in istoricul de evenimente (pentru istoric si
+   * simulare IA). Se cere explicit doar in punctele semnificative — pagina de
+   * produs si checkout — nu la fiecare card din catalog.
+   */
+  record?: "product-page" | "checkout" | "cart";
+}
 
 /**
  * Prezentarea de pret a unui produs — rezultatul evaluarii rulesetului
@@ -40,57 +51,52 @@ const getPricingRuleset = cache(async (storeId: string) =>
   getActiveRuleset(storeId, "PRICING"),
 );
 
-/** Aplica decizia PRICING peste pretul de baza, cu clamp la [0, base*10]. */
-function applyPricingDecision(
-  baseCents: number,
-  decision: Record<string, unknown>,
-): number {
-  const override = decision.priceOverrideCents;
-  if (typeof override === "number" && override >= 0) return Math.round(override);
-
-  let final = baseCents;
-  if (typeof decision.priceMultiplier === "number" && decision.priceMultiplier >= 0) {
-    final *= decision.priceMultiplier;
-  }
-  if (typeof decision.discountPercent === "number") {
-    final -= (final * Math.min(100, Math.max(0, decision.discountPercent))) / 100;
-  }
-  if (typeof decision.discountFixedCents === "number") {
-    final -= Math.max(0, decision.discountFixedCents);
-  }
-  return Math.max(0, Math.min(Math.round(final), baseCents * 10));
-}
-
-export async function getPriceView(product: Product): Promise<PriceView> {
+export async function getPriceView(
+  product: Product,
+  options: PriceViewOptions = {},
+): Promise<PriceView> {
   const ruleset = await getPricingRuleset(product.storeId);
   if (!ruleset) return basePriceView(product);
 
   const actor = await getEvaluationActor();
-  const result = evaluateRuleSet(
-    ruleset.snapshot,
-    {
-      product: {
-        id: product.id,
-        sku: product.sku,
-        name: product.name,
-        category: product.category,
-        brand: product.brand,
-        basePriceCents: product.basePriceCents,
-        stock: product.stock,
-        tags: product.tags,
-        ...((product.attributes ?? {}) as Record<string, unknown>),
-      },
-      customer: actor.customer,
-      session: actor.session,
+  const context = {
+    product: {
+      id: product.id,
+      sku: product.sku,
+      name: product.name,
+      category: product.category,
+      brand: product.brand,
+      basePriceCents: product.basePriceCents,
+      stock: product.stock,
+      tags: product.tags,
+      ...((product.attributes ?? {}) as Record<string, unknown>),
     },
-    { killSwitch: ruleset.killSwitch },
-  );
+    customer: actor.customer,
+    session: actor.session,
+  };
+  const result = evaluateRuleSet(ruleset.snapshot, context, {
+    killSwitch: ruleset.killSwitch,
+  });
 
   const finalCents = applyPricingDecision(product.basePriceCents, result.decision);
   const discountPercent =
     finalCents < product.basePriceCents
       ? Math.round((1 - finalCents / product.basePriceCents) * 100)
       : 0;
+
+  if (options.record) {
+    recordEvaluation({
+      storeId: product.storeId,
+      category: "PRICING",
+      context,
+      decision: { baseCents: product.basePriceCents, finalCents, discountPercent },
+      matchedRuleKeys: result.matchedRules,
+      rulesetVersion: result.rulesetVersion,
+      traceId: result.traceId,
+      usedDefault: result.usedDefault,
+      source: options.record,
+    });
+  }
 
   return {
     baseCents: product.basePriceCents,
@@ -108,9 +114,10 @@ export async function getPriceView(product: Product): Promise<PriceView> {
 
 export async function getPriceViews(
   products: Product[],
+  options: PriceViewOptions = {},
 ): Promise<Map<string, PriceView>> {
   const entries = await Promise.all(
-    products.map(async (p) => [p.id, await getPriceView(p)] as const),
+    products.map(async (p) => [p.id, await getPriceView(p, options)] as const),
   );
   return new Map(entries);
 }

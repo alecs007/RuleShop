@@ -11,6 +11,8 @@ import { ORDER_STATUS_LABELS, ORDER_STATUS_TONES } from "@/lib/shop/order-status
 import { formatMoney } from "@/lib/utils/money";
 import { Badge } from "@/components/ui/badge";
 import { IncidentReview } from "@/components/control-plane/incident-review";
+import { AiIncidentOpinion } from "@/components/control-plane/ai-incident-opinion";
+import { isAiConfigured } from "@/lib/ai/gemini";
 
 export const metadata: Metadata = { title: "Antifraudă" };
 
@@ -275,6 +277,19 @@ export default async function FraudPage({
                     </div>
                   )}
                 </div>
+
+                {/* Opinia IA — vizibila si dupa review, ca istoric */}
+                {(incident.reviewStatus === "OPEN" || incident.aiClassification) && (
+                  <div className="mt-3 border-t border-line pt-3">
+                    <AiIncidentOpinion
+                      incidentId={incident.id}
+                      classification={incident.aiClassification}
+                      confidence={incident.aiConfidence}
+                      rationale={incident.aiRationale}
+                      aiConfigured={isAiConfigured()}
+                    />
+                  </div>
+                )}
 
                 {incident.reviewStatus === "OPEN" && (
                   <div className="mt-3 border-t border-line pt-3">

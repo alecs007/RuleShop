@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { getActiveRuleset } from "@/lib/rules/service";
+import { recordEvaluation } from "@/lib/rules/evaluation-log";
 import { getEvaluationActor } from "./context";
 import { readShippingMethods } from "./shipping-methods";
 import { computeShippingQuote, type CartShippingFacts, type ShippingQuote } from "./shipping-quote";
@@ -41,6 +42,8 @@ export interface QuoteInput {
   cart: CartShippingFacts;
   /** Metoda aleasa de client (Cart.shippingMethodId). */
   selectedMethodId?: string | null;
+  /** Inregistreaza evaluarea metodei selectate in istoricul de evenimente. */
+  record?: "cart" | "checkout";
 }
 
 /**
@@ -51,7 +54,7 @@ export async function quoteShipping(input: QuoteInput): Promise<ShippingQuote> {
   const ruleset = await getShippingRuleset(input.storeId);
   const actor = ruleset && !ruleset.killSwitch ? await getEvaluationActor() : undefined;
 
-  return computeShippingQuote({
+  const quote = computeShippingQuote({
     methods: readShippingMethods(input.storeSettings),
     snapshot: ruleset?.snapshot ?? null,
     killSwitch: ruleset?.killSwitch,
@@ -60,4 +63,37 @@ export async function quoteShipping(input: QuoteInput): Promise<ShippingQuote> {
     actor,
     selectedMethodId: input.selectedMethodId,
   });
+
+  // Istoricul pastreaza evaluarea metodei pe care clientul chiar o foloseste,
+  // cu acelasi context per-metoda pe care il vede motorul (shipping.methodId).
+  if (input.record && ruleset && !ruleset.killSwitch && quote.selected) {
+    recordEvaluation({
+      storeId: input.storeId,
+      category: "SHIPPING",
+      context: {
+        cart: { ...input.cart },
+        customer: actor?.customer ?? {},
+        session: actor?.session ?? {},
+        shipping: {
+          methodId: quote.selected.id,
+          baseCostCents: quote.selected.baseCostCents,
+        },
+      },
+      decision: {
+        methodId: quote.selected.id,
+        costCents: quote.selected.costCents,
+        baseCostCents: quote.selected.baseCostCents,
+        free: quote.selected.free,
+        etaDaysMin: quote.selected.etaDaysMin,
+        etaDaysMax: quote.selected.etaDaysMax,
+      },
+      matchedRuleKeys: quote.selected.matchedRules,
+      rulesetVersion: quote.rulesetVersion ?? 0,
+      traceId: quote.traceId ?? null,
+      usedDefault: quote.selected.matchedRules.length === 0,
+      source: input.record,
+    });
+  }
+
+  return quote;
 }

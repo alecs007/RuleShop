@@ -146,7 +146,10 @@ export async function placeOrderAction(
     : (parsed.data.billing ?? parsed.data.shipping)) as OrderAddress;
 
   // --- Deciziile de preț si livrare, recalculate pe server ---
-  const prices = await getPriceViews(cart.items.map((i) => i.product));
+  const prices = await getPriceViews(
+    cart.items.map((i) => i.product),
+    { record: "checkout" },
+  );
   const totals = computeTotals(cart, prices);
   const cartFacts = cartShippingFacts(cart, totals);
   const quote = await quoteShipping({
@@ -155,6 +158,7 @@ export async function placeOrderAction(
     currency: totals.currency,
     cart: cartFacts,
     selectedMethodId: cart.shippingMethodId,
+    record: "checkout",
   });
   if (!quote.selected) {
     return {

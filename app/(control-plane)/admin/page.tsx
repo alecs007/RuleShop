@@ -9,18 +9,29 @@ export const metadata: Metadata = { title: "Dashboard" };
 export default async function AdminDashboard() {
   const { storeId } = await requireStaff();
 
-  const [productCount, activeProductCount, orderCount, cartCount, ruleSets] =
+  const [productCount, activeProductCount, orderCount, buyers, ruleSets] =
     await Promise.all([
       prisma.product.count({ where: { storeId } }),
       prisma.product.count({ where: { storeId, active: true } }),
       prisma.order.count({ where: { storeId } }),
-      prisma.cart.count({ where: { storeId } }),
+      // Clienti distincti (cont sau guest), din comenzile recente.
+      prisma.order.findMany({
+        where: { storeId },
+        select: { userId: true, guestEmail: true },
+        orderBy: { createdAt: "desc" },
+        take: 2000,
+      }),
       prisma.ruleSet.findMany({
         where: { storeId },
         include: { activeVersion: { select: { version: true } } },
       }),
     ]);
 
+  const customerCount = new Set(
+    buyers
+      .map((o) => o.userId ?? o.guestEmail?.toLowerCase())
+      .filter(Boolean),
+  ).size;
   const publishedSets = ruleSets.filter((rs) => rs.activeVersion);
 
   const stats = [
@@ -30,8 +41,18 @@ export default async function AdminDashboard() {
       icon: Package,
       href: "/admin/products",
     },
-    { label: "Comenzi", value: String(orderCount), icon: ShoppingCart },
-    { label: "Coșuri active", value: String(cartCount), icon: Users },
+    {
+      label: "Comenzi",
+      value: String(orderCount),
+      icon: ShoppingCart,
+      href: "/admin/orders",
+    },
+    {
+      label: "Clienți",
+      value: String(customerCount),
+      icon: Users,
+      href: "/admin/customers",
+    },
     {
       label: "Ruleset-uri publicate",
       value: `${publishedSets.length} / ${ruleSets.length || "6"}`,

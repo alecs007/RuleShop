@@ -6,6 +6,8 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      // Garda `server-only` ar arunca in mediul de test — devine no-op.
+      "server-only": path.resolve(__dirname, "tests/stubs/server-only.ts"),
       "@": path.resolve(__dirname, "."),
     },
   },

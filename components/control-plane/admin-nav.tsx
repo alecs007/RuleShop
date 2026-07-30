@@ -7,7 +7,9 @@ import {
   Package,
   Scale,
   ShieldAlert,
+  ShoppingCart,
   Truck,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -20,6 +22,8 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/orders", label: "Comenzi", icon: ShoppingCart },
+  { href: "/admin/customers", label: "Clienți", icon: Users },
   { href: "/admin/products", label: "Produse", icon: Package },
   { href: "/admin/rules", label: "Reguli", icon: Scale },
   { href: "/admin/shipping", label: "Livrare", icon: Truck },

@@ -53,6 +53,7 @@ export default async function CartPage() {
       currency: totals.currency,
       cart: cartShippingFacts(cart, totals),
       selectedMethodId: cart.shippingMethodId,
+      record: "cart",
     }),
     getRuleNames(store.id),
     // Disponibilitatea se reverifica la fiecare afisare: o regula publicata
