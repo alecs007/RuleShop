@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth, signIn } from "@/lib/auth";
+import { withFlash } from "@/lib/ui/flash";
 import { Logo } from "@/components/shop/logo";
 
 export const metadata: Metadata = { title: "Autentificare" };
@@ -46,7 +47,8 @@ export default async function SignInPage({
   const params = await searchParams;
   if (session?.user) redirect(params.callbackUrl ?? "/");
 
-  const callbackUrl = params.callbackUrl ?? "/";
+  // Toastul de bun-venit călătorește prin URL: pagina asta dispare la redirect.
+  const callbackUrl = withFlash(params.callbackUrl ?? "/", "signed-in");
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-surface px-4">

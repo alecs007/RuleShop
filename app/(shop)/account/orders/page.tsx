@@ -22,7 +22,7 @@ export default async function OrdersPage() {
   });
 
   return (
-    <div className="mx-auto max-w-2xl py-8">
+    <div className="appear-content mx-auto max-w-2xl py-8">
       <h1 className="text-2xl font-semibold tracking-tight">Comenzile mele</h1>
 
       {orders.length === 0 ? (

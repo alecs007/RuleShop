@@ -25,7 +25,7 @@ export default async function CartPage() {
 
   if (!cart || cart.items.length === 0) {
     return (
-      <div className="flex flex-col items-center py-24 text-center">
+      <div className="appear-content flex flex-col items-center py-24 text-center">
         <ShoppingBag className="size-10 text-ink-faint" strokeWidth={1.5} />
         <h1 className="mt-4 text-xl font-semibold">Coșul tău este gol</h1>
         <p className="mt-1 text-ink-muted">
@@ -55,7 +55,7 @@ export default async function CartPage() {
   const shippingCents = quote.selected?.costCents ?? 0;
 
   return (
-    <div className="py-8">
+    <div className="appear-content py-8">
       <h1 className="text-2xl font-semibold tracking-tight">Coșul meu</h1>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_360px]">

@@ -62,7 +62,7 @@ export default async function AdminShippingPage() {
   }));
 
   return (
-    <div>
+    <div className="appear-content">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2.5 text-2xl font-semibold tracking-tight">

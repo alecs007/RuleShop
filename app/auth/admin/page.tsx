@@ -4,6 +4,7 @@ import { AuthError } from "next-auth";
 import { ShieldCheck } from "lucide-react";
 import { auth, signIn } from "@/lib/auth";
 import { isStaff } from "@/lib/auth/roles";
+import { withFlash } from "@/lib/ui/flash";
 import { LogoMark } from "@/components/shop/logo";
 
 export const metadata: Metadata = { title: "Control Plane — Login" };
@@ -23,7 +24,7 @@ export default async function AdminLoginPage({
       await signIn("admin-credentials", {
         email: formData.get("email"),
         password: formData.get("password"),
-        redirectTo: "/admin",
+        redirectTo: withFlash("/admin", "admin-signed-in"),
       });
     } catch (error) {
       if (error instanceof AuthError) redirect("/auth/admin?error=1");
@@ -35,10 +36,10 @@ export default async function AdminLoginPage({
     <main className="flex min-h-screen items-center justify-center bg-surface px-4">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center gap-2">
-          <LogoMark className="size-10" />
+          <LogoMark className="size-12" />
           <h1 className="flex items-center gap-1.5 text-xl font-semibold tracking-tight">
             <ShieldCheck className="size-4 text-ink-muted" strokeWidth={1.75} />
-            Control Plane
+            Panou de control
           </h1>
           <p className="text-sm text-ink-muted">Acces rezervat personalului.</p>
         </div>

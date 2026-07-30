@@ -25,7 +25,7 @@ export default async function EditProductPage({
   const updateWithId = updateProductAction.bind(null, product.id);
 
   return (
-    <div>
+    <div className="appear-content">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{product.name}</h1>

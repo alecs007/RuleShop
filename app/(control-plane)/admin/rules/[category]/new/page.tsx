@@ -28,7 +28,7 @@ export default async function NewRulePage({
   const save = saveRuleAction.bind(null, category, null);
 
   return (
-    <div>
+    <div className="appear-content">
       <h1 className="text-2xl font-semibold tracking-tight">Regulă nouă</h1>
       <p className="mt-1 text-sm text-ink-muted">{CATEGORY_LABELS[category]}</p>
       <div className="mt-6">

@@ -51,7 +51,7 @@ export default async function VersionDetailPage({
   const base = `/admin/rules/${category.toLowerCase()}`;
 
   return (
-    <div>
+    <div className="appear-content">
       {activated && (
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4">
           <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-positive" strokeWidth={1.75} />

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import { formatMoney } from "@/lib/utils/money";
 import { startRouteLoading } from "@/components/ui/route-loading";
+import { skipNextScrollReset } from "@/components/ui/scroll-to-top";
 
 export interface ProductOption {
   id: string;
@@ -58,6 +59,8 @@ export function ProductSearch({
     setQuery("");
     const href = `${pathname}?test=${id}`;
     startRouteLoading(href);
+    // Testerul e stare de UI in pagina, nu pagina noua: rămânem unde suntem.
+    skipNextScrollReset();
     router.push(href, { scroll: false });
   };
 
@@ -86,6 +89,7 @@ export function ProductSearch({
             aria-label="Renunță la produsul selectat"
             onClick={() => {
               startRouteLoading(pathname);
+              skipNextScrollReset();
               router.push(pathname, { scroll: false });
             }}
             className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-ink-faint transition-colors hover:bg-zinc-100 hover:text-ink"

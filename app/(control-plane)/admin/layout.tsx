@@ -1,6 +1,7 @@
 import { requireStaff } from "@/lib/auth/guards";
 import { signOut } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
+import { withFlash } from "@/lib/ui/flash";
 import { AdminShell } from "@/components/control-plane/admin-shell";
 
 export default async function AdminLayout({
@@ -13,7 +14,7 @@ export default async function AdminLayout({
 
   async function signOutAction() {
     "use server";
-    await signOut({ redirectTo: "/auth/admin" });
+    await signOut({ redirectTo: withFlash("/auth/admin", "signed-out") });
   }
 
   return (

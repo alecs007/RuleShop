@@ -30,3 +30,71 @@ body {
   background-color: var(--color-surface);
   color: var(--color-ink);
 }
+
+/* Spinnerul din `loading.tsx`: apare doar dacă pagina întârzie cu adevărat.
+   Aceeași idee ca pragul din route-loading.tsx, dar aici trebuie făcută în CSS
+   — e un fallback de Suspense, nu avem unde rula un timer. */
+@keyframes spinner-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.delayed-spinner {
+  animation: spinner-fade-in 0.15s ease-out 0.35s both;
+}
+
+/* Conținutul care înlocuiește spinnerul: apare lin, nu dintr-o bucată.
+   `template.tsx` animează doar montarea învelișului — între fallback-ul de
+   Suspense și conținutul gata nu mai există nicio tranziție, iar schimbarea
+   se simțea bruscă. */
+@keyframes content-appear {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
+.appear-content {
+  animation: content-appear 0.28s ease-out both;
+}
+
+@keyframes sheet-in-up {
+  from {
+    transform: translateY(1rem);
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-in-left {
+  from {
+    transform: translateX(-1rem);
+    opacity: 0;
+  }
+}
+
+.filter-sheet {
+  animation: sheet-in-up 0.2s ease-out;
+}
+
+@media (min-width: 40rem) {
+  .filter-sheet {
+    animation-name: sheet-in-left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filter-sheet {
+    animation: none;
+  }
+
+  /* Fără mișcare, dar întârzierea rămâne: rostul ei nu e animația, ci să nu
+     apară un spinner pentru o încărcare instantanee. */
+  .delayed-spinner {
+    animation: spinner-fade-in 0.01s linear 0.35s both;
+  }
+
+  .appear-content {
+    animation: none;
+  }
+}

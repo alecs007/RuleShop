@@ -21,14 +21,14 @@ export function ProductCard({
       // `h-full`: cardul umple celula de grilă, care acum e învelișul de animație.
       className="group flex h-full flex-col overflow-hidden rounded-xl border border-line bg-surface-raised transition-all hover:border-ink-faint hover:shadow-subtle"
     >
-      <div className="relative aspect-square overflow-hidden bg-zinc-100">
+      <div className="relative aspect-square overflow-hidden bg-white">
         {image ? (
           <Image
             src={image}
             alt={product.name}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            className="object-contain transition-transform duration-300 group-hover:scale-[1.03] "
           />
         ) : (
           <div className="flex h-full items-center justify-center text-ink-faint">
@@ -53,7 +53,9 @@ export function ProductCard({
           <Price view={price} />
         </div>
         {product.stock > 0 && product.stock <= 5 && (
-          <Badge tone="caution" className="w-fit">Ultimele {product.stock} bucăți</Badge>
+          <Badge tone="caution" className="w-fit">
+            Ultimele {product.stock} bucăți
+          </Badge>
         )}
       </div>
     </Link>

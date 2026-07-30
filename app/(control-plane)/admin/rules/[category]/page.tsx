@@ -23,6 +23,7 @@ import { tryHumanizeRule } from "@/lib/rules/humanize";
 import { priorityLabel } from "@/lib/rules/priority";
 import { getOrCreateRuleSet } from "@/lib/rules/service";
 import { Badge } from "@/components/ui/badge";
+import { ActionForm } from "@/components/ui/action-form";
 import { CategoryIcon } from "@/components/control-plane/category-icon";
 import { PublishButton } from "@/components/control-plane/publish-button";
 import { PriceTester } from "@/components/control-plane/price-tester";
@@ -95,7 +96,7 @@ export default async function RuleSetPage({
   const base = `/admin/rules/${category.toLowerCase()}`;
 
   return (
-    <div>
+    <div className="appear-content">
       {/* Confirmare dupa salvarea unei reguli */}
       {saved && (
         <div className="mb-6 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
@@ -218,8 +219,9 @@ export default async function RuleSetPage({
 
       {/* Setari ruleset */}
       <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface-raised p-4">
-        <form
+        <ActionForm
           action={setStrategyAction}
+          success="Strategia de conflict a fost salvată."
           className="flex flex-wrap items-center gap-2"
         >
           <input type="hidden" name="category" value={category} />
@@ -241,9 +243,22 @@ export default async function RuleSetPage({
           <button className="h-9 cursor-pointer rounded-lg border border-line px-3 text-sm font-medium transition-colors hover:border-ink-faint">
             Salvează
           </button>
-        </form>
+        </ActionForm>
 
-        <form action={killSwitchAction} className="ml-auto">
+        <ActionForm
+          action={killSwitchAction}
+          success={
+            ruleSet.killSwitch
+              ? "Regulile au fost repornite."
+              : "Kill switch activat — nicio regulă nu se mai aplică."
+          }
+          confirm={
+            ruleSet.killSwitch
+              ? undefined
+              : "Oprești TOATE regulile din această categorie? Magazinul revine la comportamentul implicit."
+          }
+          className="ml-auto"
+        >
           <input type="hidden" name="category" value={category} />
           <input type="hidden" name="on" value={String(!ruleSet.killSwitch)} />
           <button
@@ -263,7 +278,7 @@ export default async function RuleSetPage({
               ? "Repornește regulile"
               : "Oprește tot (kill switch)"}
           </button>
-        </form>
+        </ActionForm>
       </div>
 
       {ruleSet.killSwitch && (
@@ -342,7 +357,14 @@ export default async function RuleSetPage({
 
                   <div className="flex shrink-0 items-center gap-1.5">
                     <Badge>prioritate {priorityLabel(rule.priority)}</Badge>
-                    <form action={toggleRuleAction}>
+                    <ActionForm
+                      action={toggleRuleAction}
+                      success={
+                        rule.enabled
+                          ? `Regula „${rule.name}" a fost oprită.`
+                          : `Regula „${rule.name}" a fost pornită.`
+                      }
+                    >
                       <input type="hidden" name="ruleId" value={rule.id} />
                       <button
                         className="cursor-pointer"
@@ -358,7 +380,7 @@ export default async function RuleSetPage({
                           <Badge>oprită</Badge>
                         )}
                       </button>
-                    </form>
+                    </ActionForm>
                     <Link
                       href={`${base}/${rule.id}`}
                       className="inline-flex size-8 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-zinc-100 hover:text-ink"
@@ -366,7 +388,11 @@ export default async function RuleSetPage({
                     >
                       <Pencil className="size-4" strokeWidth={1.75} />
                     </Link>
-                    <form action={deleteRuleAction}>
+                    <ActionForm
+                      action={deleteRuleAction}
+                      confirm={`Ștergi definitiv regula „${rule.name}"? Versiunile deja publicate rămân neatinse.`}
+                      success={`Regula „${rule.name}" a fost ștearsă.`}
+                    >
                       <input type="hidden" name="ruleId" value={rule.id} />
                       <button
                         className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-red-50 hover:text-critical"
@@ -375,7 +401,7 @@ export default async function RuleSetPage({
                       >
                         ✕
                       </button>
-                    </form>
+                    </ActionForm>
                   </div>
                 </div>
               </li>

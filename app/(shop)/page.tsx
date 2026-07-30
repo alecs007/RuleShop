@@ -15,7 +15,7 @@ export default async function HomePage() {
   const prices = await getPriceViews(products);
 
   return (
-    <div className="py-8 sm:py-12">
+    <div className="appear-content py-8 sm:py-12">
       <section className="relative overflow-hidden rounded-2xl border border-line bg-surface-raised px-6 py-14 flex flex-col items-center text-center sm:px-12 sm:py-20">
         {/* Left Side Image */}
         <div
@@ -113,7 +113,7 @@ export default async function HomePage() {
             demo.
           </p>
         ) : (
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {products.map((product) => (
               <ProductCard
                 key={product.id}

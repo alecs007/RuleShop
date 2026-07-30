@@ -2,6 +2,9 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { RouteLoading } from "@/components/ui/route-loading";
+import { Toaster } from "@/components/ui/toaster";
+import { FlashToast } from "@/components/ui/flash-toast";
+import { ScrollToTop } from "@/components/ui/scroll-to-top";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin", "latin-ext"], display: "swap" });
@@ -38,12 +41,26 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ro">
+      <head>
+        {/* Imaginile cu apariție lină se aprind la `onLoad`; fără JS nu vine
+            niciodată, deci le facem vizibile necondiționat. */}
+        <noscript>
+          <style>{`.fade-img { opacity: 1 !important }`}</style>
+        </noscript>
+      </head>
       <body className={`${inter.className} min-h-screen antialiased`}>
         {children}
-        {/* Ecranul de încărcare trăiește în layout-ul rădăcină: nu se remontează
-            la navigare, deci poate acoperi chiar tranziția dintre pagini. */}
+
         <Suspense>
           <RouteLoading />
+        </Suspense>
+
+        <Toaster />
+        <Suspense>
+          <FlashToast />
+        </Suspense>
+        <Suspense>
+          <ScrollToTop />
         </Suspense>
       </body>
     </html>

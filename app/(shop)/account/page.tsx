@@ -17,7 +17,7 @@ export default async function AccountPage() {
   if (!user) redirect("/auth/signin");
 
   return (
-    <div className="mx-auto max-w-2xl py-8">
+    <div className="appear-content mx-auto max-w-2xl py-8">
       <h1 className="text-2xl font-semibold tracking-tight">Contul meu</h1>
 
       <div className="mt-6 rounded-xl border border-line bg-surface-raised p-6">

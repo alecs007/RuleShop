@@ -130,7 +130,9 @@ export function ProductForm({
             step="0.01"
             min="0.01"
             required
-            defaultValue={product ? (product.basePriceCents / 100).toFixed(2) : ""}
+            defaultValue={
+              product ? (product.basePriceCents / 100).toFixed(2) : ""
+            }
             className={inputCls}
           />
         </Field>
@@ -151,7 +153,6 @@ export function ProductForm({
           label="Greutate (grame)"
           name="weightGrams"
           error={errors.weightGrams}
-          hint="Folosită de regulile de livrare (1200 = 1,2 kg)"
         >
           <input
             id="weightGrams"
@@ -186,7 +187,11 @@ export function ProductForm({
         )}
       </div>
 
-      <Field label="Etichete (separate prin virgulă)" name="tags" error={errors.tags}>
+      <Field
+        label="Etichete (separate prin virgulă)"
+        name="tags"
+        error={errors.tags}
+      >
         <input
           id="tags"
           name="tags"
@@ -209,9 +214,16 @@ export function ProductForm({
       <div className="flex items-center gap-3 border-t border-line pt-5">
         <Button type="submit" disabled={pending}>
           {pending && <Spinner />}
-          {pending ? "Se salvează…" : product ? "Salvează modificările" : "Creează produsul"}
+          {pending
+            ? "Se salvează…"
+            : product
+              ? "Salvează modificările"
+              : "Creează produsul"}
         </Button>
-        <Link href="/admin/products" className="text-sm text-ink-muted hover:text-ink">
+        <Link
+          href="/admin/products"
+          className="text-sm text-ink-muted hover:text-ink"
+        >
           Renunță
         </Link>
       </div>

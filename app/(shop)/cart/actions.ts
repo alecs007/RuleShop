@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
+import { withFlash } from "@/lib/ui/flash";
 import { getActiveStore } from "@/lib/shop/store";
 import { getOrCreateSessionKey } from "@/lib/shop/session";
 import * as cartService from "@/lib/shop/cart";
@@ -90,4 +92,6 @@ export async function removeItemAction(formData: FormData): Promise<void> {
   const sessionKey = await getOrCreateSessionKey();
   await cartService.removeItem(store.id, sessionKey, productId);
   revalidatePath("/", "layout");
+
+  redirect(withFlash("/cart", "cart-item-removed"));
 }

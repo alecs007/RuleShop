@@ -6,6 +6,7 @@ import { requireStaff } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
 import { formatMoney } from "@/lib/utils/money";
 import { Badge } from "@/components/ui/badge";
+import { ActionForm } from "@/components/ui/action-form";
 import { toggleProductAction } from "./actions";
 
 export const metadata: Metadata = { title: "Produse" };
@@ -35,7 +36,7 @@ export default async function AdminProductsPage({
   });
 
   return (
-    <div>
+    <div className="appear-content">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Produse</h1>
@@ -128,7 +129,14 @@ export default async function AdminProductsPage({
                   )}
                 </td>
                 <td className="hidden px-4 py-3 sm:table-cell">
-                  <form action={toggleProductAction}>
+                  <ActionForm
+                    action={toggleProductAction}
+                    success={
+                      product.active
+                        ? `„${product.name}" nu mai apare în magazin.`
+                        : `„${product.name}" este vizibil în magazin.`
+                    }
+                  >
                     <input type="hidden" name="productId" value={product.id} />
                     <button
                       className="cursor-pointer"
@@ -140,7 +148,7 @@ export default async function AdminProductsPage({
                         <Badge>Inactiv</Badge>
                       )}
                     </button>
-                  </form>
+                  </ActionForm>
                 </td>
                 <td className="px-4 py-3 text-right">
                   <Link

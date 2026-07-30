@@ -11,7 +11,7 @@ export default async function NewProductPage() {
   const categories = await getCategories(storeId);
 
   return (
-    <div>
+    <div className="appear-content">
       <h1 className="text-2xl font-semibold tracking-tight">Produs nou</h1>
       <p className="mt-1 text-sm text-ink-muted">
         Produsul apare imediat în magazin după salvare.

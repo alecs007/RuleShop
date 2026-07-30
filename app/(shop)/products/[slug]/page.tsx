@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, Truck, RotateCcw, ShieldCheck } from "lucide-react";
@@ -9,6 +8,7 @@ import { getPriceView } from "@/lib/shop/pricing";
 import { Price } from "@/components/shop/price";
 import { AddToCartButton } from "@/components/shop/add-to-cart-button";
 import { Badge } from "@/components/ui/badge";
+import { FadeImage } from "@/components/ui/fade-image";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -34,10 +34,18 @@ export default async function ProductPage({ params }: Props) {
   const image = product.imageUrls[0];
 
   return (
-    <div className="py-8">
+    // `appear-content`: conținutul preia locul spinnerului cu o tranziție, nu
+    // dintr-o bucată (spinnerul e fallback de Suspense, deci învelișul animat
+    // din `template.tsx` s-a montat deja înaintea lui).
+    <div className="appear-content py-8">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-sm text-ink-muted" aria-label="Breadcrumb">
-        <Link href="/products" className="transition-colors hover:text-ink">Produse</Link>
+      <nav
+        className="flex items-center gap-1.5 text-sm text-ink-muted"
+        aria-label="Breadcrumb"
+      >
+        <Link href="/products" className="transition-colors hover:text-ink">
+          Produse
+        </Link>
         <ChevronRight className="size-3.5" />
         <Link
           href={`/products?category=${encodeURIComponent(product.category)}`}
@@ -51,14 +59,16 @@ export default async function ProductPage({ params }: Props) {
         {/* Galerie */}
         <div className="relative aspect-square overflow-hidden rounded-2xl border border-line bg-zinc-100">
           {image ? (
-            <Image
-              src={image}
-              alt={product.name}
-              fill
-              priority
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              className="object-cover"
-            />
+            <div className="w-full h-full bg-white">
+              <FadeImage
+                src={image}
+                alt={product.name}
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                className="object-contain"
+              />
+            </div>
           ) : (
             <div className="flex h-full items-center justify-center text-4xl text-ink-faint">
               {product.name.charAt(0)}
@@ -103,6 +113,7 @@ export default async function ProductPage({ params }: Props) {
           <div className="mt-8">
             <AddToCartButton
               productId={product.id}
+              productName={product.name}
               maxQuantity={product.stock}
               disabled={!available}
             />

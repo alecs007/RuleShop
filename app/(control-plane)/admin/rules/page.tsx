@@ -23,7 +23,7 @@ export default async function RulesOverviewPage() {
   const byCategory = new Map(ruleSets.map((rs) => [rs.category, rs]));
 
   return (
-    <div>
+    <div className="appear-content">
       <h1 className="text-2xl font-semibold tracking-tight">Reguli</h1>
       <p className="mt-1 text-sm text-ink-muted">
         Punctele de decizie ale magazinului.

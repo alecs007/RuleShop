@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db/prisma";
 import { requireAdmin } from "@/lib/auth/guards";
 import { logAudit } from "@/lib/audit";
 import { keyFromMediaUrl } from "@/lib/storage";
+import { withFlash } from "@/lib/ui/flash";
 import { slugify } from "@/lib/utils/slug";
 
 const productSchema = z.object({
@@ -160,7 +161,7 @@ export async function createProductAction(
   }
 
   revalidatePath("/", "layout");
-  redirect("/admin/products");
+  redirect(withFlash("/admin/products", "product-created"));
 }
 
 export async function updateProductAction(
@@ -212,7 +213,7 @@ export async function updateProductAction(
   }
 
   revalidatePath("/", "layout");
-  redirect("/admin/products");
+  redirect(withFlash("/admin/products", "product-updated"));
 }
 
 /** Dezactivare (soft delete) — comenzile si istoricul raman intacte. */

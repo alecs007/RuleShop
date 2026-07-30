@@ -1,22 +1,26 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { Minus, Plus, ShoppingBag } from "lucide-react";
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { addToCartAction, type CartActionState } from "@/app/(shop)/cart/actions";
 
 export function AddToCartButton({
   productId,
+  productName,
   maxQuantity,
   disabled,
 }: {
   productId: string;
+  productName: string;
   maxQuantity: number;
   disabled?: boolean;
 }) {
+  const router = useRouter();
   const [quantity, setQuantity] = useState(1);
   const [state, formAction, pending] = useActionState<
     CartActionState | undefined,
@@ -24,6 +28,25 @@ export function AddToCartButton({
   >(addToCartAction, undefined);
 
   const max = Math.max(1, Math.min(maxQuantity, 99));
+
+  // Confirmarea pleacă în toast, nu sub buton: rezultatul se vede și dacă
+  // utilizatorul s-a uitat deja în altă parte a paginii.
+  const lastState = useRef<CartActionState | undefined>(undefined);
+  useEffect(() => {
+    if (!state || state === lastState.current) return;
+    lastState.current = state;
+
+    if (state.ok) {
+      toast.success(`${productName} — adăugat în coș`, {
+        description: `Cantitate: ${quantity}`,
+        action: { label: "Vezi coșul", onClick: () => router.push("/cart") },
+      });
+    } else {
+      toast.error(state.message ?? "Produsul nu a putut fi adăugat.");
+    }
+    // `quantity` e citit doar ca detaliu al mesajului, nu declanșează toast.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, productName, router]);
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
@@ -64,21 +87,6 @@ export function AddToCartButton({
           {pending ? "Se adaugă…" : disabled ? "Stoc epuizat" : "Adaugă în coș"}
         </Button>
       </div>
-
-      <AnimatePresence>
-        {state?.message && (
-          <motion.p
-            role="status"
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className={state.ok ? "text-sm text-positive" : "text-sm text-critical"}
-          >
-            {state.message}
-          </motion.p>
-        )}
-      </AnimatePresence>
     </form>
   );
 }

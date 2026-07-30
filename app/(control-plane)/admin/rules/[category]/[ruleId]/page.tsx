@@ -33,7 +33,7 @@ export default async function EditRulePage({
   const save = saveRuleAction.bind(null, category, rule.id);
 
   return (
-    <div>
+    <div className="appear-content">
       <h1 className="text-2xl font-semibold tracking-tight">{rule.name}</h1>
       <p className="mt-1 text-sm text-ink-muted">
         {CATEGORY_LABELS[category]} · <span className="font-mono">{rule.key}</span>

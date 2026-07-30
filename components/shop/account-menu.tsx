@@ -11,6 +11,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { withFlash } from "@/lib/ui/flash";
 
 interface SessionUser {
   name?: string | null;
@@ -108,7 +109,7 @@ export function AccountMenu({ user }: { user: SessionUser | null }) {
           )}
           <button
             role="menuitem"
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={() => signOut({ callbackUrl: withFlash("/", "signed-out") })}
             className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-critical transition-colors hover:bg-red-50"
           >
             <LogOut className="size-4" strokeWidth={1.75} /> Deconectare

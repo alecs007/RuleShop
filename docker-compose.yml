@@ -24,9 +24,6 @@ services:
       - redis-data:/data
     command: ["redis-server", "--appendonly", "yes"]
 
-  # Bucket S3-compatibil pentru imaginile de produs. Aplicatia vorbeste doar
-  # prin driverul S3 (lib/storage/s3.ts), deci acelasi cod merge in productie
-  # pe S3/R2/Spaces. Consola de administrare: http://localhost:9001
   minio:
     image: minio/minio:latest
     container_name: ruleshop-minio
