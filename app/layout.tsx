@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { RouteLoading } from "@/components/ui/route-loading";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin", "latin-ext"], display: "swap" });
@@ -38,6 +40,11 @@ export default function RootLayout({
     <html lang="ro">
       <body className={`${inter.className} min-h-screen antialiased`}>
         {children}
+        {/* Ecranul de încărcare trăiește în layout-ul rădăcină: nu se remontează
+            la navigare, deci poate acoperi chiar tranziția dintre pagini. */}
+        <Suspense>
+          <RouteLoading />
+        </Suspense>
       </body>
     </html>
   );

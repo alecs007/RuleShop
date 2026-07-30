@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import { formatMoney } from "@/lib/utils/money";
+import { startRouteLoading } from "@/components/ui/route-loading";
 
 export interface ProductOption {
   id: string;
@@ -55,7 +56,9 @@ export function ProductSearch({
   const pick = (id: string) => {
     setOpen(false);
     setQuery("");
-    router.push(`${pathname}?test=${id}`, { scroll: false });
+    const href = `${pathname}?test=${id}`;
+    startRouteLoading(href);
+    router.push(href, { scroll: false });
   };
 
   return (
@@ -81,7 +84,10 @@ export function ProductSearch({
           <button
             type="button"
             aria-label="Renunță la produsul selectat"
-            onClick={() => router.push(pathname, { scroll: false })}
+            onClick={() => {
+              startRouteLoading(pathname);
+              router.push(pathname, { scroll: false });
+            }}
             className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-ink-faint transition-colors hover:bg-zinc-100 hover:text-ink"
           >
             <X className="size-3.5" />

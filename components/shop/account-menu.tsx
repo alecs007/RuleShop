@@ -3,7 +3,13 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { CircleUserRound, LogOut, Package, Settings2, UserRound } from "lucide-react";
+import {
+  CircleUserRound,
+  LogOut,
+  Package,
+  Settings2,
+  UserRound,
+} from "lucide-react";
 import { signOut } from "next-auth/react";
 
 interface SessionUser {
@@ -21,7 +27,8 @@ export function AccountMenu({ user }: { user: SessionUser | null }) {
   useEffect(() => {
     if (!open) return;
     const close = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     };
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
@@ -76,7 +83,8 @@ export function AccountMenu({ user }: { user: SessionUser | null }) {
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-zinc-100"
             >
-              <Settings2 className="size-4" strokeWidth={1.75} /> Control Plane
+              <Settings2 className="size-4" strokeWidth={1.75} /> Panou de
+              control
             </Link>
           ) : (
             <>

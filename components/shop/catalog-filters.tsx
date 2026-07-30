@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
+import { startRouteLoading } from "@/components/ui/route-loading";
 
 const SORT_LABELS: Record<string, string> = {
   newest: "Cele mai noi",
@@ -21,7 +22,9 @@ export function CatalogFilters({ categories }: { categories: string[] }) {
     if (value) next.set(key, value);
     else next.delete(key);
     next.delete("page"); // filtrele reseteaza paginarea
-    router.push(`${pathname}${next.size ? `?${next}` : ""}`);
+    const href = `${pathname}${next.size ? `?${next}` : ""}`;
+    startRouteLoading(href);
+    router.push(href);
   };
 
   const activeCategory = searchParams.get("category");

@@ -2,6 +2,7 @@
 
 import { Search } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { startRouteLoading } from "@/components/ui/route-loading";
 
 export function SearchBar() {
   const router = useRouter();
@@ -16,7 +17,9 @@ export function SearchBar() {
         const q = new FormData(e.currentTarget).get("q");
         const params = new URLSearchParams();
         if (typeof q === "string" && q.trim()) params.set("q", q.trim());
-        router.push(`/products${params.size ? `?${params}` : ""}`);
+        const href = `/products${params.size ? `?${params}` : ""}`;
+        startRouteLoading(href);
+        router.push(href);
       }}
     >
       <Search

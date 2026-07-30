@@ -25,15 +25,14 @@ const NAV: NavItem[] = [
 ];
 
 /**
- * Navigatia control plane-ului. Pe ecrane mici rămâne o bandă de iconuri, deci
- * pagina curenta se marcheaza vizual (si prin aria-current) — altfel, fara
- * etichete, nu s-ar vedea unde te afli.
+ * Navigatia control plane-ului: aceleasi intrari in sidebar-ul fix de pe desktop
+ * si in panoul mobil. Pagina curenta e marcata vizual si prin `aria-current`.
  */
 export function AdminNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex-1 space-y-1 p-2 lg:p-3">
+    <nav className="flex-1 space-y-1 p-3">
       {NAV.map(({ href, label, icon: Icon }) => {
         const active =
           href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
@@ -41,17 +40,16 @@ export function AdminNav() {
           <Link
             key={href}
             href={href}
-            title={label}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex items-center justify-center gap-3 rounded-lg py-2.5 text-sm font-medium transition-colors lg:justify-start lg:px-3",
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
               active
                 ? "bg-zinc-100 text-ink"
                 : "text-ink-muted hover:bg-zinc-100 hover:text-ink",
             )}
           >
             <Icon className="size-5 shrink-0" strokeWidth={1.75} />
-            <span className="hidden lg:inline">{label}</span>
+            {label}
           </Link>
         );
       })}
