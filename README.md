@@ -1,60 +1,62 @@
 # 🛍️ RuleShop
 
-Magazin online în care deciziile importante — prețuri, livrare, antifraudă,
-disponibilitate, loialitate, temă — nu sunt scrise în cod, ci administrate în timp real
-de un **rule engine configurabil**, accesat dintr-un **control plane**.
-Un administrator schimbă comportamentul magazinului publicând o versiune nouă de
-reguli: fără recompilare, fără redeploy.
+RuleShop este un magazin online în care deciziile importante — reducerile, livrarea,
+verificarea antifraudă, disponibilitatea, punctele de loialitate și tema — nu
+sunt scrise în cod, ci configurate ca reguli, dintr-un **panou de administrare**. Pentru a fi schimbat felul în care se comportă magazinul, se configurează o versiune nouă de
+reguli. Fără recompilare, fără redeploy.
 
-Motorul de reguli este implementat de la zero (`lib/engine/`), fără biblioteci
-specializate. Platforma este multi-tenant: două magazine independente, complet
-izolate.
+🥇 Proiect realizat pentru **OPEN InfoEducație 2026, secțiunea Web** — **medalie de aur
+(premiul II)**.
 
 ---
 
 ## ✨ Funcționalități
 
-**Magazinul** — catalog cu căutare, filtre și sortare, pagină de produs, coș
-persistent, checkout cu plată simulată (în spatele unei interfețe de provider),
-cumpărare ca guest sau cu cont, istoric de comenzi cu urmărirea statusului.
-Deciziile motorului sunt vizibile clientului: de ce are prețul acesta, ce reguli
-au acționat, ce s-a întâmplat la verificarea antifraudă.
+**Motorul de reguli.** O regulă este un arbore de condiții (`AND` / `OR` / `NOT`)
+cu frunze de forma `(fapt, operator, valoare)` și o listă de acțiuni. Cele șase
+puncte de decizie — preț, livrare, antifraudă, disponibilitate, loialitate, temă —
+folosesc același motor, aceiași operatori și același mecanism de rezolvare a
+conflictelor. Fiecare evaluare întoarce decizia și explicația ei: regulile
+potrivite, condițiile evaluate și valorile găsite.
 
-**Control plane** — editor de reguli structurat (condiții cu grupări AND/OR/NOT,
-operatori filtrați după tipul faptului, acțiuni, priorități denumite), traducere
-automată a fiecărei reguli în limbaj natural („DACĂ … ATUNCI …"), testere care
-arată efectul unei reguli _înainte_ de publicare, gestionarea produselor,
-comenzilor, clienților și a metodelor de livrare.
+**Control plane.** Editor de reguli cu grupări logice, operatori filtrați după
+tipul faptului, acțiuni parametrizate și priorități denumite. Fiecare regulă este
+tradusă automat în limbaj natural, iar testerele arată efectul înainte de
+publicare. Include administrarea produselor, comenzilor, clienților și a
+metodelor de livrare.
 
-**Ciclul de viață al regulilor** — versiuni imutabile cu diff și checksum,
-publicare, rollback prin repointare, kill switch per categorie, strategii de
-rezolvare a conflictelor, istoric de evaluări și jurnal de audit pentru
-operațiile importante.
+**Versionare.** Publicarea creează un snapshot imutabil cu diff și checksum.
+Rollback prin repointarea versiunii active, kill switch per categorie, cohorte
+canary deterministe, istoric de evaluări și jurnal de audit.
 
-**Punctele de decizie** — șase categorii (prețuri, livrare, antifraudă,
-disponibilitate, loialitate, temă) trec prin **același motor generic**. Nu există
-logică hardcodată per caz: o regulă nouă de disponibilitate folosește aceleași
-condiții, operatori și mecanism de conflict ca una de preț.
+**Magazin.** Catalog cu căutare, filtre și sortare, coș persistent, checkout cu
+plată simulată, cumpărare ca vizitator sau cu cont, istoric de comenzi. Clientul
+vede din ce se compune prețul și ce reguli au acționat.
 
-**Modulul AI** (Google Gemini) — analizează regulile și propune îmbunătățiri,
-generează reguli structurate din cerințe în limbaj natural, clasifică incidentele
-antifraudă. Trei garanții, detaliate în [`docs/AI.md`](docs/AI.md):
+**Modul AI** (Google Gemini). Analizează regulile, generează reguli din cerințe în
+limbaj natural și clasifică incidentele antifraudă. Modelul nu evaluează reguli,
+statisticile sunt calculate de aplicație prin re-rularea versiunii candidat pe
+evaluări reale, iar publicarea rămâne manuală. Aceleași funcții sunt expuse și
+printr-un server MCP propriu. Detalii în [`docs/AI.md`](docs/AI.md).
 
-- AI-ul **nu evaluează** niciodată reguli — evaluarea rămâne a motorului;
-- **statisticile sunt calculate de aplicație**, nu declarate de model: simularea
-  re-rulează versiunea candidat pe evenimente de evaluare reale și compară
-  metricile cu versiunea activă;
-- **aprobarea umană este obligatorie** — orice ieșire AI devine cel mult un
-  _draft_, iar publicarea rămâne o acțiune manuală.
+**Multi-tenant.** Mai multe magazine servite din aceeași instanță, izolate la
+nivel de catalog, reguli, comenzi și clienți.
 
-Capabilitățile de analiză sunt expuse și printr-un **server MCP** propriu
-(`mcp/server.mjs`), care vorbește cu aplicația prin API — deci moștenește
-aceleași validări, izolare și interdicție de publicare automată.
+---
 
-**Securitate** — autentificare și autorizare pe roluri verificate pe server,
-izolare strictă între magazine, validare cu Zod plus validarea semantică a
-motorului, rate limiting pe login/checkout/AI, headere de securitate, parole
-bcrypt, secrete doar în variabile de mediu.
+## 🧱 Arhitectură
+
+```
+packages/rule-engine/   @ruleshop/rule-engine — motorul de reguli, fără I/O
+packages/rate-limit/    @ruleshop/rate-limit  — limitare de rată (GCRA)
+apps/web/               aplicația Next.js: magazin, control plane, API, MCP
+```
+
+Motorul primește un snapshot de reguli și un context de fapte și întoarce decizia
+împreună cu explicația ei. Nu accesează baza de date și nu execută operații de
+I/O, deci rulează identic în magazin, în teste și în simulările pe evenimente
+istorice. Straturile aplicației sunt descrise în
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ---
 
@@ -69,174 +71,129 @@ bcrypt, secrete doar în variabile de mediu.
 - 🎨 Tailwind CSS v4
 - 🧪 Vitest
 - 🤖 Google Gemini
-- 🔌 Model Context Protocol (MCP) SDK
+- 🔌 Model Context Protocol (MCP)
 - 🐳 Docker Compose
+- 📦 pnpm workspaces
 
 ---
 
-## 🚀 Instalare și rulare local
+## 🚀 Instalare locală
 
-Ai nevoie de Node.js ≥ 20.11 și Docker.
+Sunt necesare Node.js ≥ 20.11, pnpm ≥ 10 și Docker.
 
 ```bash
 git clone <url-repo> && cd RuleShop
-npm install
-cp .env.example .env
+pnpm install
+cp apps/web/.env.example apps/web/.env   # se completează AUTH_SECRET
+docker compose up -d                      # MongoDB (replica set), Redis, MinIO
+pnpm db:push
+pnpm db:seed
+pnpm create-admin --email admin@ruleshop.dev --store ruleshop-ro
+pnpm dev
 ```
 
-Completează în `.env` cel puțin `AUTH_SECRET` (generează cu
-`openssl rand -base64 32`). Pornește serviciile și baza de date:
+Magazinul este la [localhost:3000](http://localhost:3000), control plane-ul la
+`/admin`, cu autentificare la `/auth/admin`. Fără `--password`, parola contului
+de administrator se generează aleatoriu și se afișează o singură dată.
+
+Seed-ul creează două magazine izolate (`ruleshop-ro`, `ruleshop-de`), 19 produse,
+cele șase rulesete publicate ca versiunea 1, plus 11 clienți, 42 de comenzi,
+incidente antifraudă și 280 de evaluări în istoric. Este determinist și
+idempotent.
+
+### Alte comenzi
 
 ```bash
-docker compose up -d
-```
+pnpm test          # toate testele
+pnpm typecheck     # verificarea tipurilor, pe tot workspace-ul
+pnpm build         # build de producție
+pnpm mcp           # serverul MCP (stdio)
+pnpm db:studio     # inspectarea bazei de date
+pnpm product-art   # regenerează imaginile de produs
 
-MongoDB pornește ca **replica set** — Prisma are nevoie de el pentru tranzacții
-(plasarea comenzilor, publicarea versiunilor). Apoi:
-
-```bash
-npm run db:push
-npm run db:seed
-```
-
-Seed-ul creează două magazine independente (`ruleshop-ro`, `ruleshop-de`), un
-catalog demo de 19 produse în cinci categorii și — pentru fiecare dintre cele
-**șase categorii de decizie** — un set de reguli plauzibile, publicate ca
-versiunea 1: reduceri VIP și pe categorii, livrare gratuită peste un prag,
-verificări antifraudă cu scor, plafoane de cantitate la stoc redus, puncte de
-loialitate cu multiplicatori și o temă care se schimbă în funcție de client.
-Regulile trec prin aceeași validare a motorului ca o publicare din control
-plane, iar re-rularea seed-ului nu creează versiuni noi dacă nimic nu s-a
-schimbat. Toate se pot edita, dezactiva sau șterge din interfață.
-
-Creează-ți un cont de administrator:
-
-```bash
-npm run create-admin -- --email admin@ruleshop.dev --store ruleshop-ro
-```
-
-Fără `--password`, se generează una aleatorie și se afișează o singură dată.
-Pornește aplicația:
-
-```bash
-npm run dev
-```
-
-Magazinul e la [localhost:3000](http://localhost:3000), control plane-ul la
-`/admin` (login la `/auth/admin`).
-
-### Mai multe magazine
-
-Platforma servește mai multe magazine din aceeași instanță, complet izolate
-(catalog, reguli, comenzi, clienți). Două noțiuni distincte:
-
-- **magazinul activ** — cel pe care îl văd clienții. Este magazinul marcat
-  `isDefault` în baza de date; se schimbă din **Magazine → „Fă-l activ"**, fără
-  deploy și fără restart. `DEFAULT_STORE_SLUG` din `.env` este doar un override
-  de dezvoltare și, cât timp e setat, are prioritate;
-- **magazinul administrat** — cel pe care lucrezi în panou. Un `PLATFORM_ADMIN`
-  îl comută din comutatorul din capul sidebar-ului (pe ecrane mici, direct din
-  header); un `STORE_ADMIN` sau `OPERATOR` rămâne legat de magazinul din contul
-  lui și nu poate comuta (verificat pe server, nu ascuns doar în interfață).
-
-Separat de acestea, un magazin poate fi **pornit sau oprit** (`Store.active`):
-unul oprit nu se servește clienților și nu poate fi administrat. Magazinul activ
-nu poate fi oprit — mai întâi faci activ alt magazin.
-
-Un magazin nou se creează din **Magazine → Magazin nou** (nume, slug, monedă,
-limbă) și pornește funcțional: metodele de livrare implicite și toate cele șase
-rulesete publicate ca versiunea 1, aceleași pe care le primește un magazin din
-seed. Produsele se adaugă după, din `Produse`. Doar `PLATFORM_ADMIN` vede pagina
-și poate crea magazine.
-
-**Opțional** — modulul AI: pune o cheie de la
-[Google AI Studio](https://aistudio.google.com/apikey) în `GEMINI_API_KEY`. Fără
-ea, platforma funcționează normal, doar funcțiile AI sunt dezactivate și
-interfața explică de ce.
-
-Alte comenzi utile:
-
-```bash
-npm test           # suita de teste (Vitest)
-npm run typecheck  # verificare de tipuri
-npm run mcp        # serverul MCP (stdio)
-npm run db:studio  # inspectarea bazei de date
+pnpm --filter @ruleshop/rule-engine test
 ```
 
 ---
 
-## 📦 Rulare în regim de producție
+## ⚙️ Configurare
 
-Aceleași servicii din `docker compose`, dar aplicația compilată:
+Variabilele se pun în `apps/web/.env` (model complet în `.env.example`).
 
-```bash
-npm run build
-npm start
-```
+| Variabilă                                | Obligatorie | Rol                                                          |
+| ---------------------------------------- | ----------- | ------------------------------------------------------------ |
+| `DATABASE_URL`                           | da          | MongoDB; replica set, pentru tranzacții                       |
+| `AUTH_SECRET`                            | da          | Semnarea sesiunilor (`openssl rand -base64 32`)               |
+| `AUTH_URL`                               | —           | Adresa publică a aplicației                                    |
+| `AUTH_TRUST_HOST`                        | proxy       | Necesară în spatele unui reverse proxy                        |
+| `REDIS_URL`                              | —           | Limitare de rată. Fără ea, limitarea rămâne în memorie        |
+| `AUTH_GOOGLE_ID` / `_SECRET`             | —           | Autentificarea clienților cu Google                            |
+| `AUTH_FACEBOOK_ID` / `_SECRET`           | —           | Autentificarea clienților cu Facebook                          |
+| `S3_ENDPOINT`, `S3_BUCKET`, `S3_*`       | —           | Stocarea imaginilor. Fără ele se folosește discul (`UPLOAD_DIR`) |
+| `GEMINI_API_KEY`                         | —           | Activează modulul AI                                           |
+| `GEMINI_MODEL`                           | —           | Implicit `gemini-flash-latest`                                 |
+| `MCP_API_TOKEN`                          | MCP         | Token de serviciu pentru serverul MCP                          |
+| `DEFAULT_STORE_SLUG`                     | —           | Override de dezvoltare pentru magazinul activ                  |
 
-Verifică apoi starea:
+---
 
-```bash
-curl http://localhost:3000/api/health
-# {"status":"ok","database":"ok","timestamp":"..."}
-```
+## 🏪 Magazine multiple
 
-Imaginile produselor se salvează implicit pe disc (`storage/uploads`). Dacă vrei
-să le servești din MinIO — pornit deja de `docker compose` — lasă variabilele
-`S3_*` completate în `.env`; driverul comută automat, iar consola MinIO e la
-[localhost:9001](http://localhost:9001).
+- **Magazinul activ** este cel servit clienților, marcat `isDefault` în baza de
+  date. Se schimbă din **Magazine → „Fă-l activ"**, fără redeploy.
+  `DEFAULT_STORE_SLUG`, cât timp este setată, are prioritate.
+- **Magazinul administrat** este cel deschis în panou. Un `PLATFORM_ADMIN` îl
+  comută; un `STORE_ADMIN` sau un `OPERATOR` rămâne legat de magazinul din contul
+  propriu, restricție verificată pe server.
+
+Un magazin poate fi pornit sau oprit (`Store.active`); cel activ nu poate fi
+oprit până nu este desemnat altul. Un magazin nou pornește cu metodele de livrare
+implicite și cele șase rulesete publicate ca versiunea 1.
 
 ---
 
 ## 🔒 Securitate
 
-- **Autorizare pe server** pentru fiecare pagină de admin, server action și rută
-  de API (`requireStaff` / `requireAdmin`), cu rolul citit din baza de date, nu
-  din token — un rol revocat pierde accesul imediat.
-- **Izolare între magazine**: fiecare interogare de business filtrează pe
-  `storeId`, iar comenzile se leagă de proprietar prin cookie httpOnly sau cont,
-  niciodată prin numărul comenzii.
-- **Validare** cu Zod pe intrări, plus validarea semantică a motorului pentru
-  reguli (operatori compatibili cu tipul faptului, parametri în interval).
-  Regulile sunt date structurate, niciodată cod executabil.
-- **Rate limiting** pe login (anti brute-force), checkout, verificarea codului de
-  comandă și pe apelurile AI (ține cota cheii Gemini sub control).
-- **Headere**: `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`,
-  `Permissions-Policy`; fără `X-Powered-By`.
-- **Încărcări de imagini** validate prin magic bytes, cu SVG respins intenționat
-  (vector XSS); cheile sunt generate de server, căile cu `..` refuzate, iar
-  fișierele se servesc prin rută proprie cu `nosniff`.
-- **Secrete** doar în variabile de mediu (`.env` este în `.gitignore`), parole de
-  staff ca hash bcrypt, iar erorile interne nu ajung în răspunsuri.
-- `npm audit` raportează **0 vulnerabilități**; patch-urile dependențelor
-  tranzitive sunt fixate prin `overrides` în `package.json`.
+- **Autorizare pe server** la fiecare pagină de admin, server action și rută de
+  API, cu rolul citit din baza de date, nu din token.
+- **Izolare între magazine**: fiecare interogare filtrează pe `storeId`, iar
+  comenzile se leagă de proprietar prin cookie httpOnly sau cont, niciodată prin
+  numărul comenzii.
+- **Validare** cu Zod la intrare, plus validarea semantică a motorului:
+  compatibilitatea operatorilor cu tipul faptului și încadrarea parametrilor.
+- **Limitare de rată** pe login, checkout, verificarea codului de comandă,
+  încărcări și apeluri AI, cu politicile grupate în
+  [`lib/rate-limit`](apps/web/lib/rate-limit/index.ts). Login-ul și verificarea
+  codului refuză cererile dacă Redis cade.
+- **Antete**: `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`,
+  `Permissions-Policy`, fără `X-Powered-By`.
+- **Încărcări de imagini** validate prin magic bytes, cu SVG respins, chei
+  generate de server și servire printr-o rută dedicată.
+- **Secrete** doar în variabile de mediu, parole de staff ca hash bcrypt.
 
-Limitări asumate: nu există CSP strict (Next injectează scripturi inline care ar
-cere nonce per cerere), limitarea de rată este _fail-open_ (dacă Redis cade,
-cererile trec — protecția nu trebuie să devină ea însăși cauza
-indisponibilității), iar plata este simulată.
+Nu este implementat un CSP strict, iar plata este simulată.
 
 ---
 
 ## 🩺 Troubleshooting
 
-| ⚠️ Problemă                                                               | 🛠️ Soluție                                                                                              |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| 🚫 **`Transactions are not supported` / checkout-ul eșuează**             | Baza de date nu e replica set — pornește-o cu `docker compose up -d`, nu un `mongod` separat.           |
-| 🏪 **`Niciun magazin configurat`**                                        | Rulează `npm run db:seed`.                                                                              |
-| 🔐 **Login-ul de admin eșuează fără mesaj**                               | Lipsește `AUTH_SECRET` din `.env`. În spatele unui reverse proxy e nevoie și de `AUTH_TRUST_HOST=true`. |
-| ⛔ **„Prea multe încercări"** la login sau checkout                       | Limitarea de rată; așteaptă fereastra (10 min la login, 1 min la checkout) sau golește cheia din Redis. |
-| 🪟 **`EPERM: operation not permitted ... query_engine-windows.dll.node`** | Oprește `npm run dev`, apoi rulează `npm run db:push` sau `npm run db:generate`.                        |
-| 🤖 **`Gemini a răspuns cu 404 ... no longer available`**                  | Elimină `GEMINI_MODEL`; implicit se folosește `gemini-flash-latest`.                                    |
-| 🔑 **Funcțiile AI sunt ascunse în interfață**                             | Configurează `GEMINI_API_KEY`.                                                                          |
-| ⏳ **„Limita de cereri AI pe oră a fost atinsă”**                         | Așteaptă sau mărește limitele din `assertAiQuota` (`lib/ai/gemini.ts`).                                 |
-| 🐢 **Prima încărcare a unei pagini e lentă în `dev`**                     | Normal: Next compilează ruta la prima cerere. În `npm start` nu se întâmplă.                            |
-| 🖼️ **Imaginile încărcate nu apar**                                        | Verifică `S3_*` în `.env` (MinIO pornit?) sau șterge-le ca să folosești discul local.                   |
+| ⚠️ Problemă                                              | 🛠️ Rezolvare                                                                                     |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 🚫 `Transactions are not supported`, checkout eșuat      | Baza de date nu este replica set — se pornește cu `docker compose up -d`.                          |
+| 🏪 `Niciun magazin configurat`                           | Lipsesc datele demo: `pnpm db:seed`.                                                                |
+| 🔐 Autentificarea de admin eșuează fără mesaj            | Lipsește `AUTH_SECRET`. În spatele unui reverse proxy este necesar și `AUTH_TRUST_HOST=true`.      |
+| ⛔ „Prea multe încercări" la login sau checkout          | Limitarea de rată. Trece după intervalul din mesaj sau la ștergerea cheilor `ratelimit:*`.         |
+| 🪟 `EPERM ... query_engine-windows.dll.node`             | Un `pnpm dev` pornit ține fișierul blocat: se oprește, apoi `pnpm db:generate`.                    |
+| 🤖 `Gemini a răspuns cu 404 ... no longer available`     | Se elimină `GEMINI_MODEL`; implicit se folosește `gemini-flash-latest`.                             |
+| 🔑 Funcțiile AI nu apar în interfață                     | Nu este configurată `GEMINI_API_KEY`.                                                               |
+| 🐢 Prima încărcare a unei rute este lentă în `dev`       | Next compilează ruta la prima cerere; nu se întâmplă la `pnpm build && pnpm start`.                 |
+| 🖼️ Imaginile încărcate nu apar                           | Se verifică `S3_*` sau se șterg, pentru stocare pe disc local.                                     |
 
 ---
 
 ## 📚 Documentație
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — straturile aplicației, modelul
-  regulilor și ciclul lor de viață, multi-tenancy
-- [`docs/AI.md`](docs/AI.md) — modulul AI, garanțiile lui și serverul MCP
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — straturi, modelul regulilor, multi-tenancy
+- [`docs/AI.md`](docs/AI.md) — modulul AI și serverul MCP
+- [`packages/rule-engine/README.md`](packages/rule-engine/README.md) — motorul de reguli
+- [`packages/rate-limit/README.md`](packages/rate-limit/README.md) — limitarea de rată

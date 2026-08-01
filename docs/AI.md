@@ -5,10 +5,10 @@ Model: **Google Gemini** (REST, `generateContent`), configurat prin
 `GEMINI_API_KEY` / `GEMINI_MODEL`. Fără cheie, platforma funcționează normal —
 funcțiile AI sunt dezactivate, iar interfața explică cum se activează.
 
-## Principii (aliniate la barem)
+## Principii
 
 1. **AI nu evaluează reguli.** Toate evaluările le face motorul propriu
-   (`lib/engine`). AI primește doar date deja calculate și propune.
+   (`@ruleshop/rule-engine`). AI primește doar date deja calculate și propune.
 2. **Statisticile sunt ale aplicației.** Istoricul de evaluări
    (`EvaluationEvent`) reține contextul complet al evaluărilor reale din
    magazin; simularea (`lib/rules/simulation.ts`) re-evaluează acele contexte
@@ -35,7 +35,8 @@ funcțiile AI sunt dezactivate, iar interfața explică cum se activează.
 
 ## Istoricul de evaluări
 
-`recordEvaluation` (fire-and-forget, plafonat prin Redis, fail-open) scrie
+`recordEvaluation` (asincron, plafonat prin politica `evaluationLog` din
+`lib/rate-limit`, care acceptă cererea la indisponibilitatea Redis) scrie
 evenimente din punctele semnificative: pagina de produs (PRICING,
 AVAILABILITY), coș/checkout (SHIPPING) și checkout (FRAUD, PRICING).
 Emailul clientului nu se stochează în context.
@@ -46,7 +47,7 @@ Rutele `/api/v1/ai/*` și `/api/v1/rules` acceptă fie sesiune de admin, fie
 tokenul de serviciu `MCP_API_TOKEN` (comparat în timp constant; magazinul se
 alege cu `?store=<slug>`).
 
-Serverul MCP propriu (`mcp/server.mjs`, pornit cu `npm run mcp`) expune prin
+Serverul MCP propriu (`mcp/server.mjs`, pornit cu `pnpm mcp`) expune prin
 stdio tool-urile: `list_rules`, `simulate_history`, `analyze_rules`,
 `generate_rule` (implicit dry-run), `list_suggestions`. Nu atinge baza de
 date — vorbește exclusiv cu API-ul, deci moștenește validarea, izolarea

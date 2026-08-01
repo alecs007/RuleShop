@@ -13,41 +13,50 @@ complet izolate.
 | Framework | Next.js 15 (App Router, React 19, Server Components) |
 | Limbaj | TypeScript strict |
 | Bază de date | MongoDB (replica set) prin Prisma ORM |
-| Cache / cohorte | Redis (ioredis) — snapshot-uri publicate, rate limiting |
+| Redis | ioredis — limitare de rată (GCRA), cohorte canary |
 | Autentificare | NextAuth v5 (credentials, sesiuni JWT, roluri verificate pe server) |
 | Validare | Zod la fiecare graniță (API, formulare, snapshot-uri de reguli) |
 | UI | Tailwind CSS v4, design minimalist (umbre doar `--shadow-subtle`) |
 | Teste | Vitest + Testing Library |
-| Infra locală | Docker Compose (mongo + redis) |
-| IA | Anthropic SDK + server MCP propriu (tools peste control plane) |
+| Infra locală | Docker Compose (mongo + redis + minio) |
+| Monorepo | pnpm workspaces (`apps/` + `packages/`) |
+| IA | Google Gemini + server MCP propriu (tools peste control plane) |
 
 ## Straturile aplicației
 
+Monorepo pnpm: aplicația în `apps/`, ce nu depinde de ea în `packages/`.
+
 ```
-app/
-  (shop)/            # magazinul: catalog, produs, coș, checkout, cont, comenzi
-  (control-plane)/   # admin: rule editor, versiuni, publicare, audit, IA
-  auth/              # login / register
-  api/v1/            # API versionat (decisioning, shop, admin, ai)
-components/
-  shop/  control-plane/  ui/
-lib/
-  engine/            # NUCLEUL: rule engine pur, zero dependințe  ✅ implementat
-  db/                # client Prisma + repository-uri scoped pe store
-  redis/             # client + cache snapshot-uri
-  auth/              # config NextAuth, guards pe roluri
-  ai/                # client Anthropic, prompturi, server MCP
-  utils/
-prisma/schema.prisma # modelul de date (multi-tenant)  ✅ definit
-tests/
+packages/
+  rule-engine/       # NUCLEUL: rule engine pur, fără I/O  (@ruleshop/rule-engine)
+  rate-limit/        # limitare de rată GCRA               (@ruleshop/rate-limit)
+apps/web/
+  app/
+    (shop)/          # magazinul: catalog, produs, coș, checkout, cont, comenzi
+    (control-plane)/ # admin: rule editor, versiuni, publicare, audit, IA
+    auth/            # login / register
+    api/v1/          # API versionat (decisioning, shop, admin, ai)
+  components/
+    shop/  control-plane/  ui/
+  lib/
+    rules/           # ciclul de viață al regulilor peste motor (versiuni, publicare)
+    shop/            # punctele de decizie ale magazinului
+    db/              # client Prisma + interogări scoped pe store
+    redis/           # clientul Redis
+    rate-limit/      # politicile denumite, peste @ruleshop/rate-limit
+    auth/            # config NextAuth, guards pe roluri
+    ai/              # client Gemini, prompturi
+  prisma/schema.prisma # modelul de date (multi-tenant)
+  mcp/               # serverul MCP
+  tests/
 ```
 
-Regula de dependință: `lib/engine` nu importă nimic din restul aplicației
-(nu DB, nu Redis, nu Next). Serviciile din `lib/db` îl folosesc, niciodată
-invers. Asta îl face testabil izolat și demonstrează „motor implementat de
-la zero".
+Regula de dependință: `@ruleshop/rule-engine` nu importă nimic din aplicație
+(nu DB, nu Redis, nu Next) — de aceea stă într-un pachet separat, unde
+constrângerea este impusă de structură, nu de disciplină. Serviciile din
+`apps/web/lib/` îl folosesc, niciodată invers.
 
-## Rule engine (`lib/engine`) — implementat
+## Rule engine (`packages/rule-engine`) — implementat
 
 - **Reguli = date structurate**, niciodată cod: arbore de condiții
   (`AND`/`OR`/`NOT`, imbricabil) cu frunze `{fact, operator, value}` +
@@ -57,8 +66,8 @@ la zero".
   Fact lipsă ⇒ condiție falsă, niciodată excepție.
 - **Operatori** (`operators.ts`): registru tipat (eq, neq, gt/gte/lt/lte,
   between, in/notIn, contains, startsWith/endsWith, containsAny/All,
-  exists, isTrue/isFalse). Fiecare declară tipurile de fact compatibile —
-  editorul oferă doar operatori compatibili cu tipul datelor (cerință barem).
+  exists, isTrue/isFalse). Fiecare declară tipurile de fact compatibile, iar
+  editorul oferă doar operatorii potriviți cu tipul faptului selectat.
 - **Acțiuni** (`actions.ts`): catalog per categorie de decizie
   (PRICING, SHIPPING, FRAUD, AVAILABILITY, LOYALTY, THEME), funcții pure cu
   parametri validați (intervale, enum-uri).
@@ -72,7 +81,7 @@ la zero".
 - **Kill switch**: pe întreg rulesetul (⇒ `defaultDecision`, fail-safe) sau
   granular pe chei de reguli.
 - **Canary** (`canary.ts`): FNV-1a peste `storeId:rulesetKey:subjectKey`
-  ⇒ bucket stabil [0,100) ⇒ repartizare deterministă (cerință barem).
+  ⇒ bucket stabil [0,100) ⇒ repartizare deterministă în cohorte.
 - **Validare** (`schemas.ts`): Zod (formă) + semantică (operatori/acțiuni
   existente, compatibilitate, intervale, NOT unar, chei duplicate,
   avertisment priorități egale).
@@ -114,9 +123,12 @@ următor; forma răspunsului este deja cea de mai jos:
 ```
 
 Fluxul serverului: sesiune → subjectKey (userId sau sessionKey din cookie) →
-`isInCanaryCohort` alege snapshot-ul (stable/canary, din cache-ul Redis,
-invalidat la publicare) → `evaluateRuleSet` → persistă evaluarea în istoric →
-răspunde. Magazinul consumă acest API pentru preț afișat, cost livrare,
+`isInCanaryCohort` alege snapshot-ul (stable/canary) → `evaluateRuleSet` →
+persistă evaluarea în istoric → răspunde. Snapshot-ul activ se citește direct
+din baza de date, dedublat per cerere cu `cache()` din React: un cache cu
+termen de expirare ar introduce o fereastră în care magazinul încă servește
+versiunea anterioară după o publicare, adică exact garanția pe care stă
+proiectul. Magazinul consumă acest API pentru preț afișat, cost livrare,
 verificare fraudă la checkout, disponibilitate, puncte loialitate și temă.
 
 ## „Variante" de magazin (ex: România / Germania)
@@ -128,8 +140,8 @@ tema schimbă tokens CSS/banner/layout prin acțiunile THEME, prețurile și
 livrarea prin categoriile lor. Comutarea între variante = activarea/
 dezactivarea regulilor sau publicarea altei versiuni — fără cunoștințe
 tehnice, din control plane. IA (prin MCP) poate genera un asemenea pachet
-dintr-o cerință în limbaj natural, dar publicarea cere aprobare umană
-(cerință barem: control uman obligatoriu).
+dintr-o cerință în limbaj natural, dar publicarea rămâne condiționată de
+aprobarea unui operator uman.
 
 Tema se aplică în `app/(shop)/layout.tsx`: tokenurile devin **proprietăți CSS
 custom** pe învelișul magazinului (obiectul `style` al lui React), nu text CSS
@@ -142,13 +154,13 @@ raportează în `rejectedTokens`, vizibil în testerul din control plane.
 
 ## Modulul AI + MCP — implementat
 
-Providerul (Google Gemini) e în `lib/ai/`, serverul MCP în `mcp/server.mjs`
-(pornit cu `npm run mcp`), rutele HTTP sub `app/api/v1/ai/`. Funcții: analiza
+Providerul (Google Gemini) este în `lib/ai/`, serverul MCP în `mcp/server.mjs`
+(pornit cu `pnpm mcp`), rutele HTTP sub `app/api/v1/ai/`. Funcții: analiza
 regulilor, generarea unei reguli din limbaj natural, clasificarea incidentelor
 antifraudă, simularea pe evenimente istorice.
 
 Garanțiile arhitecturale — AI-ul nu evaluează reguli, statisticile sunt calculate
-de aplicație, aprobarea umană e obligatorie înainte de publicare — sunt descrise
+de aplicație, aprobarea umană este obligatorie înainte de publicare — sunt descrise
 în [`AI.md`](AI.md).
 
 ## Securitate & multi-tenancy
