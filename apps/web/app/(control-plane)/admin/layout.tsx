@@ -16,8 +16,8 @@ export default async function AdminLayout({
   const { user, role, storeId } = await requireStaff();
   const store = await prisma.store.findUnique({ where: { id: storeId } });
 
-  // Doar platforma comuta intre magazine; personalul unui magazin vede doar
-  // numele magazinului lui. Garda reala e pe server, in `selectStoreAction`.
+  // Only the platform switches stores; the real guard is on the server, in
+  // `selectStoreAction`.
   const platformAdmin = role === "PLATFORM_ADMIN";
   const stores = platformAdmin ? await listAdminStoreOptions(storeId) : [];
 

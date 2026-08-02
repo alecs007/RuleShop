@@ -1,12 +1,10 @@
-// RuleShop — Rule Engine pentru un magazin online
-// Schema Prisma. Principii:
-//  - multi-tenancy strict: fiecare entitate de business are `storeId`, iar
-//    unicitatea este compusa ([storeId, ...]) astfel incat doua magazine sa
-//    poata folosi acelasi SKU / slug / email fara coliziuni;
-//  - regulile sunt date structurate (JSON), niciodata cod executabil;
-//  - lifecycle-ul regulilor: Rule (draft de lucru) -> RuleVersion (snapshot
-//    imutabil) -> RuleSet.activeVersion / canaryVersion (ce ruleaza in prod);
-//  - toate sumele de bani sunt stocate in unitati minime (bani/cents, Int).
+// RuleShop — Prisma schema.
+//  - Strict multi-tenancy: every business entity carries `storeId`, and
+//    uniqueness is compound, so two stores can share a SKU, slug or email.
+//  - Rules are structured JSON data, never executable code.
+//  - Rule lifecycle: Rule (working draft) -> RuleVersion (immutable snapshot)
+//    -> RuleSet.activeVersion / canaryVersion.
+//  - Money is stored in minor units.
 
 generator client {
   provider = "prisma-client-js"
@@ -16,10 +14,6 @@ datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
-
-// ---------------------------------------------------------------------------
-// Enums
-// ---------------------------------------------------------------------------
 
 enum Role {
   CUSTOMER
@@ -38,7 +32,7 @@ enum OrderStatus {
   REFUNDED
 }
 
-/// Punctele de decizie controlate de rule engine.
+/// The decision points the rule engine controls.
 enum DecisionCategory {
   PRICING
   SHIPPING
@@ -48,7 +42,7 @@ enum DecisionCategory {
   THEME
 }
 
-/// Strategia de rezolvare a conflictelor intre reguli, la nivel de ruleset.
+/// How conflicts between matching rules are resolved, per ruleset.
 enum ConflictStrategy {
   PRIORITY_FIRST_MATCH
   PRIORITY_ALL_MATCHES
@@ -71,13 +65,13 @@ enum RuleVersionStatus {
   ARCHIVED
 }
 
-/// Canalul pe care a fost publicata o versiune.
+/// The channel a version was published on.
 enum PublishChannel {
   STABLE
   CANARY
 }
 
-/// Sursa unei reguli / versiuni — necesara pentru trasabilitatea sugestiilor IA.
+/// Where a rule or version came from, for AI suggestion traceability.
 enum AuthoringSource {
   HUMAN
   AI_SUGGESTION
@@ -92,7 +86,7 @@ enum RiskLevel {
   CRITICAL
 }
 
-/// Decizia antifrauda aplicata la checkout.
+/// The fraud decision applied at checkout.
 enum FraudDecision {
   ALLOW
   CHALLENGE
@@ -107,22 +101,22 @@ enum FraudReviewStatus {
   DISMISSED
 }
 
-/// Starea unei sugestii produse de modulul IA. Nimic nu se publica automat:
-/// o sugestie acceptata devine cel mult o regula DRAFT, publicata manual.
+/// Nothing is published automatically: an accepted suggestion becomes a DRAFT
+/// rule at most, published by hand.
 enum AiSuggestionStatus {
   PROPOSED
   ACCEPTED
   REJECTED
-  /// Rezultat care nu a trecut de validarea aplicatiei (schema/reguli).
+  /// Output that failed the application's validation.
   INVALID
 }
 
-/// Ce propune o sugestie IA — determina efectul butonului „Acceptă".
+/// What a suggestion proposes, which decides what accepting it does.
 enum AiSuggestionKind {
   NEW_RULE
   MODIFY_RULE
   DISABLE_RULE
-  /// Observatie fara actiune aplicabila (ex: statistici, avertisment).
+  /// An observation with no applicable action.
   INFO
 }
 
@@ -159,32 +153,27 @@ enum AuditAction {
   FRAUD_INCIDENT_REVIEWED
 }
 
-// ---------------------------------------------------------------------------
-// Tenancy
-// ---------------------------------------------------------------------------
-
-/// Un magazin independent. Radacina izolarii datelor: nimic dintr-un magazin
-/// nu trebuie sa fie accesibil din alt magazin.
+/// An independent store: the root of data isolation. Nothing from one store
+/// may be reachable from another.
 model Store {
   id       String  @id @default(cuid()) @map("_id")
   slug     String  @unique
   name     String
-  /// Unicitatea domeniului se impune in aplicatie: pe MongoDB un index unic
-  /// pe camp optional ar intra in coliziune la mai multe valori null.
+  /// Uniqueness is enforced in the application: on MongoDB a unique index on
+  /// an optional field collides across multiple nulls.
   domain   String?
   currency String  @default("RON")
   locale   String  @default("ro-RO")
   active   Boolean @default(true)
-  /// Magazinul activ: cel servit clientilor cand cererea nu indica altul
-  /// (domeniu sau override de mediu). Exact unul il are true — se impune in aplicatie
-  /// (`setDefaultStore`), pentru ca un index unic pe boolean nu ar permite
-  /// mai multe valori false.
-  isDefault Boolean @default(false)
+  /// The path prefix the store is served under: "de" means /de/... `null` is
+  /// the main store, served at the root, and at most one store may have it —
+  /// enforced by `setMainStore`, for the MongoDB reason above. The prefix
+  /// cannot be a reserved segment, or it would shadow the app's routes.
+  pathPrefix String?
 
-  /// Tema implicita (culori, logo, layout). Regulile de tip THEME pot
-  /// suprascrie aceste valori la runtime, fara deploy.
+  /// The default theme. THEME rules override it at runtime, without a deploy.
   themeDefaults Json @default("{}")
-  /// Setari generale ale magazinului (praguri livrare, TVA, contact etc).
+  /// General store settings: shipping methods, VAT, contact details.
   settings      Json @default("{}")
 
   createdAt DateTime @default(now())
@@ -206,21 +195,16 @@ model Store {
   @@map("stores")
 }
 
-// ---------------------------------------------------------------------------
-// Identitate & autorizare
-// ---------------------------------------------------------------------------
-
-/// Utilizator. Identitatea clientilor este la nivel de platforma (OAuth
-/// Google/Facebook), iar apartenenta la un magazin exista prin cosuri si
-/// comenzi (fiecare cu storeId). `storeId` se seteaza doar pentru personal
-/// (OPERATOR / STORE_ADMIN); PLATFORM_ADMIN il are null.
+/// Customer identity is platform-wide; belonging to a store comes from carts
+/// and orders. `storeId` is set only for store staff, never for a
+/// PLATFORM_ADMIN.
 model User {
   id           String  @id @default(cuid()) @map("_id")
   storeId      String?
   email        String  @unique
   name         String?
   image        String?
-  /// Rezervat pentru autentificarea cu parola a personalului (etapa admin).
+  /// Staff password sign-in only.
   passwordHash String?
   role         Role    @default(CUSTOMER)
   active       Boolean @default(true)
@@ -228,12 +212,12 @@ model User {
   emailVerified DateTime?
   lastLoginAt   DateTime?
 
-  // Semnale folosite de reguli (loialitate, segmentare, antifrauda).
+  // Signals the rules read: loyalty, segmentation, fraud.
   loyaltyTier    String @default("STANDARD")
   loyaltyPoints  Int    @default(0)
   lifetimeSpend  Int    @default(0) // in bani/cents
   completedOrders Int   @default(0)
-  /// Atribute libere disponibile in contextul de evaluare (ex: country, segment).
+  /// Free-form attributes exposed to the evaluation context.
   attributes     Json   @default("{}")
 
   createdAt DateTime @default(now())
@@ -255,7 +239,7 @@ model User {
   @@map("users")
 }
 
-/// Cont OAuth legat de un utilizator (NextAuth / Auth.js).
+/// An OAuth account linked to a user (Auth.js).
 model Account {
   id                String  @id @default(cuid()) @map("_id")
   userId            String
@@ -280,8 +264,8 @@ model Account {
   @@map("accounts")
 }
 
-/// Sesiuni NextAuth (folosite doar daca se trece pe strategy "database";
-/// cu JWT raman goale, dar adapterul cere modelul).
+/// Only used with the "database" session strategy; the adapter requires the
+/// model even though we use JWTs.
 model Session {
   id           String   @id @default(cuid()) @map("_id")
   sessionToken String   @unique
@@ -294,10 +278,6 @@ model Session {
   @@map("sessions")
 }
 
-// ---------------------------------------------------------------------------
-// Catalog & comenzi
-// ---------------------------------------------------------------------------
-
 model Product {
   id          String  @id @default(cuid()) @map("_id")
   storeId     String
@@ -308,19 +288,19 @@ model Product {
   category    String
   brand       String?
 
-  /// Pretul de baza, in bani/cents. Pretul final este intotdeauna rezultatul
-  /// evaluarii rulesetului PRICING peste aceasta valoare.
+  /// The base price. The final one is always the PRICING ruleset's verdict
+  /// over this value.
   basePriceCents Int
   currency       String   @default("RON")
   stock          Int      @default(0)
-  /// Stoc rezervat de comenzi in curs (pentru deciziile de AVAILABILITY).
+  /// Stock held by orders in flight.
   reservedStock  Int      @default(0)
   weightGrams    Int      @default(0)
   tags           String[] @default([])
   imageUrls      String[] @default([])
   active         Boolean  @default(true)
 
-  /// Atribute arbitrare expuse motorului de reguli (ex: fragile, hazmat, isNew).
+  /// Arbitrary attributes exposed to the rule engine.
   attributes Json @default("{}")
 
   createdAt DateTime @default(now())
@@ -337,18 +317,16 @@ model Product {
   @@map("products")
 }
 
-/// Cos de cumparaturi persistent. Cheia primara de identificare este
-/// `sessionKey` (cookie stabil) — functioneaza identic pentru guest si
-/// autentificat; `userId` se ataseaza la login pentru istoric/merge.
+/// A persistent cart, identified by `sessionKey` so it works the same for
+/// guests and signed-in customers; `userId` is attached at sign-in.
 model Cart {
   id         String  @id @default(cuid()) @map("_id")
   storeId    String
   sessionKey String
   userId     String?
 
-  /// Metoda de livrare aleasa de client (ID din `Store.settings.shippingMethods`).
-  /// Doar o preferinta: daca o regula o scoate din lista, cotatia cade pe cea
-  /// mai ieftina metoda disponibila.
+  /// The customer's chosen shipping method. A preference only: if a rule
+  /// removes it, the quote falls back to the cheapest available one.
   shippingMethodId String?
 
   createdAt DateTime @default(now())
@@ -385,12 +363,12 @@ model Order {
   storeId     String
   orderNumber String
 
-  // Cumparare autentificata (userId) SAU in regim guest (guestEmail).
+  // Either a signed-in purchase or a guest one.
   userId     String?
   guestEmail String?
   guestName  String?
-  /// Identificator stabil de sesiune — folosit pentru repartizarea canary
-  /// determinista atunci cand nu exista user autentificat.
+  /// The stable session id used for deterministic canary assignment when
+  /// there is no signed-in user.
   sessionKey String
 
   status OrderStatus @default(PENDING)
@@ -406,18 +384,17 @@ model Order {
   shippingAddress Json    @default("{}")
   billingAddress  Json    @default("{}")
   paymentMethod   String?
-  /// Plata este simulata; pastram doar referinta si rezultatul.
+  /// Payment is simulated; only the reference and the outcome are kept.
   paymentRef      String?
 
-  // --- Trasabilitatea deciziilor luate de engine pentru aceasta comanda ---
-  /// Snapshot al deciziilor finale (pret, livrare, frauda, loialitate).
+  /// A snapshot of the final decisions: price, shipping, fraud, loyalty.
   decisionSnapshot Json    @default("{}")
-  /// Cheile regulilor care au contribuit la decizia finala.
+  /// The rules that reached the final decision.
   matchedRuleKeys  String[] @default([])
-  /// Versiunile de ruleset folosite, pe categorie: { "PRICING": 7, ... }
+  /// The ruleset versions used, per category: { "PRICING": 7, ... }
   rulesetVersions  Json     @default("{}")
   traceId          String?
-  /// Ramura canary vs stable pe care a cazut aceasta sesiune.
+  /// Which branch, canary or stable, this session landed on.
   canaryCohort     Boolean  @default(false)
 
   loyaltyPointsEarned Int @default(0)
@@ -441,8 +418,8 @@ model Order {
   @@map("orders")
 }
 
-/// Linie de comanda. Pastreaza un snapshot al produsului si al deciziei de
-/// pret, astfel incat istoricul sa ramana corect chiar daca produsul se schimba.
+/// An order line, holding a snapshot of the product and the pricing decision,
+/// so history stays accurate when the product changes.
 model OrderItem {
   id        String  @id @default(cuid()) @map("_id")
   orderId   String
@@ -451,14 +428,14 @@ model OrderItem {
   sku         String
   name        String
   quantity    Int
-  /// Pretul de baza la momentul comenzii (inainte de reguli).
+  /// The base price at order time, before rules.
   basePriceCents  Int
-  /// Pretul unitar dupa aplicarea regulilor de PRICING.
+  /// The unit price after the PRICING rules.
   finalPriceCents Int
   discountCents   Int @default(0)
   lineTotalCents  Int
 
-  /// Regulile care au modificat aceasta linie + explicatia lor.
+  /// The rules that changed this line, with their explanation.
   appliedRules Json @default("[]")
 
   createdAt DateTime @default(now())
@@ -471,13 +448,9 @@ model OrderItem {
   @@map("order_items")
 }
 
-// ---------------------------------------------------------------------------
-// Rule engine: RuleSet -> Rule (draft) -> RuleVersion (snapshot publicabil)
-// ---------------------------------------------------------------------------
-
-/// Colectie de reguli pentru un punct de decizie al unui magazin.
-/// Detine si starea de publicare: versiunea stabila, versiunea canary,
-/// procentul canary si kill switch-ul pe categorie.
+/// A store's rules for one decision point, together with its publishing
+/// state: the stable and canary versions, the canary share and the kill
+/// switch.
 model RuleSet {
   id          String           @id @default(cuid()) @map("_id")
   storeId     String
@@ -487,21 +460,19 @@ model RuleSet {
   category    DecisionCategory
 
   conflictStrategy ConflictStrategy @default(PRIORITY_FIRST_MATCH)
-  /// Decizia returnata cand nicio regula nu se potriveste sau cand engine-ul
-  /// este oprit prin kill switch (fail-safe).
+  /// The fail-safe decision, returned when nothing matches or the kill switch
+  /// is on.
   defaultDecision  Json             @default("{}")
 
-  // --- Stare de publicare ---
-  /// Pointerii spre versiuni sunt relatii unu-la-multi la nivel de schema, fara
-  /// index unic: pe MongoDB un index unic pe un camp opțional intra in coliziune
-  /// la mai multe valori null, deci al doilea ruleset creat (nepublicat inca) ar
-  /// fi respins. Unicitatea reala — un ruleset arata spre o singura versiune
-  /// activa si una canary — o garanteaza serviciul de publicare.
+  /// These pointers are one-to-many at the schema level, with no unique index:
+  /// on MongoDB such an index on an optional field collides across nulls, so
+  /// the second unpublished ruleset would be rejected. The publishing service
+  /// guarantees the real uniqueness.
   activeVersionId  String?
   canaryVersionId  String?
-  /// Procent de utilizatori/sesiuni directionati catre versiunea canary (0-100).
+  /// The share of traffic sent to the canary version, 0-100.
   canaryPercentage Int     @default(0)
-  /// Oprire rapida a intregii categorii de decizii; se cade pe defaultDecision.
+  /// Stops the whole category at once, falling back to `defaultDecision`.
   killSwitch       Boolean @default(false)
   killSwitchReason String?
   killSwitchAt     DateTime?
@@ -512,8 +483,8 @@ model RuleSet {
   store         Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
   rules         Rule[]
   versions      RuleVersion[] @relation("RuleSetVersions")
-  // NoAction: pe MongoDB relatiile sunt emulate si ciclul RuleSet <-> RuleVersion
-  // trebuie rupt; repointarea/curatarea se face in service-ul de publicare.
+  // NoAction: relations are emulated on MongoDB, so the RuleSet <-> RuleVersion
+  // cycle has to be broken; the publishing service does the repointing.
   activeVersion RuleVersion?  @relation("ActiveVersion", fields: [activeVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   canaryVersion RuleVersion?  @relation("CanaryVersion", fields: [canaryVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -523,8 +494,8 @@ model RuleSet {
   @@map("rule_sets")
 }
 
-/// Regula de lucru (draft editabil). Conditiile si actiunile sunt structuri
-/// JSON validate de aplicatie (AST), NU cod executabil.
+/// The working draft of a rule. Conditions and actions are JSON structures
+/// validated by the application, never executable code.
 ///
 /// conditions: { "type": "group", "op": "AND" | "OR" | "NOT", "children": [
 ///                 { "type": "condition", "fact": "cart.total",
@@ -538,23 +509,23 @@ model Rule {
   name        String
   description String @default("")
 
-  /// Prioritate: valoare mai mare = evaluata mai devreme.
+  /// Higher value wins.
   priority Int        @default(100)
   status   RuleStatus @default(DRAFT)
   enabled  Boolean    @default(true)
 
   conditions Json
   actions    Json
-  /// Metadate libere: owner, ticket, motivatie business, note de test.
+  /// Free-form metadata: owner, ticket, rationale, test notes.
   metadata   Json     @default("{}")
   tags       String[] @default([])
 
-  /// Fereastra de valabilitate (ex: campanie de Black Friday).
+  /// The validity window, for time-limited campaigns.
   effectiveFrom DateTime?
   effectiveTo   DateTime?
 
   source          AuthoringSource @default(HUMAN)
-  /// Explicatia in limbaj natural generata de modulul IA, daca exista.
+  /// The AI module's plain-language explanation, when there is one.
   aiRationale     String?
   aiConfidence    Float?
   createdById     String?
@@ -572,9 +543,9 @@ model Rule {
   @@map("rules")
 }
 
-/// Snapshot imutabil al unui ruleset la momentul publicarii. Motorul evalueaza
-/// EXCLUSIV snapshot-uri — de aceea rollback-ul inseamna doar repointarea
-/// `RuleSet.activeVersionId` catre o versiune anterioara.
+/// An immutable snapshot of a ruleset at publish time. The engine evaluates
+/// nothing else, which is why a rollback is just a repointing of
+/// `RuleSet.activeVersionId`.
 model RuleVersion {
   id        String @id @default(cuid()) @map("_id")
   storeId   String
@@ -583,20 +554,19 @@ model RuleVersion {
 
   status         RuleVersionStatus @default(DRAFT)
   publishChannel PublishChannel?
-  /// Procentul canary cu care a fost publicata versiunea (istoric).
+  /// The canary share this version was published with.
   canaryPercentage Int             @default(0)
 
-  /// Continutul inghetat: { conflictStrategy, defaultDecision, rules: [...] }.
+  /// The frozen content: { conflictStrategy, defaultDecision, rules: [...] }.
   snapshot      Json
-  /// Diff structurat fata de versiunea precedenta (added/removed/changed).
+  /// A structured diff against the previous version.
   diff          Json    @default("{}")
   changeSummary String  @default("")
-  /// Hash al snapshot-ului, pentru detectarea publicarilor identice.
+  /// Hash of the snapshot, for detecting no-op publishes.
   checksum      String
 
   source AuthoringSource @default(HUMAN)
-  /// Rezultatele simularii pe evenimente istorice (metrici comparabile cu
-  /// versiunea curenta), calculate de aplicatie, nu declarate de IA.
+  /// The simulation over historical events, computed by the application.
   simulationMetrics Json @default("{}")
 
   createdById   String?
@@ -612,8 +582,8 @@ model RuleVersion {
   createdBy   User?    @relation("VersionAuthor", fields: [createdById], references: [id], onDelete: SetNull)
   publishedBy User?    @relation("VersionPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
 
-  /// Liste doar din cauza constrangerii MongoDB descrise in RuleSet: in practica
-  /// o versiune este activa/canary pentru cel mult un ruleset.
+  /// Lists only because of the MongoDB constraint described in RuleSet: in
+  /// practice a version is active or canary for at most one ruleset.
   activeFor RuleSet[] @relation("ActiveVersion")
   canaryFor RuleSet[] @relation("CanaryVersion")
 
@@ -623,15 +593,10 @@ model RuleVersion {
   @@map("rule_versions")
 }
 
-// ---------------------------------------------------------------------------
-// Observabilitate
-// ---------------------------------------------------------------------------
-
-/// Jurnal de audit pentru operatiile importante (publicari, rollback, kill
-/// switch, aprobari IA, modificari de catalog si roluri).
+/// The audit log for the important operations.
 model AuditLog {
   id      String  @id @default(cuid()) @map("_id")
-  /// Null pentru actiuni la nivel de platforma.
+  /// Null for platform-level actions.
   storeId String?
 
   action     AuditAction
@@ -642,14 +607,14 @@ model AuditLog {
   actorEmail String?
   actorRole  Role?
 
-  /// Starea inainte/dupa, pentru reconstituirea modificarii.
+  /// Before and after, so the change can be reconstructed.
   before   Json    @default("{}")
   after    Json    @default("{}")
   metadata Json    @default("{}")
 
   ipAddress String?
   userAgent String?
-  /// Coreleaza intrarea de audit cu o evaluare a engine-ului.
+  /// Links the entry to an engine evaluation.
   traceId   String?
 
   createdAt DateTime @default(now())
@@ -664,13 +629,10 @@ model AuditLog {
   @@map("audit_logs")
 }
 
-/// O evaluare reala a motorului, cu contextul complet de fapte. Serveste:
-///  - istoricul consultabil al evaluarilor (cu explicatie prin trace/decizie);
-///  - simularea versiunilor candidat pe evenimente ISTORICE — aplicatia
-///    re-evalueaza contextele stocate si calculeaza metricile ea insasi
-///    (cerinta baremului: statisticile nu sunt declarate de serviciul IA).
-/// Volumul este plafonat prin rate limit la scriere; contextul nu contine
-/// emailul clientului.
+/// A real engine evaluation with its full fact context. It backs the browsable
+/// decision history and the simulation of candidate versions, where the
+/// application re-evaluates the stored contexts and computes the metrics
+/// itself. Writes are rate limited, and the context holds no customer email.
 model EvaluationEvent {
   id      String           @id @default(cuid()) @map("_id")
   storeId String
@@ -679,12 +641,12 @@ model EvaluationEvent {
   rulesetVersion  Int
   traceId         String?
   matchedRuleKeys String[] @default([])
-  /// Decizia finala a evaluarii (forma categoriei).
+  /// The evaluation's final decision.
   decision Json @default("{}")
-  /// Contextul de fapte cu care a rulat motorul — suficient pentru re-evaluare.
+  /// The fact context the engine ran on: enough to re-evaluate.
   context  Json
   usedDefault Boolean @default(false)
-  /// De unde vine evenimentul: product-page | checkout | cart.
+  /// Where the event came from: product-page | checkout | cart.
   source String @default("shop")
 
   createdAt DateTime @default(now())
@@ -696,11 +658,10 @@ model EvaluationEvent {
   @@map("evaluation_events")
 }
 
-/// Sugestie produsa de modulul IA (Gemini) asupra unui ruleset. Pastreaza tot
-/// ce e nevoie pentru trasabilitate si audit: modelul, versiunea promptului,
-/// digestul intrarii, statisticile pe care s-a bazat si raspunsul brut.
-/// Fluxul obligatoriu: PROPOSED -> (om) ACCEPTED/REJECTED; acceptarea creeaza
-/// sau modifica o regula DRAFT — publicarea rămâne intotdeauna manuala.
+/// A suggestion the AI module made about a ruleset, with everything audit
+/// needs: the model, the prompt version, the input digest, the statistics it
+/// leaned on and the raw response. The flow is PROPOSED -> a human accepts or
+/// rejects; accepting yields a DRAFT rule and publishing stays manual.
 model AiSuggestion {
   id      String           @id @default(cuid()) @map("_id")
   storeId String
@@ -711,32 +672,31 @@ model AiSuggestion {
 
   title          String
   explanation    String
-  /// Impactul de business estimat, in limbaj natural (estimare IA, marcata ca atare).
+  /// The estimated business impact, marked as an estimate.
   businessImpact String @default("")
   confidence     Float
 
-  /// Regulile existente vizate (pentru MODIFY/DISABLE).
+  /// The existing rules targeted, for MODIFY and DISABLE.
   ruleKeys     String[] @default([])
-  /// Regula propusa (EngineRule JSON) — pentru NEW_RULE si MODIFY_RULE.
+  /// The proposed rule, for NEW_RULE and MODIFY_RULE.
   proposedRule Json?
-  /// Problemele gasite de validarea aplicatiei (goale = valida).
+  /// What the application's validation found; empty means valid.
   validationIssues Json @default("[]")
 
-  // --- Trasabilitate & audit ---
   model         String
   promptVersion Int    @default(1)
-  /// SHA-256 al intrarii (reguli + statistici) — leaga sugestia de datele exacte.
+  /// SHA-256 of the input, tying the suggestion to the exact data.
   inputDigest   String
-  /// Statisticile calculate de aplicatie pe care s-a bazat analiza.
+  /// The application-computed statistics the analysis leaned on.
   usageStats    Json   @default("{}")
   rawResponse   Json?
-  /// Gruparea sugestiilor generate intr-o singura rulare de analiza.
+  /// Groups the suggestions from a single analysis run.
   analysisRunId String?
 
   createdById   String?
   decidedById   String?
   decidedAt     DateTime?
-  /// Regula DRAFT creata/modificata la acceptare.
+  /// The DRAFT rule created or edited on acceptance.
   appliedRuleId String?
 
   createdAt DateTime @default(now())
@@ -749,8 +709,8 @@ model AiSuggestion {
   @@map("ai_suggestions")
 }
 
-/// Incident antifrauda produs de rulesetul FRAUD la checkout. Serveste si ca
-/// set de date pentru clasificarea/analiza asistata de IA.
+/// An incident the FRAUD ruleset raised at checkout, and the data set the AI
+/// classification works from.
 model FraudIncident {
   id      String  @id @default(cuid()) @map("_id")
   storeId String
@@ -761,23 +721,22 @@ model FraudIncident {
   email      String?
   ipAddress  String?
   userAgent  String?
-  /// Amprenta device/browser, daca este disponibila.
+  /// The device fingerprint, when available.
   fingerprint String?
 
   riskScore Int
   riskLevel RiskLevel
   decision  FraudDecision
 
-  /// Semnalele care au declansat incidentul (viteza comenzilor, tara IP,
-  /// nepotrivire adresa de livrare/facturare, cos anormal etc).
+  /// The signals that raised it: order velocity, IP country, address
+  /// mismatch, an unusual cart.
   signals         Json     @default("{}")
   matchedRuleKeys String[] @default([])
   rulesetVersion  Int?
   traceId         String?
-  /// Explicatia deciziei, in forma redata in interfata.
+  /// The decision's explanation, as the UI shows it.
   explanation     Json     @default("{}")
 
-  // --- Analiza IA + control uman ---
   aiClassification String?
   aiConfidence     Float?
   aiRationale      String?

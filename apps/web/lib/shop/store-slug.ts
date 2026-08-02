@@ -1,9 +1,8 @@
 import { z } from "zod";
 
 /**
- * Slug-ul unui magazin: identificatorul stabil din URL-uri, scripturi
- * (`create-admin --store`) si variabile de mediu. Pur, ca sa poata fi testat si
- * folosit si in client (formularul de magazin nou propune slug-ul din nume).
+ * A store's slug: the stable identifier used in URLs, scripts and environment
+ * variables. Pure, so the new-store form can propose one on the client.
  */
 
 export const STORE_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/;
@@ -17,7 +16,7 @@ export const storeSlugSchema = z
     "Slug: doar litere mici, cifre și cratime (ex: ruleshop-de), 3–40 caractere.",
   );
 
-/** Slug propus dintr-un nume liber: „RuleShop Deutschland" → „ruleshop-deutschland". */
+/** "RuleShop Deutschland" -> "ruleshop-deutschland". */
 export function slugifyStoreName(name: string): string {
   return name
     .toLowerCase()

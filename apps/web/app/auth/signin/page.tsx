@@ -47,7 +47,8 @@ export default async function SignInPage({
   const params = await searchParams;
   if (session?.user) redirect(params.callbackUrl ?? "/");
 
-  // Toastul de bun-venit călătorește prin URL: pagina asta dispare la redirect.
+  // The welcome toast travels through the URL: this page is gone after the
+  // redirect.
   const callbackUrl = withFlash(params.callbackUrl ?? "/", "signed-in");
 
   return (

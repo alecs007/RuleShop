@@ -7,14 +7,20 @@ import { Spinner } from "@/components/ui/spinner";
 import {
   cancelOrderAction,
   type CancelOrderState,
-} from "@/app/(shop)/orders/actions";
+} from "@/app/(shop)/[store]/orders/actions";
+import { StorePrefixField } from "./store-prefix-field";
 
 /**
- * Anularea comenzii de catre client, cu confirmare — o acțiune ireversibila nu
- * se declanseaza dintr-un singur clic. Rezultatul vine prin toast; statusul din
- * pagina se reimprospateaza singur (server action + revalidate).
+ * Customer-side cancellation, behind a confirmation: an irreversible action
+ * should not fire on a single click.
  */
-export function CancelOrderButton({ orderNumber }: { orderNumber: string }) {
+export function CancelOrderButton({
+  prefix,
+  orderNumber,
+}: {
+  prefix: string | null;
+  orderNumber: string;
+}) {
   const [state, formAction, pending] = useActionState<
     CancelOrderState | undefined,
     FormData
@@ -41,6 +47,7 @@ export function CancelOrderButton({ orderNumber }: { orderNumber: string }) {
         formAction(formData);
       }}
     >
+      <StorePrefixField prefix={prefix} />
       <input type="hidden" name="orderNumber" value={orderNumber} />
       <button
         disabled={pending}

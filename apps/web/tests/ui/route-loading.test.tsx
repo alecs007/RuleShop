@@ -14,7 +14,7 @@ const { RouteLoading, startRouteLoading } = await import(
   "@/components/ui/route-loading"
 );
 
-/** Overlay-ul e singurul `role="status"` randat de componenta. */
+/** The overlay is the component's only `role="status"`. */
 const overlay = () => screen.queryByRole("status");
 
 function advance(ms: number) {
@@ -23,7 +23,7 @@ function advance(ms: number) {
   });
 }
 
-/** Simuleaza comiterea rutei: se schimba adresa, deci componenta se re-randeaza. */
+/** Simulates the route committing: the address changes and it re-renders. */
 function commitRoute(rerender: (ui: React.ReactElement) => void, pathname: string) {
   currentPathname = pathname;
   history.replaceState({}, "", pathname);
@@ -36,8 +36,8 @@ function clickLink(href: string) {
   const anchor = document.createElement("a");
   anchor.href = href;
   anchor.textContent = "link";
-  // jsdom nu poate naviga: opresc acțiunea implicită la țintă. Handlerul
-  // componentei e pe document în faza de capture, deci vede clicul înainte.
+  // jsdom cannot navigate, so the default is stopped at the target. The
+  // component's handler is on document in the capture phase and sees it first.
   anchor.addEventListener("click", (e) => e.preventDefault());
   document.body.appendChild(anchor);
   act(() => {
@@ -61,8 +61,8 @@ beforeEach(() => {
   vi.useFakeTimers();
   currentPathname = "/products";
   currentParams = new URLSearchParams();
-  // Componenta compara destinatia cu `location`, deci adresa reala din jsdom
-  // trebuie sa fie aceeasi cu cea raportata de `usePathname`.
+  // The component compares the destination with `location`, so jsdom's real
+  // address must match what `usePathname` reports.
   history.replaceState({}, "", currentPathname);
 });
 
@@ -95,7 +95,7 @@ describe("RouteLoading", () => {
     expect(overlay()).not.toBeNull();
 
     commitRoute(rerender, "/cart");
-    // Rămâne puțin pe ecran ca să nu clipească…
+    // It stays on screen a little, so it cannot flicker...
     expect(overlay()).not.toBeNull();
     advance(500);
     expect(overlay()).toBeNull();

@@ -1,6 +1,6 @@
 import { Check, Circle, Dot, X } from "lucide-react";
 import type { OrderStatus } from "@prisma/client";
-import { orderTimeline, type TimelineStep } from "@/lib/shop/order-status";
+import { orderTimeline, type TimelineStep } from "@ruleshop/storefront";
 import { cn } from "@/lib/utils/cn";
 
 const ICONS: Record<TimelineStep["state"], typeof Check> = {
@@ -25,9 +25,8 @@ const LINE_STYLES: Record<TimelineStep["state"], string> = {
 };
 
 /**
- * Unde se afla comanda, pe intelesul clientului: pasii parcursi, cel curent si
- * cei care urmeaza. Statusurile terminale (anulata/respinsa) inchid traseul —
- * nu afisam pasi care nu vor mai veni.
+ * Where the order stands: the steps done, the current one and what follows.
+ * Terminal statuses close the path rather than promise steps that will not come.
  */
 export function OrderTimeline({ status }: { status: OrderStatus }) {
   const steps = orderTimeline(status);
@@ -61,8 +60,8 @@ export function OrderTimeline({ status }: { status: OrderStatus }) {
               </span>
             </div>
             {!isLast && (
-              // Segmentul preia starea pasului URMATOR: linia devine verde doar
-              // cand pasul spre care duce a fost atins.
+              // The segment takes the next step's state, so the line turns
+              // green only once the step it leads to is reached.
               <span
                 aria-hidden
                 className={cn(

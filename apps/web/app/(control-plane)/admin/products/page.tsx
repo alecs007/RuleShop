@@ -63,7 +63,7 @@ export default async function AdminProductsPage({
       </form>
 
       <div className="mt-4 overflow-x-auto rounded-xl border border-line bg-surface-raised">
-        {/* Pe telefon rămân produsul, prețul si actiunile; restul se mută sub nume */}
+        {/* On a phone only product, price and actions stay in the row */}
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-faint">
@@ -99,7 +99,7 @@ export default async function AdminProductsPage({
                         {product.sku}
                         <span className="lg:hidden"> · {product.category}</span>
                       </p>
-                      {/* Stoc si stare, cand nu au coloane proprii */}
+                      {/* Stock and state, when they have no columns */}
                       <p className="mt-1 flex items-center gap-1.5 sm:hidden">
                         <span className="text-xs text-ink-faint tabular-nums">
                           stoc {product.stock}

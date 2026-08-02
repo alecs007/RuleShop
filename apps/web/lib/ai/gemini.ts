@@ -3,23 +3,17 @@ import type { z } from "zod";
 import { POLICIES, rateLimit } from "@/lib/rate-limit";
 
 /**
- * Providerul IA al platformei — Google Gemini, prin REST (generateContent).
+ * The AI provider: Google Gemini over REST. Its role is strictly advisory — it
+ * receives rules and metrics the application computed, and proposes, explains
+ * or classifies. It never evaluates rules and never publishes anything.
  *
- * Rolul IA in RuleShop este strict consultativ, conform baremului:
- *  - primeste reguli, statistici si metrici CALCULATE de aplicatie;
- *  - propune, explica si clasifica — NU evalueaza niciodata reguli si NU
- *    publica nimic (aprobarea umana este obligatorie in fluxul de sugestii);
- *  - orice raspuns trece prin validare Zod + validarea motorului inainte sa
- *    ajunga in fata administratorului.
- *
- * Iesirea este fortata la JSON prin `responseMimeType` + `responseSchema`
- * (structured output), apoi re-validata local — schema trimisa modelului este
- * o constrangere, nu o garantie.
+ * Output is constrained to JSON with `responseSchema` and then re-validated
+ * locally: the schema sent to the model is a constraint, not a guarantee.
  */
 
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
-// Alias care urmareste mereu ultimul model Flash stabil — versiunile fixate
-// (ex: gemini-2.5-flash) ajung sa dea 404 pentru cheile noi cand se retrag.
+// An alias that tracks the latest stable Flash model: pinned versions start
+// 404ing for new keys once they are retired.
 const DEFAULT_MODEL = "gemini-flash-latest";
 const REQUEST_TIMEOUT_MS = 45_000;
 
@@ -57,9 +51,8 @@ export function isAiConfigured(): boolean {
 }
 
 /**
- * Plafon pe apelurile AI ale unui magazin — cheile Gemini au cote si costuri,
- * iar un buton apasat in bucla nu trebuie sa le consume. Aruncat inainte de
- * orice apel spre model; UI-ul afiseaza mesajul ca atare.
+ * Thrown before any call to the model: Gemini keys have quotas and cost money,
+ * and a button held down must not burn through them.
  */
 export async function assertAiQuota(
   storeId: string,
@@ -85,18 +78,17 @@ export function aiModelName(): string {
 }
 
 export interface AiJsonRequest<T> {
-  /** Instructiunile de sistem: rol, constrangeri, format. */
+  /** System instructions: role, constraints, format. */
   system: string;
-  /** Continutul analizat (reguli, statistici, cerinta utilizatorului). */
+  /** The content being analysed. */
   user: string;
   /**
-   * Schema JSON (OpenAPI subset) trimisa modelului ca `responseSchema` —
-   * tine raspunsul pe forma; validarea reala o face `parser`. Lipsa pentru
-   * structurile recursive (arbori de conditii), pe care Gemini nu le poate
-   * declara — acolo forma e descrisa in prompt si impusa de Zod + motor.
+   * Sent as `responseSchema` to keep the answer in shape; `parser` does the
+   * real validation. Absent for recursive structures, which Gemini cannot
+   * declare — there the shape is described in the prompt and enforced by Zod.
    */
   responseSchema?: Record<string, unknown>;
-  /** Schema Zod care valideaza raspunsul — sursa de adevar. */
+  /** The source of truth for the response's shape. */
   parser: z.ZodType<T>;
   temperature?: number;
 }
@@ -104,7 +96,7 @@ export interface AiJsonRequest<T> {
 export interface AiJsonResult<T> {
   data: T;
   model: string;
-  /** Raspunsul brut, pastrat pentru trasabilitate/audit. */
+  /** Kept for traceability and the audit log. */
   rawText: string;
   latencyMs: number;
 }
@@ -156,7 +148,7 @@ async function callGemini(
   }
 }
 
-/** O reincercare doar pentru erorile trecatoare (rate limit / server). */
+/** One retry, and only for transient errors. */
 function isRetryable(error: unknown): boolean {
   return (
     error instanceof AiRequestError &&
@@ -164,10 +156,7 @@ function isRetryable(error: unknown): boolean {
   );
 }
 
-/**
- * Cere modelului un raspuns JSON pe schema data si il valideaza cu Zod.
- * Arunca erori tipizate: neconfigurat / cerere esuata / raspuns invalid.
- */
+/** Asks for JSON on the given schema and validates it with Zod. */
 export async function generateJson<T>(request: AiJsonRequest<T>): Promise<AiJsonResult<T>> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new AiNotConfiguredError();

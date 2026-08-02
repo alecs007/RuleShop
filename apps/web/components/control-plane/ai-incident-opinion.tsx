@@ -15,8 +15,8 @@ const CLASS_LABELS: Record<string, { label: string; className: string }> = {
 };
 
 /**
- * Opinia IA asupra unui incident antifraudă. Doar o parere afisata langa
- * formularul de review — decizia o ia operatorul, exact ca pana acum.
+ * The AI's opinion on an incident, shown beside the review form. The decision
+ * stays with the operator.
  */
 export function AiIncidentOpinion({
   incidentId,

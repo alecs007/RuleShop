@@ -3,12 +3,9 @@
 import { toast } from "sonner";
 
 /**
- * Formular pentru acțiunile fără rezultat vizibil în pagină (activează /
- * dezactivează, șterge, kill switch): trece prin server action și confirmă cu
- * un toast. Opțional cere o confirmare înainte, pentru acțiunile distructive.
- *
- * Acțiunile care redirecționează nu au nevoie de asta — ele duc mesajul prin
- * `withFlash` (vezi `lib/ui/flash.ts`).
+ * For actions with no visible result on the page (enable, delete, kill
+ * switch): runs the server action and confirms with a toast, optionally
+ * asking first. Actions that redirect carry their message with `withFlash`.
  */
 export function ActionForm({
   action,
@@ -34,7 +31,7 @@ export function ActionForm({
           await action(formData);
           if (success) toast.success(success);
         } catch (cause) {
-          // Redirect-urile Next sunt semnalizate prin excepție — trebuie să treacă.
+          // Next signals redirects by throwing; let those through.
           const digest = (cause as { digest?: string })?.digest;
           if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) {
             throw cause;

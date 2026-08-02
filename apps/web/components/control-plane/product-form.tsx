@@ -45,9 +45,8 @@ const inputCls =
   "h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm outline-none transition-colors focus:border-accent focus:bg-surface-raised";
 
 /**
- * Formular de produs (creare + editare). Categoriile existente sunt oferite
- * ca sugestii (datalist) — o categorie noua se creeaza pur si simplu
- * scriind-o aici.
+ * The product form. Existing categories are offered as suggestions; a new one
+ * is created simply by typing it.
  */
 export function ProductForm({
   action,
@@ -148,7 +147,7 @@ export function ProductForm({
             className={inputCls}
           />
         </Field>
-        {/* Greutatea alimenteaza faptul `cart.weightGrams` din regulile de livrare */}
+        {/* Weight feeds the `cart.weightGrams` fact used by shipping rules */}
         <Field
           label="Greutate (grame)"
           name="weightGrams"
@@ -176,7 +175,7 @@ export function ProductForm({
         />
       </Field>
 
-      {/* Grup, nu câmp: eticheta nu trimite spre un singur input */}
+      {/* A group, not a field: the label points at no single input */}
       <div>
         <p className="text-sm font-medium">Imagini</p>
         <div className="mt-1.5">

@@ -17,9 +17,8 @@ interface AuditInput {
 }
 
 /**
- * Jurnal de audit pentru operatiile importante. Nu arunca niciodata —
- * un esec de audit nu trebuie sa blocheze operatia de business, dar il
- * logam ca sa fie vizibil.
+ * Audit log for the important operations. Never throws: a failed audit write
+ * must not block the business operation, but it is logged so it stays visible.
  */
 export async function logAudit(input: AuditInput): Promise<void> {
   try {

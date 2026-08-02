@@ -42,6 +42,9 @@ importers:
       '@ruleshop/rule-engine':
         specifier: workspace:*
         version: link:../../packages/rule-engine
+      '@ruleshop/storefront':
+        specifier: workspace:*
+        version: link:../../packages/storefront
       bcryptjs:
         specifier: ^3.0.2
         version: 3.0.3
@@ -151,6 +154,22 @@ importers:
 
   packages/rule-engine:
     dependencies:
+      zod:
+        specifier: ^4.1.11
+        version: 4.4.3
+    devDependencies:
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@24.13.3)(@vitest/ui@3.2.7)(jiti@2.7.0)(jsdom@27.4.0)(lightningcss@1.32.0)(tsx@4.23.1)
+
+  packages/storefront:
+    dependencies:
+      '@ruleshop/rule-engine':
+        specifier: workspace:*
+        version: link:../rule-engine
       zod:
         specifier: ^4.1.11
         version: 4.4.3

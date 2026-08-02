@@ -32,7 +32,7 @@ import {
   type AiActionState,
 } from "@/app/(control-plane)/admin/rules/ai-actions";
 
-/** Etichetele agregatelor de simulare, pe categorii (chei din simulation.ts). */
+/** Labels for the simulation aggregates, keyed as in simulation.ts. */
 const AGGREGATE_LABELS: Record<string, string> = {
   discountedEvaluations: "Evaluări cu reducere",
   discountedShare: "Pondere reduceri (%)",
@@ -224,13 +224,10 @@ function MetricsColumn({
 }
 
 /**
- * „Asistent IA" — panoul de pe pagina fiecarei categorii de reguli.
- *
- * Contine trei lucruri, in ordinea increderii:
- *  1. simularea pe evenimente istorice — cifre calculate de APLICATIE;
- *  2. statistici de utilizare per regula — tot ale aplicatiei;
- *  3. sugestiile IA (Gemini) — opinii, cu incredere afisata, care asteapta
- *     decizia unui om si devin cel mult DRAFT-uri.
+ * The AI assistant panel, in order of how much it can be trusted: the
+ * simulation over historical events and the per-rule usage statistics, both
+ * computed by the application, then the AI's suggestions — opinions that wait
+ * for a human and become DRAFTs at most.
  */
 export async function AiPanel({
   storeId,
@@ -281,7 +278,7 @@ export async function AiPanel({
       </div>
 
       <div className="mt-3 space-y-4 rounded-xl border border-line bg-surface-raised p-4">
-        {/* 1. Simularea pe istoric — cifrele aplicatiei, nu ale IA */}
+        {/* 1. Simulation over history: the application's numbers */}
         <div>
           <h3 className="flex items-center gap-2 text-sm font-semibold">
             <BarChart3 className="size-4 text-accent" strokeWidth={1.75} />
@@ -331,7 +328,7 @@ export async function AiPanel({
           )}
         </div>
 
-        {/* 2. Sugestiile IA, cu aprobare umana obligatorie */}
+        {/* 2. AI suggestions, with mandatory human approval */}
         <div className="border-t border-line pt-4">
           <h3 className="flex items-center gap-2 text-sm font-semibold">
             <Sparkles className="size-4 text-accent" strokeWidth={1.75} />

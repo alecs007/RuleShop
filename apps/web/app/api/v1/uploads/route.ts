@@ -5,7 +5,7 @@ import { logAudit } from "@/lib/audit";
 import { getSessionUser } from "@/lib/auth/guards";
 import { isAdmin } from "@/lib/auth/roles";
 import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit";
-import { getActiveStore } from "@/lib/shop/store";
+import { getFallbackAdminStore } from "@/lib/shop/store";
 import {
   buildObjectKey,
   getStorage,
@@ -17,15 +17,13 @@ import {
 } from "@/lib/storage";
 
 /**
- * Încărcarea imaginilor de produs.
- *
- * Straturile de apărare, în ordine: autentificare + rol de admin, limitare de
- * rată, limită de număr si dimensiune, validarea semnăturii fiecărui fișier și
- * abia apoi scrierea în bucket, sub o cheie generată de server. Ștergerea e
- * limitată la obiectele magazinului propriu.
+ * Product image upload. The layers, in order: admin role, rate limit, count
+ * and size caps, per-file signature validation, and only then a write to the
+ * bucket under a server-generated key. Deletion is limited to the store's own
+ * objects.
  */
 
-/** Nu ne interesează cache-ul aici; fiecare încărcare e o scriere. */
+/** No caching here: every upload is a write. */
 export const dynamic = "force-dynamic";
 
 interface AdminContext {
@@ -35,10 +33,7 @@ interface AdminContext {
   storeId: string;
 }
 
-/**
- * Ca `requireAdmin`, dar pentru un route handler: întoarce răspuns HTTP în loc
- * de redirect, ca fetch-ul din interfață să primească un cod inteligibil.
- */
+/** Like `requireAdmin`, but answers with a status code instead of a redirect. */
 async function authorize(): Promise<
   { ok: true; ctx: AdminContext } | { ok: false; response: NextResponse }
 > {
@@ -62,7 +57,7 @@ async function authorize(): Promise<
     };
   }
 
-  const storeId = user.storeId ?? (await getActiveStore()).id;
+  const storeId = user.storeId ?? (await getFallbackAdminStore()).id;
   return {
     ok: true,
     ctx: { userId: user.id, email: user.email, role: user.role, storeId },
@@ -156,7 +151,7 @@ export async function POST(request: Request) {
     });
   }
 
-  // 207: unele fișiere au trecut, altele nu — interfața le raportează separat.
+  // 207: some files made it and some did not; the UI reports them apart.
   const status = rejected.length === 0 ? 201 : uploaded.length > 0 ? 207 : 400;
   return NextResponse.json({ uploaded, rejected }, { status });
 }
@@ -172,7 +167,7 @@ export async function DELETE(request: Request) {
   if (!isValidObjectKey(key)) {
     return NextResponse.json({ error: "Cheie invalidă." }, { status: 400 });
   }
-  // Izolare între magazine: cheile încep cu id-ul magazinului care le-a creat.
+  // Store isolation: keys start with the id of the store that created them.
   if (!key.startsWith(`${ctx.storeId}/`)) {
     return NextResponse.json(
       { error: "Obiectul nu aparține acestui magazin." },

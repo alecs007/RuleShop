@@ -2,30 +2,17 @@ import "server-only";
 import { prisma } from "@/lib/db/prisma";
 
 /**
- * Statisticile de client folosite ca FAPTE de motorul de reguli
- * (`customer.completedOrders`, `customer.lifetimeSpend`,
- * `customer.loyaltyPoints`).
+ * Customer statistics the rule engine reads as facts
+ * (`customer.completedOrders`, `lifetimeSpend`, `loyaltyPoints`).
  *
- * Recalculul este IDEMPOTENT: se numara din nou comenzile incasate ale
- * utilizatorului, nu se incrementeaza un contor. Asta e important pentru ca
- * statusul unei comenzi se poate schimba in ambele sensuri (confirmare,
- * anulare, respingere la review-ul antifraudă, rambursare) — un contor
- * incremental s-ar desincroniza la prima anulare, iar regulile ar decide pe
- * date false.
- *
- * Acelasi argument se aplica punctelor de loialitate, si de aceea SOLDUL nu se
- * incrementeaza niciodata: fiecare comanda pastreaza in `loyaltyPointsEarned`
- * punctele decise de rulesetul LOYALTY la plasare, iar soldul contului este
- * suma peste comenzile incasate, minus punctele consumate. O comanda anulata
- * sau rambursata isi retrage automat punctele, fara nicio operatie de
- * compensare — si fara riscul de a le retrage de doua ori.
- *
- * Comenzile in regim guest nu au `userId`, deci nu contribuie: nu exista un
- * profil de client de actualizat. Ele devin relevante daca acelasi email se
- * autentifica ulterior — atunci comenzile se pot atribui contului.
+ * Recomputation is idempotent — the paid orders are counted again rather than
+ * a counter incremented — because an order's status moves in both directions.
+ * The same holds for the points balance: each order keeps the points the
+ * LOYALTY ruleset decided, and the balance is their sum minus what was spent,
+ * so a cancelled order withdraws its points without any compensating write.
  */
 
-/** Statusurile care inseamna „client a cumparat efectiv". */
+/** The statuses that mean the customer actually bought something. */
 const COMPLETED_STATUSES = ["PAID", "FULFILLED"] as const;
 
 export interface CustomerStats {
@@ -35,9 +22,8 @@ export interface CustomerStats {
 }
 
 /**
- * Recalculeaza si salveaza statisticile unui client dintr-un magazin.
- * Nu arunca niciodata: o eroare aici nu trebuie sa rupa plasarea comenzii sau
- * acțiunea adminului — dar o logam, ca desincronizarea sa fie vizibila.
+ * Never throws: a failure here must not break placing an order, but it is
+ * logged so the drift stays visible.
  */
 export async function syncCustomerStats(
   storeId: string,
@@ -59,7 +45,7 @@ export async function syncCustomerStats(
     const stats: CustomerStats = {
       completedOrders: result._count,
       lifetimeSpend: result._sum.totalCents ?? 0,
-      // Soldul nu poate fi negativ nici daca datele ar fi incoerente.
+      // The balance stays non-negative even on inconsistent data.
       loyaltyPoints: Math.max(
         0,
         (result._sum.loyaltyPointsEarned ?? 0) - (result._sum.loyaltyPointsSpent ?? 0),
@@ -77,10 +63,7 @@ export async function syncCustomerStats(
   }
 }
 
-/**
- * Ca mai sus, plecand de la o comanda: gaseste proprietarul si resincronizeaza.
- * Folosita de acțiunile care schimba statusul unei comenzi.
- */
+/** The same, starting from an order: finds the owner and resyncs. */
 export async function syncCustomerStatsForOrder(
   storeId: string,
   orderId: string,

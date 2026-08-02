@@ -12,9 +12,9 @@ import {
   shippingMethodsSchema,
   withShippingMethods,
   type ShippingMethod,
-} from "@/lib/shop/shipping-methods";
+} from "@ruleshop/storefront";
 
-/** Un rand din formular: costul se introduce in lei, ca la produse. */
+/** A form row; the cost is entered in major units, as for products. */
 const rowSchema = z.object({
   id: z.string().trim().toLowerCase(),
   label: z.string().trim(),
@@ -26,7 +26,7 @@ const rowSchema = z.object({
 export interface ShippingMethodsState {
   ok: boolean;
   message?: string;
-  /** Reguli care trimit spre metode inexistente — nu blocheaza salvarea. */
+  /** Rules pointing at missing methods; these do not block the save. */
   warnings?: string[];
 }
 
@@ -39,7 +39,7 @@ function issueMessages(error: z.ZodError, rows: unknown[]): string[] {
   });
 }
 
-/** ID-urile de metode la care se refera actiunile regulilor de livrare. */
+/** The method ids the shipping rules' actions refer to. */
 function referencedMethodIds(actions: unknown): string[] {
   if (!Array.isArray(actions)) return [];
   return (actions as RuleAction[])
@@ -52,9 +52,8 @@ function referencedMethodIds(actions: unknown): string[] {
 }
 
 /**
- * Regulile de livrare care trimit spre metode care nu mai exista. Nu opresc
- * salvarea (o metoda poate fi scoasa temporar), dar administratorul trebuie sa
- * afle: o astfel de regula nu mai are efect.
+ * A method may be removed temporarily, so this does not stop the save — but
+ * the admin needs to know such a rule no longer does anything.
  */
 async function findDanglingRules(
   storeId: string,
@@ -98,7 +97,7 @@ export async function saveShippingMethodsAction(
     };
   }
 
-  // Ordinea rândurilor din formular devine ordinea de afisare in magazin.
+  // The form's row order becomes the display order in the storefront.
   const candidate = parsedRows.data.map((row, index) => ({
     id: row.id,
     label: row.label,

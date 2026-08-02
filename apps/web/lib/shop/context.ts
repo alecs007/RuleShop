@@ -21,9 +21,8 @@ export interface SessionFacts {
 }
 
 /**
- * Faptele despre client si sesiune pentru contextul de evaluare al motorului.
- * Cache per request — o singura citire de DB indiferent cate produse se
- * evalueaza pe pagina.
+ * The customer and session facts for the engine's context. Cached per request,
+ * so one database read however many products the page evaluates.
  */
 export const getEvaluationActor = cache(
   async (): Promise<{ customer: CustomerFacts; session: SessionFacts }> => {

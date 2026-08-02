@@ -8,7 +8,7 @@ import {
   validateImage,
 } from "@/lib/storage/validate";
 
-/** Fișier de test: semnătura reală + umplutură până la o dimensiune plauzibilă. */
+/** A test file: the real signature, padded to a plausible size. */
 function file(signature: number[], size = 1024): Uint8Array {
   const bytes = new Uint8Array(size);
   bytes.set(signature, 0);

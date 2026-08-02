@@ -17,7 +17,7 @@ export class CartError extends Error {
   }
 }
 
-/** Cosul curent (sau null daca nu exista inca), cu produsele incluse. */
+/** The current cart, with its products; null if there is none yet. */
 export async function readCart(storeId: string) {
   const sessionKey = await getSessionKey();
   if (!sessionKey) return null;
@@ -33,17 +33,14 @@ export async function readCart(storeId: string) {
   });
 }
 
-/** Numarul de bucati din cos — pentru badge-ul din header. */
+/** Item count, for the header badge. */
 export async function getCartCount(storeId: string): Promise<number> {
   const cart = await readCart(storeId);
   if (!cart) return 0;
   return cart.items.reduce((sum, item) => sum + item.quantity, 0);
 }
 
-/**
- * Cosul de scris (creat la nevoie). Presupune ca sessionKey exista deja —
- * server action-urile il creeaza cu getOrCreateSessionKey().
- */
+/** Assumes the sessionKey exists: server actions create it beforehand. */
 export async function getOrCreateCart(storeId: string, sessionKey: string) {
   const session = await auth();
   const userId = session?.user?.id ?? null;
@@ -63,13 +60,13 @@ export async function addItem(
   quantity: number,
 ) {
   const product = await prisma.product.findFirst({
-    // storeId in filtru: un produs din alt magazin nu poate ajunge in cos.
+    // `storeId` in the filter: no product from another store can get in.
     where: { id: productId, storeId, active: true },
   });
   if (!product) throw new CartError("Produsul nu există în acest magazin.");
 
-  // Decizia AVAILABILITY: un produs ascuns/indisponibil nu intra in cos, iar
-  // plafonul per comanda (LIMIT_QUANTITY) taie cantitatea, nu doar stocul.
+  // A hidden or unavailable product never enters the cart, and the per-order
+  // cap trims the quantity, not just the stock.
   const view = await getAvailabilityView(product);
   if (!view.available)
     throw new CartError(unavailableMessage(view, product.name));
@@ -83,7 +80,7 @@ export async function addItem(
   const { quantity: capped, limitedBy } = clampQuantity(view, desired);
   if (capped <= 0) throw new CartError(unavailableMessage(view, product.name));
   if (existing && capped <= existing.quantity) {
-    // Plafonul era deja atins — un „succes" fara efect ar deruta clientul.
+    // The cap was already reached; a no-op "success" would confuse.
     throw new CartError(
       limitedBy === "rule"
         ? `Poți comanda maximum ${view.maxPerOrder} bucăți din „${product.name}".`
@@ -119,9 +116,8 @@ export async function setItemQuantity(
   });
   if (!product) return;
 
-  // Cantitatea nu poate depasi plafonul deciziei AVAILABILITY. Daca produsul a
-  // devenit indisponibil intre timp, linia rămâne neschimbata — clientul o vede
-  // marcata in cos si o poate sterge singur.
+  // If the product became unavailable meanwhile the line is left alone: the
+  // customer sees it flagged in the cart and can remove it.
   const view = await getAvailabilityView(product);
   const { quantity: capped } = clampQuantity(view, quantity);
   if (capped <= 0) return;
@@ -133,9 +129,8 @@ export async function setItemQuantity(
 }
 
 /**
- * Salveaza metoda de livrare preferata. Nu se valideaza aici daca metoda e
- * disponibila: disponibilitatea o decide rulesetul SHIPPING la fiecare
- * afisare, deci verificarea are loc in cotatie (`computeShippingQuote`).
+ * Availability is not checked here: the SHIPPING ruleset decides it on every
+ * render, so `computeShippingQuote` is where it belongs.
  */
 export async function setShippingMethod(
   storeId: string,
@@ -167,8 +162,8 @@ export interface CartTotals {
 }
 
 /**
- * Totalurile cosului. `prices` — deciziile PRICING per produs; fara ele se
- * folosesc preturile de baza. Costul livrarii (SHIPPING) se adauga la checkout.
+ * Cart totals. Without `prices` (the per-product PRICING decisions) the base
+ * prices are used. Shipping is added at checkout.
  */
 export function computeTotals(
   cart: CartWithItems | null,

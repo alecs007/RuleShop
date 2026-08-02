@@ -1,13 +1,10 @@
 /**
- * Ilustrațiile de produs folosite de seed.
+ * The product illustrations the seed uses, drawn as vectors here and
+ * rasterized into `public/images/products/` by `pnpm product-art`.
  *
- * Fiecare produs din catalogul demonstrativ trebuie să arate produsul respectiv
- * pe fundal alb, nu o fotografie oarecare. Ilustrațiile sunt desenate vectorial
- * aici și rasterizate în `public/images/products/` de `pnpm product-art`.
- *
- * De ce PNG și nu SVG servit direct: aplicația respinge intenționat SVG-urile
- * încărcate de utilizatori (vector XSS), iar `next/image` refuză să optimizeze
- * SVG fără `dangerouslyAllowSVG`. Rasterizarea păstrează ambele decizii intacte.
+ * PNG rather than SVG served directly: the app deliberately rejects
+ * user-uploaded SVGs as an XSS vector, and `next/image` will not optimize SVG
+ * without `dangerouslyAllowSVG`. Rasterizing keeps both decisions intact.
  */
 
 const INK = "#27272a";
@@ -18,7 +15,7 @@ const PALE = "#f4f4f5";
 const SCREEN = "#1e293b";
 const GLASS = "#bfdbfe";
 
-/** Umbra de contact — ancorează obiectul, altfel pare că plutește. */
+/** The contact shadow, which anchors the object instead of floating it. */
 const shadow = (cx: number, cy: number, rx: number, ry = 18) =>
   `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#000" opacity="0.07"/>`;
 
@@ -27,7 +24,6 @@ const frame = (body: string) =>
   `<rect width="900" height="900" fill="#ffffff"/>${body}</svg>`;
 
 export const ART: Record<string, string> = {
-  // ---------------------------------------------------------------- audio
   headphones: frame(`
     ${shadow(450, 700, 210)}
     <path d="M250 470 V420 a200 200 0 0 1 400 0 V470"
@@ -68,7 +64,6 @@ export const ART: Record<string, string> = {
     </g>
   `),
 
-  // ------------------------------------------------------------ laptopuri
   laptop: frame(`
     ${shadow(450, 668, 268)}
     <path d="M244 226 h412 a20 20 0 0 1 20 20 v322 H224 V246 a20 20 0 0 1 20 -20 z" fill="${INK}"/>
@@ -78,7 +73,6 @@ export const ART: Record<string, string> = {
     <rect x="372" y="596" width="156" height="14" rx="7" fill="${MID}"/>
   `),
 
-  // ------------------------------------------------------------ telefoane
   phone: frame(`
     ${shadow(450, 742, 132)}
     <rect x="316" y="146" width="268" height="580" rx="52" fill="${INK}"/>
@@ -92,7 +86,6 @@ export const ART: Record<string, string> = {
     <rect x="596" y="248" width="10" height="72" rx="5" fill="${DARK}"/>
   `),
 
-  // ------------------------------------------------------------ accesorii
   charger: frame(`
     ${shadow(450, 686, 168)}
     <rect x="298" y="288" width="304" height="356" rx="56" fill="${PALE}" stroke="${LIGHT}" stroke-width="6"/>
@@ -145,7 +138,6 @@ export const ART: Record<string, string> = {
     <rect x="586" y="252" width="56" height="48" rx="12" fill="${MID}"/>
   `),
 
-  // --------------------------------------------------------------- gaming
   controller: frame(`
     ${shadow(450, 668, 244)}
     <path d="M330 336 h240 c78 0 132 56 152 150 l30 138 c12 56 -22 96 -74 96
@@ -196,7 +188,7 @@ export const ART: Record<string, string> = {
   `),
 };
 
-/** SKU (sau prefixul lui) -> ilustrația potrivită. */
+/** SKU, or its prefix, to the matching illustration. */
 export const ART_BY_SKU: Record<string, keyof typeof ART> = {
   "AUD-001": "headphones",
   "AUD-002": "speaker",

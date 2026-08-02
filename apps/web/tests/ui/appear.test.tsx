@@ -4,10 +4,10 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { AppearItem, AppearList } from "@/components/ui/appear";
 
 /**
- * Intrarea listelor se face din CSS, nu din JS. Testele fixeaza contractul cu
- * `globals.css`: clasa si variabila de decalaj. Daca ele se schimba fara sa se
- * schimbe si stilul, cardurile ar ramane invizibile — `.appear-item` porneste
- * de la `opacity: 0`.
+ * The list entrance is CSS, not JS, so these tests pin the contract with
+ * `globals.css`: the class and the stagger variable. Change one without the
+ * other and the cards stay invisible, since `.appear-item` starts at
+ * `opacity: 0`.
  */
 
 afterEach(cleanup);

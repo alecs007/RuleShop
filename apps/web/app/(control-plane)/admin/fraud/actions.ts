@@ -12,7 +12,7 @@ const reviewSchema = z.object({
   incidentId: z.string().min(1),
   status: z.enum(["CONFIRMED_FRAUD", "FALSE_POSITIVE", "DISMISSED"]),
   notes: z.string().trim().max(1000).optional(),
-  /** Ce se intampla cu comanda atasata incidentului. */
+  /** What happens to the order attached to the incident. */
   orderOutcome: z.enum(["none", "approve", "reject"]).default("none"),
 });
 
@@ -22,12 +22,10 @@ export interface ReviewState {
 }
 
 /**
- * Verificarea umana a unui incident antifraudă: operatorul il clasifica si,
- * dacă incidentul are o comanda in aşteptare, decide daca aceasta se confirma
- * sau se respinge. Ambele operatii intra in jurnalul de audit.
+ * Human review of an incident: the operator classifies it and, when an order
+ * is waiting on it, decides that order too. Both go into the audit log.
  *
- * Clasificarea (fraudă confirmata / alarma falsa) este si eticheta pe care
- * modulul IA o va folosi pentru analiza tiparelor.
+ * The classification is also the label the AI module analyses patterns from.
  */
 export async function reviewIncidentAction(
   _prev: ReviewState | undefined,
@@ -43,7 +41,7 @@ export async function reviewIncidentAction(
   });
   if (!parsed.success) return { ok: false, message: "Cerere invalidă." };
 
-  // Scoping pe storeId: un operator nu poate atinge incidentele altui magazin.
+  // Scoped by storeId: an operator cannot touch another store's incidents.
   const incident = await prisma.fraudIncident.findFirst({
     where: { id: parsed.data.incidentId, storeId },
     include: { order: { select: { id: true, status: true, orderNumber: true } } },
@@ -73,7 +71,7 @@ export async function reviewIncidentAction(
     traceId: incident.traceId,
   });
 
-  // Comanda atasata: doar cele care asteapta verificare pot fi decise aici.
+  // Only orders awaiting review can be decided here.
   const order = incident.order;
   if (
     parsed.data.orderOutcome !== "none" &&
@@ -83,7 +81,7 @@ export async function reviewIncidentAction(
     const nextStatus: OrderStatus =
       parsed.data.orderOutcome === "approve" ? "PAID" : "REJECTED";
 
-    // La respingere stocul rezervat se intoarce in catalog.
+    // A rejection returns the reserved stock to the catalog.
     if (nextStatus === "REJECTED") {
       const items = await prisma.orderItem.findMany({
         where: { orderId: order.id },
@@ -102,7 +100,7 @@ export async function reviewIncidentAction(
       where: { id: order.id },
       data: { status: nextStatus },
     });
-    // Confirmarea/respingerea schimba si faptele de client folosite de reguli.
+    // The outcome also changes the customer facts the rules read.
     await syncCustomerStatsForOrder(storeId, order.id);
     await logAudit({
       storeId,
@@ -118,7 +116,7 @@ export async function reviewIncidentAction(
     });
   }
 
-  // `layout`: comanda clientului isi arata noul status imediat.
+  // `layout`, so the customer's order shows its new status at once.
   revalidatePath("/admin/fraud");
   revalidatePath("/", "layout");
   return { ok: true, message: "Incident actualizat." };

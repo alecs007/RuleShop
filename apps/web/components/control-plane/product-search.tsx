@@ -18,8 +18,8 @@ export interface ProductOption {
 }
 
 /**
- * Cautare de produs cu autocomplete pentru testerul de pret.
- * Alegerea unui produs pune ?test=<id> in URL — evaluarea ramane pe server.
+ * Product autocomplete for the price tester. Picking one puts `?test=<id>` in
+ * the URL; the evaluation stays on the server.
  */
 export function ProductSearch({
   products,
@@ -28,7 +28,7 @@ export function ProductSearch({
 }: {
   products: ProductOption[];
   selectedId?: string;
-  /** Parametri de query pastrati la navigare (ex: `who` din tester). */
+  /** Query parameters preserved across the navigation. */
   extraParams?: Record<string, string>;
 }) {
   const router = useRouter();
@@ -69,7 +69,7 @@ export function ProductSearch({
     setQuery("");
     const href = hrefFor(id);
     startRouteLoading(href);
-    // Testerul e stare de UI in pagina, nu pagina noua: rămânem unde suntem.
+    // The tester is UI state, not a new page: stay where we are.
     skipNextScrollReset();
     router.push(href, { scroll: false });
   };

@@ -1,11 +1,3 @@
-/**
- * Orchestrarea evaluarii unui ruleset.
- *
- * Fluxul: filtrare reguli eligibile -> evaluare conditii (cu trace) ->
- * rezolvarea conflictelor conform strategiei -> aplicarea actiunilor ->
- * rezultat cu decizie + explicatie completa.
- */
-
 import { applyActions, Decision } from "./actions";
 import { countConditionLeaves, evaluateCondition } from "./evaluate";
 import {
@@ -18,14 +10,10 @@ import {
 } from "./types";
 
 export interface EvaluateOptions {
-  /** TraceId extern (ex: propagat din request). Implicit: generat. */
+  /** Propagated from the request when there is one; generated otherwise. */
   traceId?: string;
-  /**
-   * Kill switch la nivel de categorie/ruleset: cand e activ, motorul
-   * intoarce direct defaultDecision, fara a evalua nicio regula.
-   */
+  /** Returns `defaultDecision` without evaluating anything. */
   killSwitch?: boolean;
-  /** Chei de reguli dezactivate punctual prin kill switch granular. */
   killedRuleKeys?: string[];
 }
 
@@ -38,17 +26,13 @@ interface MatchedRule {
   trace: RuleTrace;
 }
 
-/**
- * Comparatoare "cel mai bun pentru client" per categorie. Primesc decizia
- * produsa de o singura regula (aplicata peste default) si intorc un scor —
- * mai mare = mai avantajos pentru client.
- */
+/** Scores a single rule's decision: higher means better for the customer. */
 function customerBenefitScore(category: string, decision: Decision): number {
   switch (category) {
     case "PRICING": {
       const pct = typeof decision.discountPercent === "number" ? decision.discountPercent : 0;
       const fixed = typeof decision.discountFixedCents === "number" ? decision.discountFixedCents : 0;
-      // procentul domina; reducerea fixa departajeaza (normalizata grosier)
+      // The percentage dominates; the fixed discount breaks ties.
       return pct * 1000 + fixed;
     }
     case "SHIPPING": {
@@ -62,13 +46,12 @@ function customerBenefitScore(category: string, decision: Decision): number {
       return mult * 1000 + bonus;
     }
     default:
-      // FRAUD / AVAILABILITY / THEME nu au notiunea de "mai bun pentru
-      // client" — se cade pe prioritate (scor egal).
+      // FRAUD / AVAILABILITY / THEME have no "better for the customer":
+      // equal scores fall back to priority.
       return 0;
   }
 }
 
-/** Sorteaza descrescator dupa prioritate; egalitate -> ordine stabila dupa cheie. */
 function byPriorityDesc(a: EngineRule, b: EngineRule): number {
   if (b.priority !== a.priority) return b.priority - a.priority;
   return a.key.localeCompare(b.key);
@@ -93,10 +76,7 @@ function isWithinEffectiveWindow(
   return { ok: true };
 }
 
-/**
- * Alege regulile ale caror actiuni se aplica, conform strategiei.
- * Intoarce lista in ordinea de aplicare.
- */
+/** The rules whose actions apply, in the order they should be applied. */
 function resolveConflicts(
   matched: MatchedRule[],
   snapshot: RuleSetSnapshot,
@@ -105,13 +85,10 @@ function resolveConflicts(
 
   switch (snapshot.conflictStrategy) {
     case "PRIORITY_FIRST_MATCH":
-      // matched e deja sortat dupa prioritate desc — castiga prima regula.
       return matched.slice(0, 1);
 
     case "PRIORITY_ALL_MATCHES":
-      // Toate regulile se aplica; cele cu prioritate mica primele, astfel
-      // incat regulile cu prioritate mare sa aiba ultimul cuvant la campurile
-      // pe care le suprascriu.
+      // Lowest priority first, so the highest one has the last word.
       return [...matched].reverse();
 
     case "MOST_SPECIFIC": {
@@ -148,11 +125,7 @@ function resolveConflicts(
   }
 }
 
-/**
- * Evalueaza un snapshot de ruleset intr-un context dat.
- * Functie pura (in afara traceId-ului generat): acelasi snapshot + context
- * => aceeasi decizie. Nu atinge nicio resursa externa.
- */
+/** Pure apart from the generated traceId: same snapshot + context, same decision. */
 export function evaluateRuleSet(
   snapshot: RuleSetSnapshot,
   context: EvaluationContext,
@@ -171,7 +144,6 @@ export function evaluateRuleSet(
     evaluatedAt,
   };
 
-  // Kill switch pe intreaga categorie -> fail-safe imediat.
   if (options.killSwitch) {
     return {
       ...base,

@@ -7,7 +7,7 @@ import { prisma } from "@/lib/db/prisma";
 import {
   ORDER_STATUS_LABELS,
   ORDER_STATUS_TONES,
-} from "@/lib/shop/order-status";
+} from "@ruleshop/storefront";
 import { formatMoney } from "@/lib/utils/money";
 import { Badge } from "@/components/ui/badge";
 
@@ -90,7 +90,6 @@ export default async function AdminOrdersPage({
         Toate comenzile magazinului, cu statusul și deciziile care le-au produs.
       </p>
 
-      {/* Filtre pe status + cautare */}
       <div className="mt-5 flex flex-wrap items-center gap-2">
         <Link href={hrefFor({ status: undefined })} className={chipCls(!status)}>
           Toate <span className="tabular-nums opacity-70">{allCount}</span>
@@ -162,7 +161,7 @@ export default async function AdminOrdersPage({
                         {order.orderNumber}
                       </Link>
                       <p className="mt-0.5 text-xs text-ink-faint">{placed}</p>
-                      {/* Clientul, recuperat pe ecrane mici */}
+                      {/* The customer, recovered on small screens */}
                       <p className="mt-0.5 truncate text-xs text-ink-faint md:hidden">
                         {clientLabel}
                       </p>

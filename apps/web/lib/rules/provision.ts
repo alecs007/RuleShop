@@ -10,22 +10,16 @@ import { CATEGORY_DEFAULTS } from "@/lib/rules/defaults";
 import { seedRulesFor, type StoreRuleOptions } from "@/lib/rules/starter-rules";
 
 /**
- * Creeaza rulesetele de start ale unui magazin si publica versiunea 1 din ele.
+ * Creates a store's starter rulesets and publishes version 1 of them. Called
+ * by the seed and by store creation, both of which need a working engine.
  *
- * Doi apelanti: seed-ul demonstrativ (`prisma/seed.ts`) si crearea unui magazin
- * din control plane. Ambele au nevoie de un magazin cu motorul deja functional,
- * deci logica sta aici, o singura data.
+ * Writes the minimum equivalent of a control plane publish, but through the
+ * same engine validation, so an invalid starter set errors out instead of
+ * slipping broken data into a store. Idempotent: rules are upserted, and a new
+ * version is published only when the checksum differs from the active one.
  *
- * Publicarea normala (din control plane) trece prin `lib/rules/service.ts`, cu
- * diff, simulare si audit. Aici se scrie minimul echivalent — dar snapshotul
- * trece prin ACEEASI validare a motorului, deci un set de start invalid se
- * opreste cu eroare in loc sa strecoare date stricate in magazin.
- *
- * Idempotent: regulile se fac upsert pe [ruleSetId, key], iar o versiune noua se
- * publica doar cand checksumul difera de al versiunii active.
- *
- * `db` e parametru pentru ca seed-ul isi are propriul client (nu poate folosi
- * singletonul din `lib/db/prisma`, care e „server-only").
+ * `db` is a parameter because the seed has its own client and cannot use the
+ * server-only singleton.
  */
 export async function provisionStarterRulesets({
   db,
@@ -57,8 +51,8 @@ export async function provisionStarterRulesets({
         conflictStrategy: defaults.conflictStrategy,
         defaultDecision: defaults.defaultDecision as Prisma.InputJsonValue,
       },
-      // Strategia si decizia implicita se pot fi schimbat din control plane —
-      // o re-provizionare nu trebuie sa le anuleze.
+      // The strategy and default decision may have been changed in the
+      // control plane; re-provisioning must not undo that.
       update: {},
     });
 
@@ -87,7 +81,7 @@ export async function provisionStarterRulesets({
       });
     }
 
-    // Snapshotul candidat: exact ce ar produce publicarea din control plane.
+    // Exactly what a control plane publish would produce.
     const engineRules: EngineRule[] = starterRules.map((r) => ({
       key: r.key,
       name: r.name,
@@ -124,10 +118,10 @@ export async function provisionStarterRulesets({
       );
     }
 
-    // Aceeasi formula ca la publicarea din control plane.
+    // Same formula as a control plane publish.
     const checksum = snapshotChecksum(snapshot);
 
-    // Nimic nou de publicat: acelasi conținut e deja activ.
+    // Nothing to publish: the same content is already active.
     if (
       lastVersion &&
       lastVersion.checksum === checksum &&

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 
 export const metadata: Metadata = { title: "Clienți" };
 
-/** Cate comenzi recente intra in agregare (multi-tenant: doar ale magazinului). */
+/** How many recent orders the aggregation covers. */
 const ORDER_SAMPLE = 2000;
 
 interface CustomerRow {
@@ -33,9 +33,9 @@ export default async function AdminCustomersPage({
   const { q } = await searchParams;
   const query = q?.trim().toLowerCase() || "";
 
-  // Clientii magazinului = cine a plasat comenzi aici (cont sau guest).
-  // Agregarea se face in JS peste comenzile recente — fara groupBy, care pe
-  // MongoDB are particularitati; volumul e plafonat.
+  // A store's customers are whoever ordered here, account or guest.
+  // Aggregated in JS over a capped set of recent orders, rather than with
+  // `groupBy`, which has its quirks on MongoDB.
   const orders = await prisma.order.findMany({
     where: { storeId, status: { notIn: ["REJECTED"] } },
     orderBy: { createdAt: "desc" },
@@ -62,7 +62,7 @@ export default async function AdminCustomersPage({
     if (existing) {
       existing.orders += 1;
       existing.totalCents += order.totalCents;
-      // Comenzile vin desc — prima vazuta e cea mai recenta.
+      // Orders arrive newest first, so the first one seen is the latest.
     } else {
       byCustomer.set(key, {
         key,

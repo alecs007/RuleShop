@@ -7,20 +7,24 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { addToCartAction, type CartActionState } from "@/app/(shop)/cart/actions";
+import { addToCartAction, type CartActionState } from "@/app/(shop)/[store]/cart/actions";
+import { StorePrefixField } from "./store-prefix-field";
 
 export function AddToCartButton({
+  prefix,
   productId,
   productName,
   maxQuantity,
   disabled,
   disabledLabel = "Stoc epuizat",
 }: {
+  /** The store prefix, so the action writes to that store's cart. */
+  prefix: string | null;
   productId: string;
   productName: string;
   maxQuantity: number;
   disabled?: boolean;
-  /** Motivul indisponibilitatii (poate veni dintr-o regula, nu doar din stoc). */
+  /** Why it is unavailable; a rule can be the reason, not just stock. */
   disabledLabel?: string;
 }) {
   const router = useRouter();
@@ -32,8 +36,8 @@ export function AddToCartButton({
 
   const max = Math.max(1, Math.min(maxQuantity, 99));
 
-  // Confirmarea pleacă în toast, nu sub buton: rezultatul se vede și dacă
-  // utilizatorul s-a uitat deja în altă parte a paginii.
+  // The confirmation goes to a toast, so it is seen even if the user has
+  // already looked elsewhere on the page.
   const lastState = useRef<CartActionState | undefined>(undefined);
   useEffect(() => {
     if (!state || state === lastState.current) return;
@@ -47,12 +51,13 @@ export function AddToCartButton({
     } else {
       toast.error(state.message ?? "Produsul nu a putut fi adăugat.");
     }
-    // `quantity` e citit doar ca detaliu al mesajului, nu declanșează toast.
+    // `quantity` is only read for the message; it must not retrigger.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, productName, router]);
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
+      <StorePrefixField prefix={prefix} />
       <input type="hidden" name="productId" value={productId} />
       <input type="hidden" name="quantity" value={quantity} />
 

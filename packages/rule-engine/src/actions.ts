@@ -1,12 +1,8 @@
 /**
- * Catalogul de actiuni al motorului, organizat pe categorii de decizie.
+ * The action catalog. An action is a pure function over the draft decision;
+ * nothing here executes user-supplied code.
  *
- * O actiune este o functie pura: primeste decizia curenta (draft) si
- * parametrii actiunii si intoarce decizia modificata. Nu exista cod
- * executabil venit de la utilizator — doar tipuri de actiuni predefinite,
- * cu parametri validati.
- *
- * Formele deciziilor per categorie (contractul API-ului de decisioning):
+ * Decision shape per category:
  *  PRICING      -> { discountPercent, discountFixedCents, priceOverrideCents,
  *                    priceMultiplier, badges[] }
  *  SHIPPING     -> { costCents, freeShipping, disabledMethods[],
@@ -15,7 +11,7 @@
  *  AVAILABILITY -> { available, hidden, maxQuantityPerOrder, lowStockThreshold,
  *                    badges[], message }
  *  LOYALTY      -> { pointsMultiplier, bonusPoints, benefits[], tier }
- *  THEME        -> { tokens: {cheie->valoare CSS}, banner, layoutVariant }
+ *  THEME        -> { tokens: {name -> CSS value}, banner, layoutVariant }
  */
 
 import { DecisionCategory, EngineError, RuleAction } from "./types";
@@ -26,18 +22,11 @@ export interface ActionParamSpec {
   name: string;
   type: "number" | "string" | "boolean" | "string[]" | "record";
   required: boolean;
-  /** Interval permis pentru numere, ex. procente 0-100. */
   min?: number;
   max?: number;
-  /** Valori permise pentru string (enum). */
   oneOf?: string[];
-  /**
-   * Forma permisa a unui string, ca sursa de RegExp ancorata. Folosita cand
-   * mulțimea valorilor e prea mare pentru un enum, dar tot inchisa — de exemplu
-   * o culoare de tema, care ajunge intr-o proprietate CSS.
-   */
+  /** Anchored RegExp source, for value sets too large to enumerate. */
   pattern?: string;
-  /** Lungimea maxima a unui string (ex: textul unui banner). */
   maxLength?: number;
 }
 
@@ -66,15 +55,11 @@ function appendUnique(list: unknown, items: string[]): string[] {
   return [...new Set([...base, ...items])];
 }
 
-// ---------------------------------------------------------------------------
-// Vocabularul temei
-// ---------------------------------------------------------------------------
-
 /**
- * Tokenurile de tema pe care le poate schimba o regula. Lista este INCHISA:
- * valoarea unui token ajunge intr-o proprietate CSS, deci un nume liber ar
- * insemna scriere arbitrara in stilul paginii. Maparea la variabilele CSS reale
- * o face stratul de prezentare (`lib/shop/theme-view.ts`).
+ * The theme tokens a rule may change. The list is closed on purpose: a token's
+ * value ends up in a CSS property, so a free-form name would mean arbitrary
+ * writes into the page's styling. `lib/shop/theme-view.ts` maps them to the
+ * real CSS variables.
  */
 export const THEME_TOKENS = [
   "accent",
@@ -92,24 +77,21 @@ export const THEME_TOKENS = [
 
 export type ThemeToken = (typeof THEME_TOKENS)[number];
 
-/** Variantele de layout pe care magazinul le stie randa. */
 export const THEME_LAYOUT_VARIANTS = ["default", "compact", "spacious"] as const;
 
 export type ThemeLayoutVariant = (typeof THEME_LAYOUT_VARIANTS)[number];
 
 /**
- * Formele acceptate pentru valoarea unui token: culoare hex, functie de culoare
- * cu argumente strict numerice, sau o lungime. Nimic altceva — fara `url(`,
- * fara `;`, fara acolade, deci fara evadare din declaratia CSS.
+ * Accepted token values: a hex colour, a colour function with strictly numeric
+ * arguments, or a length. Nothing else — no `url(`, no `;`, no braces, so
+ * there is no escaping the CSS declaration.
  */
 export const THEME_VALUE_PATTERN =
   "^(#[0-9a-fA-F]{3,8}|(rgb|rgba|hsl|hsla)\\( *[0-9]{1,3}(\\.[0-9]+)?(%| *deg)? *(( *[,/] *| +)[0-9]{1,3}(\\.[0-9]+)?%?){2,3} *\\)|[0-9]{1,4}(\\.[0-9]{1,3})?(px|rem|em|%)?)$";
 
-/** Lungimea maxima a textului de banner. */
 export const THEME_BANNER_MAX_LENGTH = 160;
 
 const defs: ActionDef[] = [
-  // -------------------------------------------------------------- PRICING --
   {
     type: "SET_DISCOUNT_PERCENT",
     category: "PRICING",
@@ -160,7 +142,6 @@ const defs: ActionDef[] = [
     apply: (d, p) => ({ ...d, badges: appendUnique(d.badges, [str(p, "badge")]) }),
   },
 
-  // ------------------------------------------------------------- SHIPPING --
   {
     type: "SET_SHIPPING_COST",
     category: "SHIPPING",
@@ -207,7 +188,6 @@ const defs: ActionDef[] = [
     }),
   },
 
-  // ---------------------------------------------------------------- FRAUD --
   {
     type: "ADD_RISK_SCORE",
     category: "FRAUD",
@@ -243,7 +223,6 @@ const defs: ActionDef[] = [
     apply: (d, p) => ({ ...d, signals: appendUnique(d.signals, [str(p, "signal")]) }),
   },
 
-  // --------------------------------------------------------- AVAILABILITY --
   {
     type: "SET_AVAILABILITY",
     category: "AVAILABILITY",
@@ -287,13 +266,11 @@ const defs: ActionDef[] = [
     apply: (d, p) => ({ ...d, lowStockThreshold: num(p, "threshold") }),
   },
 
-  // -------------------------------------------------------------- LOYALTY --
   {
     type: "SET_POINTS_MULTIPLIER",
     category: "LOYALTY",
     label: "Multiplicator de puncte",
-    // Plafonat: un multiplicator scris greșit (x1000) ar acorda puncte
-    // nerecuperabile, iar punctele sunt bani pentru magazin.
+    // Capped: points are money, and a mistyped x1000 cannot be taken back.
     params: [{ name: "factor", type: "number", required: true, min: 0, max: 50 }],
     apply: (d, p) => ({ ...d, pointsMultiplier: num(p, "factor") }),
   },
@@ -326,7 +303,6 @@ const defs: ActionDef[] = [
     apply: (d, p) => ({ ...d, tier: str(p, "tier") }),
   },
 
-  // ---------------------------------------------------------------- THEME --
   {
     type: "SET_THEME_TOKEN",
     category: "THEME",
@@ -387,16 +363,13 @@ export function getAction(type: string): ActionDef | undefined {
   return byType.get(type);
 }
 
-/** Actiunile disponibile pentru o categorie — pentru editorul de reguli. */
 export function actionsForCategory(category: DecisionCategory): ActionDef[] {
   return defs.filter((d) => d.category === category);
 }
 
 /**
- * Aplica secvential actiunile unei reguli asupra deciziei curente.
- * Arunca EngineError pentru tipuri necunoscute sau categorie nepotrivita —
- * snapshot-urile publicate nu ar trebui sa contina asa ceva (validarea le
- * respinge la salvare), deci aici este o eroare de sistem, nu de utilizator.
+ * Throws on an unknown action or a category mismatch: validation rejects those
+ * on save, so reaching here means a broken snapshot, not bad user input.
  */
 export function applyActions(
   decision: Decision,

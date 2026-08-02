@@ -1,6 +1,5 @@
 /**
- * Stub pentru pachetul `server-only` in teste: in Next.js importul e o
- * garda de compilare (interzice importul din componente client), dar in
- * vitest (mediu node pur) ar arunca — aici devine no-op.
+ * In Next the `server-only` import is a compile-time guard; under vitest it
+ * would throw, so it becomes a no-op here.
  */
 export {};

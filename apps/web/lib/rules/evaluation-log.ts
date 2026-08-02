@@ -4,34 +4,30 @@ import { prisma } from "@/lib/db/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 
 /**
- * Istoricul evaluarilor motorului — evenimente REALE din magazin, cu contextul
- * complet de fapte. Pe ele se sprijina:
- *  - istoricul consultabil al deciziilor (cine, cand, ce reguli au contribuit);
- *  - simularea versiunilor candidat (lib/rules/simulation.ts) — aplicatia
- *    re-evalueaza contextele stocate si isi calculeaza singura statisticile,
- *    exact cum cere baremul (nu le declara serviciul IA);
- *  - statisticile de utilizare per regula pe care se bazeaza analiza IA.
+ * Real storefront evaluations with their full fact context. They back the
+ * decision history, the simulation of candidate versions, and the per-rule
+ * usage statistics the AI analysis reasons about.
  */
 
-/** Cate evenimente se pastreaza/citesc cel mult pentru statistici si simulare. */
+/** How many events statistics and simulation read at most. */
 export const EVENT_SAMPLE_LIMIT = 2000;
 
 export interface RecordEvaluationInput {
   storeId: string;
   category: DecisionCategory;
-  /** Contextul de fapte EXACT cum a intrat in motor — suficient pentru replay. */
+  /** The fact context exactly as the engine saw it: enough to replay. */
   context: Record<string, unknown>;
-  /** Rezumatul deciziei finale (forma categoriei), pentru istoric. */
+  /** A summary of the final decision, for the history. */
   decision: Record<string, unknown>;
   matchedRuleKeys: string[];
   rulesetVersion: number;
   traceId: string | null;
   usedDefault: boolean;
-  /** De unde vine evenimentul: product-page | cart | checkout. */
+  /** Where the event came from: product-page | cart | checkout. */
   source: string;
 }
 
-/** Emailul nu are ce cauta in istoricul de evaluari; domeniul ramane (fact FRAUD). */
+/** The email has no place in the history; the domain stays, as a FRAUD fact. */
 function stripPii(context: Record<string, unknown>): Record<string, unknown> {
   const customer = context.customer;
   if (typeof customer !== "object" || customer === null) return context;
@@ -41,10 +37,7 @@ function stripPii(context: Record<string, unknown>): Record<string, unknown> {
   return { ...context, customer: rest };
 }
 
-/**
- * Inregistreaza o evaluare, fire-and-forget: magazinul nu asteapta si nu pica
- * niciodata din cauza istoricului. Plafonat prin Redis (fail-open).
- */
+/** Fire-and-forget: the storefront never waits on, or fails because of, history. */
 export function recordEvaluation(input: RecordEvaluationInput): void {
   void (async () => {
     const gate = await rateLimit(
@@ -71,7 +64,7 @@ export function recordEvaluation(input: RecordEvaluationInput): void {
   });
 }
 
-/** Cele mai recente evaluari ale unei categorii (pentru istoric si simulare). */
+/** The most recent evaluations for a category. */
 export async function getEvaluationEvents(
   storeId: string,
   category: DecisionCategory,
@@ -90,18 +83,17 @@ export interface RuleUsage {
 }
 
 export interface UsageStats {
-  /** Cate evaluari reale acopera statisticile. */
+  /** How many real evaluations the statistics cover. */
   evaluations: number;
   oldestEventAt: Date | null;
   newestEventAt: Date | null;
-  /** Cheia regulii -> de cate ori a contribuit la decizie. */
+  /** Rule key -> how often it reached the decision. */
   perRule: Record<string, RuleUsage>;
 }
 
 /**
- * Statistici de utilizare per regula, calculate in aplicatie din evenimente.
- * O regula din snapshot care nu apare aici nu s-a potrivit niciodata in
- * fereastra analizata — candidat de "regula neutilizata".
+ * A rule in the snapshot that does not appear here never matched in the
+ * window analysed — a candidate for "unused rule".
  */
 export function computeUsageStats(events: EvaluationEvent[]): UsageStats {
   const perRule: Record<string, RuleUsage> = {};

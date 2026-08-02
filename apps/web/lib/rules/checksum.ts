@@ -2,16 +2,10 @@ import { createHash } from "crypto";
 import type { RuleSetSnapshot } from "@ruleshop/rule-engine";
 
 /**
- * Checksumul CONȚINUTULUI unui snapshot: strategie de conflict, decizie
- * implicită și reguli.
- *
- * Numărul de versiune este exclus intenționat. El crește la fiecare publicare,
- * deci dacă ar intra în hash două versiuni cu conținut identic ar avea mereu
- * checksumuri diferite — și detectarea publicărilor fără modificări nu ar
- * funcționa niciodată.
- *
- * Modul pur (fără DB, fără `server-only`): îl folosesc atât serviciul de
- * publicare, cât și seed-ul, ca să nu existe două formule care pot să divergă.
+ * Checksum of a snapshot's content: conflict strategy, default decision and
+ * rules. The version number is deliberately excluded — it grows on every
+ * publish, so including it would give two identical snapshots different
+ * checksums and no-op publishes could never be detected.
  */
 export function snapshotChecksum(snapshot: RuleSetSnapshot): string {
   const { version: _version, ...content } = snapshot;

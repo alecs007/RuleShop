@@ -40,7 +40,7 @@ describe("repartizarea canary", () => {
       }
     }
     const ratio = inCohort / total;
-    // 20% +/- 2 puncte procentuale
+    // 20% +/- 2 percentage points
     expect(ratio).toBeGreaterThan(0.18);
     expect(ratio).toBeLessThan(0.22);
   });

@@ -1,11 +1,3 @@
-/**
- * Evaluarea arborelui de conditii.
- *
- * Rezolva fapte prin cai dot-notation din contextul de evaluare si produce,
- * pe langa rezultatul boolean, un trace complet (fiecare frunza cu valoarea
- * gasita si rezultatul ei) — baza pentru "explicatia fiecarei evaluari".
- */
-
 import { getOperator } from "./operators";
 import {
   ConditionNode,
@@ -14,10 +6,7 @@ import {
   EvaluationContext,
 } from "./types";
 
-/**
- * Rezolva o cale dot-notation ("cart.items.0.sku") in context.
- * Intoarce undefined daca orice segment lipseste — nu arunca niciodata.
- */
+/** Resolves "cart.items.0.sku". A missing segment gives undefined, never a throw. */
 export function resolveFact(context: EvaluationContext, path: string): unknown {
   if (!path) return undefined;
   let current: unknown = context;
@@ -61,7 +50,6 @@ export function evaluateCondition(
     };
   }
 
-  // grup logic
   const childEvals = node.children.map((child) =>
     evaluateCondition(child, context),
   );
@@ -74,8 +62,8 @@ export function evaluateCondition(
       result = childEvals.some((c) => c.result);
       break;
     case "NOT":
-      // Validarea garanteaza exact un copil; definim NOT peste conjunctie
-      // pentru robustete.
+      // Validation guarantees a single child; negating the conjunction keeps
+      // the result sane if one ever slips through with more.
       result = !(childEvals.length > 0 && childEvals.every((c) => c.result));
       break;
     default:
@@ -96,7 +84,7 @@ export function evaluateCondition(
   };
 }
 
-/** Numarul de frunze dintr-un arbore — masura de specificitate a unei reguli. */
+/** Leaf count, used as a rule's specificity under MOST_SPECIFIC. */
 export function countConditionLeaves(node: ConditionNode): number {
   if (node.type === "condition") return 1;
   return node.children.reduce((sum, c) => sum + countConditionLeaves(c), 0);

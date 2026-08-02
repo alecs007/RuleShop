@@ -8,7 +8,8 @@ import { PAYMENT_METHODS } from "@/lib/shop/payment";
 import {
   placeOrderAction,
   type CheckoutState,
-} from "@/app/(shop)/checkout/actions";
+} from "@/app/(shop)/[store]/checkout/actions";
+import { StorePrefixField } from "./store-prefix-field";
 
 const inputCls =
   "h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm outline-none transition-colors focus:border-accent focus:bg-surface-raised";
@@ -111,13 +112,16 @@ function AddressFields({
 }
 
 /**
- * Formularul de checkout. Sumele nu se trimit din client: serverul recalculeaza
- * prețul, livrarea si totalul inainte de a plasa comanda.
+ * The checkout form. No amounts are sent from the client: the server
+ * recomputes price, shipping and total before placing the order.
  */
 export function CheckoutForm({
+  prefix,
   defaultEmail,
   defaultName,
 }: {
+  /** The store prefix, so the order lands in the store from the address bar. */
+  prefix: string | null;
   defaultEmail?: string | null;
   defaultName?: string | null;
 }) {
@@ -130,6 +134,7 @@ export function CheckoutForm({
 
   return (
     <form action={formAction} className="space-y-8">
+      <StorePrefixField prefix={prefix} />
       {state && !state.ok && state.message && (
         <div
           role="alert"
@@ -182,8 +187,8 @@ export function CheckoutForm({
           />
           Adresa de facturare este aceeași
         </label>
-        {/* Montat condiționat, nu doar ascuns: câmpurile sunt `required`, iar
-            un câmp obligatoriu invizibil ar bloca trimiterea formularului. */}
+        {/* Mounted conditionally rather than hidden: the fields are
+            `required`, and an invisible required field blocks submission. */}
         {!billingSame && (
           <div className="slide-in">
             <h2 className="mt-6 text-lg font-semibold">Adresa de facturare</h2>

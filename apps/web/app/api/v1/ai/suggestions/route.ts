@@ -9,9 +9,8 @@ import {
 } from "@/lib/ai/suggestions";
 
 /**
- * GET /api/v1/ai/suggestions?category= — sugestiile IA ale magazinului.
- * POST — decizia umana asupra unei sugestii: { suggestionId, decision }.
- * Chiar si prin API, „accept" produce cel mult un DRAFT — niciodata o publicare.
+ * GET lists the store's AI suggestions; POST records the human decision on
+ * one. Even through the API, accepting yields a DRAFT, never a publish.
  */
 export async function GET(request: NextRequest) {
   const actor = await authorizeAiApi(request);

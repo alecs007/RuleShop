@@ -42,8 +42,7 @@ export default function RootLayout({
   return (
     <html lang="ro">
       <head>
-        {/* Imaginile cu apariție lină se aprind la `onLoad`; fără JS nu vine
-            niciodată, deci le facem vizibile necondiționat. */}
+        {/* Fading images light up on `onLoad`, which never fires without JS */}
         <noscript>
           <style>{`.fade-img { opacity: 1 !important }`}</style>
         </noscript>

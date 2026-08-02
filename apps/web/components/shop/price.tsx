@@ -3,11 +3,7 @@ import { formatMoney } from "@/lib/utils/money";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils/cn";
 
-/**
- * Afisarea pretului. Suporta deja reduceri produse de rule engine
- * (pret taiat + procent + badge-uri) — cand deciziile PRICING vor fi
- * conectate, componenta nu se schimba.
- */
+/** Price display: struck-through original, percentage and badges. */
 export function Price({
   view,
   size = "md",

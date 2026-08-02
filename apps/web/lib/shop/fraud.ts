@@ -10,10 +10,10 @@ import {
   type FraudAssessment,
   type FraudOrderFacts,
   type FraudSessionFacts,
-} from "./fraud-risk";
-import type { CartShippingFacts } from "./shipping-quote";
+} from "@ruleshop/storefront";
+import type { CartShippingFacts } from "@ruleshop/storefront";
 
-export type { FraudAssessment } from "./fraud-risk";
+export type { FraudAssessment } from "@ruleshop/storefront";
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -25,9 +25,8 @@ export interface RequestFingerprint {
 }
 
 /**
- * Citeste IP-ul, user agent-ul si tara din headerele cererii.
- * Tara vine de la proxy/CDN (Cloudflare, Vercel); local rămâne null —
- * geolocalizarea reala ar cere un serviciu extern.
+ * The country comes from the proxy or CDN; locally it stays null, since real
+ * geolocation would need an external service.
  */
 export async function readRequestFingerprint(): Promise<RequestFingerprint> {
   const h = await headers();
@@ -50,9 +49,8 @@ export interface SignalSubject {
 }
 
 /**
- * Semnalele de istoric, calculate din baza de date (viteza comenzilor,
- * incidente anterioare, vechimea contului). Sunt fapte pe care clientul nu le
- * poate influenta — de aceea se citesc pe server, nu se primesc din formular.
+ * History signals read from the database. The client cannot influence them,
+ * which is exactly why they are read on the server and not taken from a form.
  */
 export async function collectSessionSignals(
   subject: SignalSubject,
@@ -60,7 +58,7 @@ export async function collectSessionSignals(
   isAuthenticated: boolean,
 ): Promise<FraudSessionFacts> {
   const now = Date.now();
-  // Identitatile prin care urmarim acelasi cumparator: sesiunea, contul, emailul.
+  // The identities that track the same buyer: session, account, email.
   const identity: Prisma.OrderWhereInput = {
     storeId: subject.storeId,
     OR: [
@@ -130,7 +128,7 @@ export interface FraudCheckInput {
   order: FraudOrderFacts;
 }
 
-/** Ruleaza verificarea antifrauda pentru cererea curenta. */
+/** Runs the fraud check for the current request. */
 export async function checkFraud(
   input: FraudCheckInput,
 ): Promise<FraudAssessment> {
@@ -152,7 +150,7 @@ export async function checkFraud(
     facts,
   });
 
-  // Fiecare verificare reala intra in istoric — pe ele se simuleaza pragurile.
+  // Every real check is recorded: thresholds are simulated on these.
   if (ruleset && !ruleset.killSwitch) {
     recordEvaluation({
       storeId: input.storeId,
@@ -189,10 +187,8 @@ export interface RecordIncidentInput {
 }
 
 /**
- * Persista incidentul antifrauda. Se inregistreaza doar cand regulile au
- * reactionat (decizie diferita de ALLOW sau scor > 0) — altfel istoricul s-ar
- * umple cu tentative curate. Incidentele sunt si setul de date pe care
- * modulul IA va clasifica tiparele.
+ * Only recorded when the rules reacted, or the log would fill with clean
+ * attempts. Incidents are also the data set the AI classifies.
  */
 export async function recordFraudIncident(
   input: RecordIncidentInput,
@@ -215,7 +211,7 @@ export async function recordFraudIncident(
       decision: assessment.decision as FraudDecision,
       signals: {
         flagged: assessment.flaggedSignals,
-        // Faptele care au produs decizia, exact cum au intrat in motor.
+        // The facts behind the decision, as the engine saw them.
         facts: { session: input.session, order: input.order },
       } as unknown as Prisma.InputJsonValue,
       matchedRuleKeys: assessment.matchedRules,
@@ -227,7 +223,7 @@ export async function recordFraudIncident(
         thresholds: assessment.thresholds,
         trace: assessment.trace,
       } as unknown as Prisma.InputJsonValue,
-      // Incidentele care doar au trecut nu au nevoie de verificare umana.
+      // Incidents that merely passed need no human review.
       reviewStatus: assessment.decision === "ALLOW" ? "DISMISSED" : "OPEN",
     },
     select: { id: true },

@@ -26,10 +26,9 @@ html {
   text-rendering: optimizeLegibility;
 }
 
-/* Variantele de layout decise de rulesetul THEME. `data-layout` este pus de
-   layoutul magazinului; densitatea grilei de catalog vine din clase
-   (CATALOG_GRID_CLASSES), iar lățimea conținutului de aici. Selectorul cu
-   atribut are specificitate mai mare decât utilitarul `max-w-7xl`, deci câștigă. */
+/* The layout variants the THEME ruleset decides. `data-layout` is set by the
+   storefront layout; the grid density comes from CATALOG_GRID_CLASSES and the
+   content width from here. The attribute selector outranks `max-w-7xl`. */
 [data-layout="compact"] main {
   max-width: 96rem;
 }
@@ -43,9 +42,9 @@ body {
   color: var(--color-ink);
 }
 
-/* Spinnerul din `loading.tsx`: apare doar dacă pagina întârzie cu adevărat.
-   Aceeași idee ca pragul din route-loading.tsx, dar aici trebuie făcută în CSS
-   — e un fallback de Suspense, nu avem unde rula un timer. */
+/* The `loading.tsx` spinner appears only if the page really is slow. Same idea
+   as the threshold in route-loading.tsx, but it has to be CSS here: this is a
+   Suspense fallback, with nowhere to run a timer. */
 @keyframes spinner-fade-in {
   from {
     opacity: 0;
@@ -56,11 +55,10 @@ body {
   animation: spinner-fade-in 0.15s ease-out 0.35s both;
 }
 
-/* Conținutul care înlocuiește spinnerul: apare lin, nu dintr-o bucată.
-   Aceasta este SINGURA animație de intrare a paginii. A existat și o a doua,
-   identică, într-un `template.tsx` cu framer-motion — cele două se suprapuneau,
-   deci fiecare navigare costa două animații și o remontare a întregului
-   subarbore, pe lângă biblioteca încărcată pe fiecare pagină. */
+/* The content that replaces the spinner, and the only page entrance
+   animation. A second identical one used to live in a framer-motion
+   `template.tsx`; the two overlapped, so every navigation cost two animations
+   and a remount of the whole subtree. */
 @keyframes content-appear {
   from {
     opacity: 0;
@@ -72,9 +70,8 @@ body {
   animation: content-appear 0.2s ease-out both;
 }
 
-/* Intrarea decalată a elementelor dintr-o listă (vezi `components/ui/appear.tsx`).
-   Decalajul vine ca variabilă CSS de la componentă, deci nu e nevoie nici de
-   stare, nici de JS pe client. */
+/* The staggered entrance of list items (see `components/ui/appear.tsx`). The
+   delay arrives as a CSS variable, so no state and no client JS are needed. */
 @keyframes appear-item {
   from {
     opacity: 0;
@@ -86,9 +83,8 @@ body {
   animation: appear-item 0.28s ease-out var(--appear-delay, 0ms) both;
 }
 
-/* Un bloc care tocmai a apărut în formular (mesaj de eroare, secțiune
-   dezvăluită de o bifă). Doar intrarea: ieșirea ar cere ținerea elementului în
-   DOM după ce nu mai are ce căuta acolo. */
+/* A block that just appeared in a form. Entrance only: an exit would mean
+   keeping the element in the DOM after it has no business being there. */
 @keyframes slide-in {
   from {
     opacity: 0;
@@ -129,8 +125,8 @@ body {
     animation: none;
   }
 
-  /* Fără mișcare, dar întârzierea rămâne: rostul ei nu e animația, ci să nu
-     apară un spinner pentru o încărcare instantanee. */
+  /* No motion, but the delay stays: its point is not the animation, it is to
+     keep a spinner off the screen for an instant load. */
   .delayed-spinner {
     animation: spinner-fade-in 0.01s linear 0.35s both;
   }

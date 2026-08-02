@@ -3,7 +3,7 @@ import { FlaskConical, MoveRight, TriangleAlert } from "lucide-react";
 import { prisma } from "@/lib/db/prisma";
 import { evaluateRuleSet, type RuleSetSnapshot } from "@ruleshop/rule-engine";
 import { buildCandidateSnapshot, getActiveRuleset } from "@/lib/rules/service";
-import { applyPricingDecision } from "@/lib/shop/pricing-decision";
+import { applyPricingDecision } from "@ruleshop/storefront";
 import { formatMoney } from "@/lib/utils/money";
 import { Badge } from "@/components/ui/badge";
 import { ProductSearch } from "./product-search";
@@ -77,8 +77,8 @@ function ResultCard({
 }
 
 /**
- * „Testează pe un produs": cautare cu autocomplete, apoi pretul calculat de
- * versiunea activa si — daca exista drafturi — cel de dupa publicare.
+ * The price under the active version and, if there are drafts, the one a
+ * publish would produce.
  */
 export async function PriceTester({
   storeId,
@@ -143,7 +143,6 @@ export async function PriceTester({
 
         {tested && live && candidate && (
           <div className="mt-4 flex flex-col gap-4 lg:flex-row">
-            {/* Produsul testat, cu imagine */}
             <div className="flex w-full items-center gap-3 lg:w-56 lg:flex-col lg:items-start">
               <div className="relative size-20 shrink-0 overflow-hidden rounded-xl bg-zinc-100 lg:size-32 lg:w-full">
                 {tested.imageUrls[0] && (

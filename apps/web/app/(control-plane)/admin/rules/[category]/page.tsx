@@ -94,7 +94,7 @@ export default async function RuleSetPage({
   const { storeId } = await requireStaff();
   const ruleSet = await getOrCreateRuleSet(storeId, category);
 
-  // Metodele si moneda magazinului — necesare testerelor si panoului IA.
+  // The store's methods and currency, needed by the testers and the AI panel.
   const store = await prisma.store.findUnique({ where: { id: storeId } });
 
   const [rules, versions] = await Promise.all([
@@ -118,7 +118,6 @@ export default async function RuleSetPage({
 
   return (
     <div className="appear-content">
-      {/* Confirmare dupa salvarea unei reguli */}
       {saved && (
         <div className="mb-6 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
           <CheckCircle2
@@ -136,7 +135,6 @@ export default async function RuleSetPage({
         </div>
       )}
 
-      {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm text-ink-muted mb-2">
@@ -168,16 +166,7 @@ export default async function RuleSetPage({
         <PublishButton action={publishWithCategory} nextVersion={nextVersion} />
       </div>
 
-      {/* Fluxul, intr-o singura linie */}
-      {/* <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-muted">
-        <Pencil className="size-3.5" strokeWidth={1.75} /> Modifici reguli
-        <span aria-hidden>→</span>
-        <Rocket className="size-3.5" strokeWidth={1.75} /> Publici
-        <span aria-hidden>→</span>
-        <Undo2 className="size-3.5" strokeWidth={1.75} /> Rollback oricând
-      </p> */}
-
-      {/* Livrarea are si o parte de configurare, nu doar reguli */}
+      {/* Shipping has configuration of its own, not only rules */}
       {category === "SHIPPING" && (
         <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-ink-muted">
           <Truck className="size-3.5" strokeWidth={1.75} />
@@ -192,7 +181,7 @@ export default async function RuleSetPage({
         </p>
       )}
 
-      {/* Ce ruleaza ACUM in magazin: regulile versiunii active */}
+      {/* What is running in the store right now: the active version */}
       {activeVersion && (
         <div className="mt-4 rounded-xl border border-green-200 bg-green-50/60 p-4">
           <p className="text-sm font-semibold">
@@ -238,7 +227,6 @@ export default async function RuleSetPage({
         </div>
       )}
 
-      {/* Setari ruleset */}
       <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface-raised p-4">
         <ActionForm
           action={setStrategyAction}
@@ -316,7 +304,6 @@ export default async function RuleSetPage({
         </div>
       )}
 
-      {/* Reguli */}
       <div className="mt-8 flex items-center justify-between">
         <h2 className="text-lg font-semibold">Reguli ({rules.length})</h2>
         <Link
@@ -429,7 +416,6 @@ export default async function RuleSetPage({
         </ul>
       )}
 
-      {/* Tester de pret — doar pentru PRICING */}
       {category === "PRICING" && (
         <PriceTester
           storeId={storeId}
@@ -438,7 +424,6 @@ export default async function RuleSetPage({
         />
       )}
 
-      {/* Tester de livrare — doar pentru SHIPPING */}
       {category === "SHIPPING" && (
         <ShippingTester
           storeId={storeId}
@@ -449,7 +434,6 @@ export default async function RuleSetPage({
         />
       )}
 
-      {/* Tester de disponibilitate — doar pentru AVAILABILITY */}
       {category === "AVAILABILITY" && (
         <AvailabilityTester
           storeId={storeId}
@@ -459,7 +443,6 @@ export default async function RuleSetPage({
         />
       )}
 
-      {/* Tester de loialitate — doar pentru LOYALTY */}
       {category === "LOYALTY" && (
         <LoyaltyTester
           storeId={storeId}
@@ -469,7 +452,6 @@ export default async function RuleSetPage({
         />
       )}
 
-      {/* Tester antifraudă — doar pentru FRAUD */}
       {category === "FRAUD" && (
         <FraudTester
           storeId={storeId}
@@ -479,7 +461,6 @@ export default async function RuleSetPage({
         />
       )}
 
-      {/* Tester de temă — doar pentru THEME */}
       {category === "THEME" && (
         <ThemeTester
           storeId={storeId}
@@ -488,7 +469,6 @@ export default async function RuleSetPage({
         />
       )}
 
-      {/* Asistentul IA: simulare pe istoric + sugestii cu aprobare umana */}
       <AiPanel
         storeId={storeId}
         category={category}
@@ -497,10 +477,9 @@ export default async function RuleSetPage({
         ruleNames={await getRuleNames(storeId)}
       />
 
-      {/* Versiuni */}
       <h2 className="mt-10 text-lg font-semibold">Istoric versiuni</h2>
       <div className="mt-3 overflow-x-auto rounded-xl border border-line bg-surface-raised">
-        {/* Pe telefon rămân versiunea si actiunile; data si diff-ul se mută sub versiune */}
+        {/* On a phone only the version and actions stay in the row */}
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-faint">
@@ -548,7 +527,7 @@ export default async function RuleSetPage({
                       </Link>
                       {isActive && <Badge tone="positive">activă</Badge>}
                     </div>
-                    {/* Detaliile din coloanele ascunse, recuperate pe ecrane mici */}
+                    {/* The hidden columns, recovered on small screens */}
                     <p className="mt-1 text-xs text-ink-faint sm:hidden">
                       {publishedLabel}
                       {diffParts.length > 0 && ` · ${diffParts.join(", ")}`}

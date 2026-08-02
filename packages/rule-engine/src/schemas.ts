@@ -1,12 +1,7 @@
 /**
- * Validarea structurala (Zod) si semantica a regulilor si snapshot-urilor.
- *
- * Doua niveluri:
- *  1. schema Zod — forma corecta a datelor (arbore de conditii, actiuni etc);
- *  2. validare semantica — operatori/actiuni existente, compatibilitatea
- *     operatorului cu valoarea, parametrii actiunilor in intervalele permise.
- * Ambele ruleaza la salvarea/publicarea unei reguli; motorul primeste doar
- * date deja validate.
+ * Two levels of validation, both run on save and on publish: the Zod schemas
+ * check the shape, the semantic pass checks that operators and actions exist,
+ * fit each other and stay within their allowed ranges.
  */
 
 import { z } from "zod";
@@ -19,10 +14,6 @@ import {
   EngineRule,
   RuleSetSnapshot,
 } from "./types";
-
-// ---------------------------------------------------------------------------
-// Scheme Zod
-// ---------------------------------------------------------------------------
 
 const conditionLeafSchema = z.object({
   type: z.literal("condition"),
@@ -76,12 +67,8 @@ export const ruleSetSnapshotSchema = z.object({
   rules: z.array(engineRuleSchema).max(500),
 });
 
-// ---------------------------------------------------------------------------
-// Validare semantica
-// ---------------------------------------------------------------------------
-
 export interface ValidationIssue {
-  /** Cale lizibila catre problema, ex: "rules[2].conditions.children[0]". */
+  /** Readable path to the problem, e.g. "rules[2].conditions.children[0]". */
   path: string;
   message: string;
   severity: "error" | "warning";
@@ -101,7 +88,6 @@ function expectedValueMatchesOperator(
   if (value === undefined) {
     return `Operatorul "${operatorId}" necesită o valoare de comparație`;
   }
-  // compatibilitate operator <-> tipul VALORII de comparatie
   switch (operatorId) {
     case "gt":
     case "gte":
@@ -254,10 +240,7 @@ function validateActionsSemantics(
   });
 }
 
-/**
- * Valideaza o regula in contextul categoriei rulesetului ei.
- * Intoarce lista de probleme (goala = valida).
- */
+/** Validates a rule against its ruleset's category. Empty list means valid. */
 export function validateRule(
   rule: EngineRule,
   category: RuleSetSnapshot["category"],
@@ -274,7 +257,7 @@ export function validateRule(
         severity: "error",
       });
     }
-    return issues; // fara forma valida nu are sens validarea semantica
+    return issues; // Semantic checks make no sense on a malformed rule.
   }
 
   validateConditionTree(rule.conditions, `${path}.conditions`, issues);
@@ -293,7 +276,6 @@ export function validateRule(
   return issues;
 }
 
-/** Valideaza un snapshot intreg inainte de publicare. */
 export function validateSnapshot(snapshot: RuleSetSnapshot): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
@@ -322,7 +304,6 @@ export function validateSnapshot(snapshot: RuleSetSnapshot): ValidationIssue[] {
     issues.push(...validateRule(rule, snapshot.category, `rules[${i}]`));
   });
 
-  // avertismente utile in control plane
   const priorities = new Map<number, string[]>();
   for (const rule of snapshot.rules) {
     const keys = priorities.get(rule.priority) ?? [];

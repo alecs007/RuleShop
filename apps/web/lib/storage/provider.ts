@@ -1,7 +1,6 @@
 /**
- * Interfața de stocare a fișierelor. Aplicația nu știe niciodată unde ajung
- * imaginile — la fel ca la plăți, implementarea se schimbă din variabile de
- * mediu, fără modificări în restul codului.
+ * The file storage interface. As with payments, the implementation is chosen
+ * from the environment and the rest of the code never knows the difference.
  */
 
 export interface StoredObject {
@@ -11,14 +10,14 @@ export interface StoredObject {
 }
 
 export interface ObjectBody {
-  /** Conținutul, ca stream când driverul poate, altfel ca buffer. */
+  /** A stream where the driver can, a buffer otherwise. */
   body: ReadableStream<Uint8Array> | Uint8Array;
   contentType: string;
   size: number;
 }
 
 export interface StorageProvider {
-  /** Numele driverului, pentru diagnostic si audit. */
+  /** The driver's name, for diagnostics and audit. */
   readonly name: string;
   put(input: {
     key: string;
@@ -29,12 +28,12 @@ export interface StorageProvider {
   delete(key: string): Promise<void>;
 }
 
-/** URL-ul public al unui obiect — mereu prin aplicație, niciodată direct din bucket. */
+/** Always through the app, never straight from the bucket. */
 export function mediaUrl(key: string): string {
   return `/api/v1/media/${key}`;
 }
 
-/** Cheia dintr-un URL de media, sau null dacă URL-ul nu e al nostru. */
+/** The key inside a media URL, or null if the URL is not ours. */
 export function keyFromMediaUrl(url: string): string | null {
   const prefix = "/api/v1/media/";
   return url.startsWith(prefix) ? url.slice(prefix.length) : null;

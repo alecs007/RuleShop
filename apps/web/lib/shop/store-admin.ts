@@ -4,21 +4,16 @@ import { cookies } from "next/headers";
 import { Prisma, type Role, type Store } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { provisionStarterRulesets } from "@/lib/rules/provision";
-import { DEFAULT_SHIPPING_METHODS } from "@/lib/shop/shipping-methods";
-import { getActiveStore } from "@/lib/shop/store";
+import { DEFAULT_SHIPPING_METHODS } from "@ruleshop/storefront";
+import { getFallbackAdminStore } from "@/lib/shop/store";
 import {
   buildAdminStoreOptions,
   resolveAdminStoreId,
   type AdminStoreOption,
 } from "@/lib/shop/store-selection";
+import { isValidPathPrefix, RESERVED_SEGMENTS } from "@/lib/shop/routing";
 
-/**
- * Magazinele din perspectiva control plane-ului: ce magazin administrezi acum,
- * cum se creeaza unul nou si care e magazinul activ (cel pe care il vad
- * clientii).
- */
-
-/** Selectia de magazin a unui PLATFORM_ADMIN. Doar preferinta de panou. */
+/** A PLATFORM_ADMIN's store selection. A panel preference, nothing more. */
 const ADMIN_STORE_COOKIE = "rs_admin_store";
 
 export class StoreAdminError extends Error {
@@ -28,23 +23,18 @@ export class StoreAdminError extends Error {
   }
 }
 
-/** Starile magazinelor: o singura citire pe cerere, oricati apelanti ar fi. */
 const listStoreStates = cache(async () =>
   prisma.store.findMany({ select: { id: true, active: true } }),
 );
 
 /**
- * Magazinul administrat de utilizatorul curent. Pentru personalul legat de un
- * magazin e chiar al lui; pentru platforma, cel comutat in panou (validat) sau,
- * in lipsa unei selectii valide, magazinul activ. Regula sta in
- * `resolveAdminStoreId`; aici se aduc doar cookie-ul si starile din baza.
+ * The store the current user administers. The rule itself lives in
+ * `resolveAdminStoreId`; this only fetches the cookie and the store states.
  *
- * ATENTIE: functia nu se memoizeaza cu `cache()` si nici rezultatul ei nu are ce
- * cauta intr-un `cache()`. O server action care comuta magazinul ruleaza in
- * ACEEASI cerere cu re-randarea de dupa ea: daca rezultatul ar fi memoizat
- * inainte de `selectAdminStore`, randarea de dupa ar primi magazinul vechi si
- * panoul ar arata ca daca comutarea n-a avut loc. Cookie-ul se citeste din nou
- * la fiecare apel — e ieftin, iar interogarile din spate sunt memoizate.
+ * Deliberately NOT memoized with `cache()`: a server action that switches the
+ * store runs in the same request as the re-render after it, so a memoized
+ * result would hand that render the old store and the switch would look like
+ * it never happened.
  */
 export async function getAdminStoreId({
   role,
@@ -53,21 +43,20 @@ export async function getAdminStoreId({
   role: Role;
   pinnedStoreId: string | null;
 }): Promise<string> {
-  // Acelasi lucru pe care il decide `resolveAdminStoreId` pentru rolurile de
-  // magazin, scurtcircuitat ca sa nu citim cookie-ul si baza degeaba.
+  // What `resolveAdminStoreId` would decide for store roles anyway, short
+  // circuited so we do not read the cookie and the database for nothing.
   if (role !== "PLATFORM_ADMIN") {
-    return pinnedStoreId ?? (await getActiveStore()).id;
+    return pinnedStoreId ?? (await getFallbackAdminStore()).id;
   }
 
   const jar = await cookies();
   const requestedStoreId = jar.get(ADMIN_STORE_COOKIE)?.value ?? null;
 
-  // Fara selectie nu se citeste lista de magazine degeaba.
-  if (!requestedStoreId) return (await getActiveStore()).id;
+  if (!requestedStoreId) return (await getFallbackAdminStore()).id;
 
   const [stores, fallback] = await Promise.all([
     listStoreStates(),
-    getActiveStore(),
+    getFallbackAdminStore(),
   ]);
 
   return resolveAdminStoreId({
@@ -80,24 +69,20 @@ export async function getAdminStoreId({
 }
 
 /**
- * Magazinele oferite comutatorului din panou. Citire directa, nememoizata: dupa
- * ce un magazin e pornit sau oprit, lista trebuie sa arate starea noua chiar si
- * in randarea din aceeasi cerere.
+ * Unmemoized on purpose: after a store is turned on or off the list must show
+ * the new state, even in a render from the same request.
  */
 export async function listAdminStoreOptions(
   currentStoreId: string,
 ): Promise<AdminStoreOption[]> {
   const stores = await prisma.store.findMany({
-    orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+    orderBy: [{ pathPrefix: "asc" }, { createdAt: "asc" }],
     select: { id: true, name: true, slug: true, active: true },
   });
   return buildAdminStoreOptions({ currentStoreId, stores });
 }
 
-/**
- * Comuta magazinul administrat. De apelat DOAR din server actions (Next
- * interzice scrierea cookie-urilor in timpul randarii).
- */
+/** Server actions only: Next forbids writing cookies during a render. */
 export async function selectAdminStore(storeId: string): Promise<Store> {
   const store = await prisma.store.findUnique({ where: { id: storeId } });
   if (!store) throw new StoreAdminError("Magazinul nu există.");
@@ -123,21 +108,20 @@ export interface CreateStoreInput {
   slug: string;
   currency: string;
   locale: string;
-  /** Devine magazinul activ, cel servit clientilor. */
-  makeDefault: boolean;
+  /** `de` -> /de. null is the main store, served at the root; only one may be. */
+  pathPrefix: string | null;
 }
 
 /**
- * Magazin nou, functional din prima: metodele de livrare implicite si cele sase
- * rulesete publicate ca versiunea 1 (`provisionStarterRulesets`), aceleasi pe
- * care le primeste un magazin din seed. Fara produse — catalogul e treaba
- * administratorului.
+ * A new store, usable straight away: the default shipping methods and the six
+ * rulesets published as version 1. No products — the catalog is the admin's.
  */
 export async function createStore(input: CreateStoreInput): Promise<Store> {
   const existing = await prisma.store.findUnique({ where: { slug: input.slug } });
   if (existing) {
     throw new StoreAdminError(`Există deja un magazin cu slug-ul „${input.slug}”.`);
   }
+  await assertPathPrefixFree(input.pathPrefix, null);
 
   const store = await prisma.store.create({
     data: {
@@ -145,13 +129,14 @@ export async function createStore(input: CreateStoreInput): Promise<Store> {
       name: input.name,
       currency: input.currency,
       locale: input.locale,
+      pathPrefix: input.pathPrefix,
       settings: {
         shippingMethods: DEFAULT_SHIPPING_METHODS,
       } as Prisma.InputJsonValue,
     },
   });
 
-  // Regulile de start folosesc metodele implicite, deci se pot referi la ele.
+  // The starter rules reference the default shipping methods by id.
   await provisionStarterRulesets({
     db: prisma,
     storeId: store.id,
@@ -161,35 +146,81 @@ export async function createStore(input: CreateStoreInput): Promise<Store> {
     },
   });
 
-  if (input.makeDefault) return setDefaultStore(store.id);
   return store;
 }
 
-/**
- * Muta magazinul activ — cel pe care il vad clientii. Exact unul are
- * `isDefault`: unicitatea se impune aici, nu prin index (un index unic pe
- * boolean ar interzice mai multe `false`).
- */
-export async function setDefaultStore(storeId: string): Promise<Store> {
-  const store = await prisma.store.findUnique({ where: { id: storeId } });
-  if (!store) throw new StoreAdminError("Magazinul nu există.");
-  if (!store.active) {
-    throw new StoreAdminError("Un magazin oprit nu poate fi magazinul activ.");
+/** `null` means the main store, and there can only be one of those. */
+async function assertPathPrefixFree(
+  prefix: string | null,
+  currentStoreId: string | null,
+): Promise<void> {
+  if (prefix !== null && !isValidPathPrefix(prefix)) {
+    throw new StoreAdminError(
+      `Prefixul „${prefix}” nu este valid. Folosește litere mici și cratime, ` +
+        `și evită numele rutelor aplicației (${[...RESERVED_SEGMENTS].slice(0, 5).join(", ")}…).`,
+    );
   }
 
-  await prisma.store.updateMany({
-    where: { isDefault: true, id: { not: storeId } },
-    data: { isDefault: false },
+  const taken = await prisma.store.findFirst({
+    where: {
+      pathPrefix: prefix,
+      ...(currentStoreId ? { id: { not: currentStoreId } } : {}),
+    },
+    select: { name: true },
   });
-  return prisma.store.update({
-    where: { id: storeId },
-    data: { isDefault: true },
-  });
+  if (!taken) return;
+
+  throw new StoreAdminError(
+    prefix === null
+      ? `„${taken.name}” este deja magazinul principal. Dă-i un prefix înainte.`
+      : `Prefixul „${prefix}” este folosit de „${taken.name}”.`,
+  );
 }
 
 /**
- * Porneste sau opreste un magazin. Magazinul activ nu se poate opri: clientii
- * ar rămâne fara magazin. Mai intai se mută magazinul activ, apoi se opreste.
+ * Moves the main store. The previous one takes over the prefix the new one
+ * frees, so no store ends up unreachable and none share the root.
+ */
+export async function setMainStore(storeId: string): Promise<Store> {
+  const store = await prisma.store.findUnique({ where: { id: storeId } });
+  if (!store) throw new StoreAdminError("Magazinul nu există.");
+  if (store.pathPrefix === null) return store;
+
+  const previous = await prisma.store.findFirst({ where: { pathPrefix: null } });
+  const freed = store.pathPrefix;
+
+  return prisma.$transaction(async (tx) => {
+    if (previous) {
+      await tx.store.update({
+        where: { id: previous.id },
+        data: { pathPrefix: freed },
+      });
+    }
+    return tx.store.update({
+      where: { id: storeId },
+      data: { pathPrefix: null },
+    });
+  });
+}
+
+export async function setStorePathPrefix(
+  storeId: string,
+  prefix: string,
+): Promise<Store> {
+  const store = await prisma.store.findUnique({ where: { id: storeId } });
+  if (!store) throw new StoreAdminError("Magazinul nu există.");
+  if (store.pathPrefix === null) {
+    throw new StoreAdminError(
+      "Magazinul principal se servește la rădăcină. Fă alt magazin principal întâi.",
+    );
+  }
+  await assertPathPrefixFree(prefix, storeId);
+  return prisma.store.update({ where: { id: storeId }, data: { pathPrefix: prefix } });
+}
+
+/**
+ * Any store may be turned off, the main one included, and all of them at once:
+ * a closed store answers with a closed-store page rather than nothing.
  */
 export async function setStoreActive(
   storeId: string,
@@ -198,19 +229,13 @@ export async function setStoreActive(
   const store = await prisma.store.findUnique({ where: { id: storeId } });
   if (!store) throw new StoreAdminError("Magazinul nu există.");
 
-  if (!active && store.isDefault) {
-    throw new StoreAdminError(
-      "Magazinul activ nu poate fi oprit. Fă alt magazin activ mai întâi.",
-    );
-  }
-
   return prisma.store.update({ where: { id: storeId }, data: { active } });
 }
 
-/** Magazinele cu cate produse si comenzi au — pentru lista din panou. */
 export async function listStoresWithCounts() {
   const stores = await prisma.store.findMany({
-    orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+    // The main store first, then the rest by prefix.
+    orderBy: [{ pathPrefix: "asc" }, { createdAt: "asc" }],
     include: { _count: { select: { products: true, orders: true, users: true } } },
   });
   return stores;

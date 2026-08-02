@@ -31,15 +31,12 @@ const NAV: NavItem[] = [
   { href: "/admin/fraud", label: "Antifraudă", icon: ShieldAlert },
 ];
 
-/** Intrari de platforma, nu de magazin — doar pentru PLATFORM_ADMIN. */
+/** Platform entries, not store ones: PLATFORM_ADMIN only. */
 const PLATFORM_NAV: NavItem[] = [
   { href: "/admin/stores", label: "Magazine", icon: Store },
 ];
 
-/**
- * Navigatia control plane-ului: aceleasi intrari in sidebar-ul fix de pe desktop
- * si in panoul mobil. Pagina curenta e marcata vizual si prin `aria-current`.
- */
+/** The same entries in the desktop sidebar and the mobile panel. */
 export function AdminNav({ platformAdmin = false }: { platformAdmin?: boolean }) {
   const pathname = usePathname();
   const items = platformAdmin ? [...NAV, ...PLATFORM_NAV] : NAV;

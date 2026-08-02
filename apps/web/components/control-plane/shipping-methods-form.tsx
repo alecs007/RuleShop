@@ -18,7 +18,7 @@ import type { ShippingMethodsState } from "@/app/(control-plane)/admin/shipping/
 export interface MethodRow {
   id: string;
   label: string;
-  /** Cost in lei, ca in formularul de produs (se converteste in bani la salvare). */
+  /** In major units, like the product form; converted on save. */
   costLei: string;
   etaDaysMin: string;
   etaDaysMax: string;
@@ -29,21 +29,17 @@ type SaveAction = (
   formData: FormData,
 ) => Promise<ShippingMethodsState>;
 
-/** Identitate stabila pentru animatii si chei React, independenta de ID-ul editabil. */
+/** Stable identity for React keys, independent of the editable id. */
 type Row = MethodRow & { uid: string };
 
 const inputCls =
   "h-9 max-w-full rounded-lg border border-line bg-surface px-2.5 text-sm outline-none transition-colors focus:border-accent focus:bg-surface-raised";
 
-/**
- * Acelasi grid pentru capul de tabel si pentru rânduri. Pe ecrane mici fiecare
- * metoda devine un card cu câmpuri pe toata latimea — un formular nu trebuie
- * derulat lateral pe telefon.
- */
+/** One grid for the header and the rows; each row becomes a card on mobile. */
 const rowGrid =
   "md:grid md:grid-cols-[minmax(0,1fr)_9rem_7.5rem_8.5rem_7rem] md:items-center md:gap-3";
 
-/** Eticheta câmpului, vizibila doar cat timp rândul e card (sub md). */
+/** The field label, shown only while the row is a card. */
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
     <span className="mb-1 block text-xs font-medium text-ink-faint md:hidden">
@@ -52,7 +48,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** ID kebab-case propus din eticheta, ca administratorul sa nu-l scrie manual. */
+/** A kebab-case id proposed from the label. */
 function slugifyId(label: string): string {
   return label
     .toLowerCase()
@@ -64,9 +60,9 @@ function slugifyId(label: string): string {
 }
 
 /**
- * Metodele de livrare ale magazinului. Sunt doar lista de opțiuni cu costul de
- * listă — costul final, disponibilitatea și estimarea sunt decise la runtime de
- * regulile de livrare, deci aici nu se scrie nicio condiție.
+ * The store's shipping methods: options and list prices only. The final cost,
+ * availability and estimate are decided at runtime by the shipping rules, so
+ * no condition is written here.
  */
 export function ShippingMethodsForm({
   action,
@@ -83,7 +79,7 @@ export function ShippingMethodsForm({
     initial.map((row, i) => ({ ...row, uid: `initial-${i}` })),
   );
 
-  // `uid` e doar identitate de UI — nu ajunge in payload.
+  // `uid` is UI identity only and never reaches the payload.
   const methodsJson = useMemo(
     () =>
       JSON.stringify(
@@ -152,7 +148,7 @@ export function ShippingMethodsForm({
       )}
 
       <div className="rounded-xl border border-line bg-surface-raised">
-        {/* Capul de tabel exista doar cand rândurile sunt chiar rânduri */}
+        {/* The table head only exists while the rows are really rows */}
         <div
           className={`${rowGrid} hidden border-b border-line px-4 py-3 text-xs uppercase tracking-wide text-ink-faint`}
         >
@@ -181,8 +177,8 @@ export function ShippingMethodsForm({
                     value={row.label}
                     onChange={(e) => {
                       const label = e.target.value;
-                      // ID-ul se propune din eticheta doar cat timp e liber:
-                      // odata folosit intr-o regula, nu trebuie sa se schimbe.
+                      // The id follows the label only while it is untouched:
+                      // once a rule references it, it must not move.
                       update(i, {
                         label,
                         ...(row.id === slugifyId(row.label)

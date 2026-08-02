@@ -1,13 +1,13 @@
 /**
- * Serializarea cataloagelor motorului (fapte, operatori, actiuni) pentru
- * prompturile IA. Modelul primeste EXACT vocabularul pe care il intelege
- * motorul — orice iesire in afara lui pica la validare.
+ * Serializes the engine's catalogs for the AI prompts, so the model gets
+ * exactly the vocabulary the engine understands. Anything outside it fails
+ * validation.
  */
 import { OPERATORS, actionsForCategory, type DecisionCategory } from "@ruleshop/rule-engine";
 import { factsForCategory } from "@/lib/rules/facts";
 import { PRIORITY_LEVELS } from "@/lib/rules/priority";
 
-/** Formatul JSON al unei reguli, descris o singura data pentru toate prompturile. */
+/** A rule's JSON shape, described once for every prompt. */
 export const RULE_FORMAT_SPEC = `Formatul JSON al unei reguli (EngineRule):
 {
   "key": "kebab-case, unic (ex: vip-discount)",

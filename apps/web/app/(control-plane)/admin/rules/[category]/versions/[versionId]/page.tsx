@@ -111,7 +111,7 @@ export default async function VersionDetailPage({
         )}
       </div>
 
-      {/* Ce s-a schimbat fata de versiunea anterioara */}
+      {/* What changed against the previous version */}
       {(diff.added?.length || diff.changed?.length || diff.removed?.length) ? (
         <div className="mt-6 rounded-xl border border-line bg-surface-raised p-4 text-sm">
           <p className="font-medium">Față de versiunea anterioară:</p>
@@ -138,7 +138,6 @@ export default async function VersionDetailPage({
         </div>
       ) : null}
 
-      {/* Setari */}
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-line bg-surface-raised p-4">
           <p className="text-xs uppercase tracking-wide text-ink-faint">
@@ -158,7 +157,7 @@ export default async function VersionDetailPage({
         </div>
       </div>
 
-      {/* Continutul: regulile, in limbaj natural */}
+      {/* The content: the rules, in plain language */}
       <h2 className="mt-8 text-lg font-semibold">Regulile din această versiune</h2>
       {snapshot.rules.length === 0 ? (
         <p className="mt-3 rounded-xl border border-line bg-surface-raised p-6 text-sm text-ink-muted">

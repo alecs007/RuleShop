@@ -1,41 +1,37 @@
 /**
- * Simularea unui snapshot pe evenimente ISTORICE — nucleu PUR.
- *
- * Aplicatia re-evalueaza contextele stocate in istoricul de evaluari cu
- * `evaluateRuleSet` (motorul propriu) si isi calculeaza singura toate
- * statisticile. Serviciul IA primeste aceste metrici gata calculate si doar le
- * interpreteaza — nu evalueaza niciodata reguli si nu "declara" valori
- * statistice (cerinta explicita a baremului).
+ * Replays a snapshot over historical events. The application re-evaluates the
+ * stored contexts with its own engine and computes every statistic itself; the
+ * AI only interprets the finished metrics.
  */
 import {
   evaluateRuleSet,
   type EvaluationContext,
   type RuleSetSnapshot,
 } from "@ruleshop/rule-engine";
-import { applyPricingDecision } from "@/lib/shop/pricing-decision";
-import { decisionFromScore, readThresholds } from "@/lib/shop/fraud-risk";
-import { basePointsFor } from "@/lib/shop/loyalty-view";
+import { applyPricingDecision } from "@ruleshop/storefront";
+import { decisionFromScore, readThresholds } from "@ruleshop/storefront";
+import { basePointsFor } from "@ruleshop/storefront";
 
 export interface SimulationEvent {
-  /** Contextul de fapte exact cum a intrat in motor la momentul evaluarii. */
+  /** The fact context exactly as the engine saw it at the time. */
   context: Record<string, unknown>;
 }
 
 export interface RuleSimulationStats {
-  /** De cate ori s-au potrivit conditiile regulii. */
+  /** How often the rule's conditions matched. */
   matched: number;
-  /** De cate ori regula a castigat conflictul si i s-au aplicat actiunile. */
+  /** How often it won the conflict and its actions were applied. */
   applied: number;
 }
 
-/** Metricile unui snapshot peste un set de evenimente. */
+/** A snapshot's metrics over a set of events. */
 export interface SnapshotMetrics {
   evaluations: number;
-  /** Evaluari in care cel putin o regula a contribuit la decizie. */
+  /** Evaluations where at least one rule reached the decision. */
   matchedEvaluations: number;
   usedDefault: number;
   perRule: Record<string, RuleSimulationStats>;
-  /** Agregate specifice categoriei (medii, distributii), toate numerice. */
+  /** Category-specific aggregates, all numeric. */
   aggregates: Record<string, number>;
 }
 
@@ -52,7 +48,7 @@ function contextNumber(context: Record<string, unknown>, path: string[]): number
   return num(cursor);
 }
 
-/** Media intreaga (rotunjita); 0 pentru seturi goale. */
+/** Rounded mean; 0 for empty sets. */
 function avg(sum: number, count: number): number {
   return count > 0 ? Math.round(sum / count) : 0;
 }
@@ -122,8 +118,8 @@ function fraudAggregator(snapshot: RuleSetSnapshot): AggregateAccumulator {
   return {
     add(_context, decision) {
       const score = Math.max(0, num(decision.riskScore) ?? 0);
-      // Aceeasi deducere ca in magazin: o regula poate fixa decizia explicit,
-      // altfel decide scorul prin praguri.
+      // Same derivation as the storefront: a rule may pin the decision,
+      // otherwise the thresholds turn the score into one.
       const pinned = decision.decision;
       const thresholds = readThresholds({
         thresholds: decision.thresholds ?? (snapshot.defaultDecision as Record<string, unknown>).thresholds,
@@ -187,8 +183,7 @@ function loyaltyAggregator(): AggregateAccumulator {
       bonusSum += bonus;
       multiplierSum += multiplier;
 
-      // Aceeasi formula ca in magazin: punctele de baza vin din subtotalul
-      // coșului, iar regulile le multiplica si adauga bonus peste.
+      // Same formula as the storefront.
       const basePoints = basePointsFor(
         contextNumber(context, ["cart", "subtotalCents"]) ?? 0,
       );
@@ -200,7 +195,7 @@ function loyaltyAggregator(): AggregateAccumulator {
     finish() {
       return {
         totalPointsAwarded: pointsSum,
-        // Cat au adaugat regulile peste calculul de baza — costul campaniei.
+        // What the rules added over the base: the campaign's cost.
         extraPointsFromRules: pointsSum - basePointsSum,
         avgPointsPerEvaluation: avg(pointsSum, counted),
         boostedShare: counted > 0 ? Math.round((boosted / counted) * 100) : 0,
@@ -266,10 +261,7 @@ function aggregatorFor(snapshot: RuleSetSnapshot): AggregateAccumulator {
   }
 }
 
-/**
- * Ruleaza un snapshot peste evenimentele date si calculeaza metricile.
- * Functie pura si determinista (traceId-urile generate nu intra in rezultat).
- */
+/** Deterministic: the generated traceIds do not reach the result. */
 export function simulateSnapshot(
   snapshot: RuleSetSnapshot,
   events: SimulationEvent[],
@@ -310,13 +302,13 @@ export function simulateSnapshot(
   };
 }
 
-/** Comparatia „versiunea activa" vs „candidatul" pe aceleasi evenimente. */
+/** The active version against the candidate, over the same events. */
 export interface SimulationComparison {
   events: number;
-  /** Null cand nu exista versiune activa (prima publicare). */
+  /** Null on a first publish, when there is no active version. */
   active: SnapshotMetrics | null;
   candidate: SnapshotMetrics;
-  /** Diferentele agregate: cheie -> candidat − activ. */
+  /** Aggregate deltas: key -> candidate minus active. */
   aggregateDeltas: Record<string, number>;
 }
 

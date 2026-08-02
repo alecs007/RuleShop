@@ -12,9 +12,8 @@ import {
 const bodySchema = z.object({ category: z.enum(DECISION_CATEGORIES) });
 
 /**
- * POST /api/v1/ai/analyze — ruleaza analiza IA a unui ruleset si intoarce
- * sugestiile persistate (cu statusul lor de validare). Autorizare: sesiune de
- * admin sau tokenul de serviciu al serverului MCP.
+ * Runs the AI analysis of a ruleset and returns the persisted suggestions with
+ * their validation status. Authorized by an admin session or the MCP token.
  */
 export async function POST(request: NextRequest) {
   const actor = await authorizeAiApi(request);

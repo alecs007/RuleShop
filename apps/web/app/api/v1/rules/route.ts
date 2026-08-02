@@ -9,8 +9,8 @@ import {
 import { tryHumanizeRule } from "@/lib/rules/humanize";
 
 /**
- * GET /api/v1/rules?category= — regulile magazinului cu statistici de
- * utilizare din evaluari reale. Consumat de serverul MCP (tool `list_rules`).
+ * The store's rules with usage statistics from real evaluations. Consumed by
+ * the MCP server's `list_rules` tool.
  */
 export async function GET(request: NextRequest) {
   const actor = await authorizeAiApi(request);

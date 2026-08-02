@@ -25,7 +25,7 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-/** Navigare: se schimba adresa, deci componenta se re-randeaza. */
+/** A navigation: the address changes and the component re-renders. */
 function navigate(
   rerender: (ui: React.ReactElement) => void,
   pathname: string,
@@ -79,7 +79,7 @@ describe("ScrollToTop", () => {
     navigate(rerender, "/admin/rules/pricing", "test=abc");
     expect(scrollTo).not.toHaveBeenCalled();
 
-    // Excepția se consuma: navigarea urmatoare derulează din nou.
+    // The exception is consumed: the next navigation scrolls again.
     navigate(rerender, "/admin/rules/pricing", "test=def");
     expect(scrollTo).toHaveBeenCalledWith(0, 0);
   });

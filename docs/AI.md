@@ -1,59 +1,62 @@
-# Modulul de inteligență artificială
+# The AI module
 
-Modulul AI asistă administratorii la analiza și îmbunătățirea regulilor.
-Model: **Google Gemini** (REST, `generateContent`), configurat prin
-`GEMINI_API_KEY` / `GEMINI_MODEL`. Fără cheie, platforma funcționează normal —
-funcțiile AI sunt dezactivate, iar interfața explică cum se activează.
+The AI module assists administrators in analysing and improving the rules.
+Model: **Google Gemini** (REST, `generateContent`), configured through
+`GEMINI_API_KEY` / `GEMINI_MODEL`. Without a key the platform works normally —
+the AI features are disabled and the UI explains how to enable them.
 
-## Principii
+## Principles
 
-1. **AI nu evaluează reguli.** Toate evaluările le face motorul propriu
-   (`@ruleshop/rule-engine`). AI primește doar date deja calculate și propune.
-2. **Statisticile sunt ale aplicației.** Istoricul de evaluări
-   (`EvaluationEvent`) reține contextul complet al evaluărilor reale din
-   magazin; simularea (`lib/rules/simulation.ts`) re-evaluează acele contexte
-   cu motorul și calculează metricile. AI doar le interpretează.
-3. **Aprobare umană obligatorie.** Nicio ieșire AI nu se publică automat:
-   sugestiile acceptate și regulile generate devin cel mult **DRAFT**-uri;
-   publicarea rămâne fluxul manual existent (validare + versiune imutabilă).
-4. **Validare înainte de orice.** Răspunsurile trec prin Zod, iar regulile
-   propuse prin `validateRule` — exact validarea folosită la editarea manuală.
-   Ce nu trece devine sugestie `INVALID`, vizibilă dar neaplicabilă.
-5. **Trasabilitate.** Fiecare sugestie păstrează modelul, versiunea
-   promptului, digestul SHA-256 al intrării, statisticile-suport, răspunsul
-   brut și cine/când a decis. Rulările și deciziile intră în jurnalul de audit
+1. **The AI does not evaluate rules.** All evaluations are done by our own engine
+   (`@ruleshop/rule-engine`). The AI only receives already-computed data and
+   makes proposals.
+2. **The statistics belong to the application.** The evaluation history
+   (`EvaluationEvent`) keeps the full context of the real evaluations from the
+   storefront; the simulation (`lib/rules/simulation.ts`) re-evaluates those
+   contexts with the engine and computes the metrics. The AI merely interprets
+   them.
+3. **Human approval is mandatory.** No AI output is published automatically:
+   accepted suggestions and generated rules become **DRAFT**s at most;
+   publishing stays the existing manual flow (validation + immutable version).
+4. **Validation before anything else.** Responses go through Zod, and proposed
+   rules through `validateRule` — exactly the validation used for manual editing.
+   Whatever does not pass becomes an `INVALID` suggestion, visible but not
+   applicable.
+5. **Traceability.** Every suggestion keeps the model, the prompt version, the
+   SHA-256 digest of the input, the supporting statistics, the raw response and
+   who decided and when. Runs and decisions go into the audit log
    (`AI_SUGGESTION_GENERATED / APPROVED / REJECTED`).
 
-## Funcții
+## Features
 
-| Funcție | Unde | Ce face |
+| Feature | Where | What it does |
 | --- | --- | --- |
-| Analiza rulesetului | pagina categoriei → „Asistent AI" | reguli nefolosite/redundante (constatate întâi determinist de aplicație), propuneri de praguri/priorități/reguli noi, cu încredere și impact estimat |
-| Simulare pe istoric | același panou (fără AI) | draftul curent vs versiunea activă, pe evaluări reale; metricile se îngheață și pe fiecare versiune publicată (`RuleVersion.simulationMetrics`) |
-| Generare din limbaj natural | pagina „Regulă nouă" | cerință → regulă structurată validată, salvată ca DRAFT și deschisă în editor |
-| Clasificare incidente | `/admin/fraud` | opinie „probabil fraudă / probabil legitim / date insuficiente" lângă formularul de review; decizia rămâne a operatorului |
+| Ruleset analysis | the category page → "AI assistant" | unused/redundant rules (first found deterministically by the application), proposals for thresholds/priorities/new rules, with confidence and estimated impact |
+| Simulation over history | the same panel (no AI) | the current draft vs the active version, over real evaluations; the metrics are also frozen on every published version (`RuleVersion.simulationMetrics`) |
+| Generation from natural language | the "New rule" page | requirement → a validated structured rule, saved as a DRAFT and opened in the editor |
+| Incident classification | `/admin/fraud` | an opinion — "likely fraud / likely legitimate / insufficient data" — next to the review form; the decision stays with the operator |
 
-## Istoricul de evaluări
+## The evaluation history
 
-`recordEvaluation` (asincron, plafonat prin politica `evaluationLog` din
-`lib/rate-limit`, care acceptă cererea la indisponibilitatea Redis) scrie
-evenimente din punctele semnificative: pagina de produs (PRICING,
-AVAILABILITY), coș/checkout (SHIPPING) și checkout (FRAUD, PRICING).
-Emailul clientului nu se stochează în context.
+`recordEvaluation` (asynchronous, capped through the `evaluationLog` policy in
+`lib/rate-limit`, which accepts the request when Redis is unavailable) writes
+events from the significant points: the product page (PRICING, AVAILABILITY),
+cart/checkout (SHIPPING) and checkout (FRAUD, PRICING).
+The customer's email is not stored in the context.
 
-## API și serverul MCP
+## The API and the MCP server
 
-Rutele `/api/v1/ai/*` și `/api/v1/rules` acceptă fie sesiune de admin, fie
-tokenul de serviciu `MCP_API_TOKEN` (comparat în timp constant; magazinul se
-alege cu `?store=<slug>`).
+The `/api/v1/ai/*` and `/api/v1/rules` routes accept either an admin session or
+the `MCP_API_TOKEN` service token (compared in constant time; the store is
+selected with `?store=<slug>`).
 
-Serverul MCP propriu (`mcp/server.mjs`, pornit cu `pnpm mcp`) expune prin
-stdio tool-urile: `list_rules`, `simulate_history`, `analyze_rules`,
-`generate_rule` (implicit dry-run), `list_suggestions`. Nu atinge baza de
-date — vorbește exclusiv cu API-ul, deci moștenește validarea, izolarea
-multi-tenant, auditul și interdicția de publicare automată.
+Our own MCP server (`mcp/server.mjs`, started with `pnpm mcp`) exposes over
+stdio the tools: `list_rules`, `simulate_history`, `analyze_rules`,
+`generate_rule` (dry-run by default), `list_suggestions`. It never touches the
+database — it talks exclusively to the API, so it inherits the validation, the
+multi-tenant isolation, the audit log and the ban on automatic publishing.
 
-Config client MCP (ex. Claude Code):
+MCP client config (e.g. Claude Code):
 
 ```json
 {
@@ -63,7 +66,7 @@ Config client MCP (ex. Claude Code):
       "args": ["run", "mcp"],
       "env": {
         "RULESHOP_URL": "http://localhost:3000",
-        "MCP_API_TOKEN": "<tokenul din .env>",
+        "MCP_API_TOKEN": "<the token from .env>",
         "RULESHOP_STORE": "ruleshop-ro"
       }
     }

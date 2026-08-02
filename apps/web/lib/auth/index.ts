@@ -23,10 +23,8 @@ declare module "next-auth" {
 }
 
 /**
- * Autentificarea clientilor: exclusiv OAuth (Google, Facebook).
- * Sesiuni JWT (fara citiri de DB per request); adapterul Prisma persista
- * utilizatorii si conturile legate. Rolul este inclus in token si verificat
- * pe server — niciodata doar in client.
+ * Customers sign in through OAuth only. JWT sessions, so no database read per
+ * request; the role rides in the token but is always re-checked on the server.
  */
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -36,16 +34,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   providers: [
     Google({
-      // refresh determinist al profilului la fiecare login
+      // Deterministic profile refresh on every sign-in.
       allowDangerousEmailAccountLinking: false,
     }),
     Facebook({
       allowDangerousEmailAccountLinking: false,
     }),
     /**
-     * Login cu parola EXCLUSIV pentru staff (control plane). Clientii se
-     * autentifica doar prin OAuth. Raspunsurile de esec sunt identice
-     * (null) indiferent de cauza — nu divulgam daca emailul exista.
+     * Password sign-in is for staff only. Every failure returns the same null,
+     * whatever the cause, so nothing reveals whether the email exists.
      */
     Credentials({
       id: "admin-credentials",
@@ -62,23 +59,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const email = parsed.data.email.trim().toLowerCase();
 
-        // Anti brute-force pe cont: incercarile pentru acelasi email se
-        // raresc pana la refuz, indiferent de parola.
+        // Attempts for the same email thin out to refusal, password aside.
         const gate = await rateLimit("login", email);
         if (!gate.allowed) return null;
 
         const user = await prisma.user.findUnique({
           where: { email },
         });
-        // doar staff activ, cu parola setata
+        // Active staff with a password set.
         if (!user?.passwordHash || !user.active || !isStaff(user.role)) {
           return null;
         }
         const valid = await compare(parsed.data.password, user.passwordHash);
         if (!valid) return null;
 
-        // Autentificare reusita: bugetul se curata, ca greselile de dinainte
-        // sa nu se adune peste sesiunile urmatoare.
+        // Clear the budget, so earlier mistakes do not carry over.
         await resetRateLimit("login", email);
 
         return {
@@ -93,7 +88,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
-      // `user` exista doar la sign-in; ulterior rolul ramane in token.
+      // `user` is only present at sign-in; afterwards the role lives in the token.
       if (user) {
         token.id = user.id;
         token.role = (user as { role?: Role }).role ?? "CUSTOMER";

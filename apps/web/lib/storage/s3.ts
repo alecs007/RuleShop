@@ -16,17 +16,14 @@ export interface S3Config {
   bucket: string;
   accessKeyId: string;
   secretAccessKey: string;
-  /** MinIO nu suportă bucket-uri în subdomeniu — cere cale de tip path-style. */
+  /** MinIO has no subdomain buckets and needs path-style addressing. */
   forcePathStyle: boolean;
 }
 
 /**
- * Driver S3: funcționează cu MinIO local (endpoint explicit, path-style) și, cu
- * exact același cod, cu S3/R2/Spaces în producție — se schimbă doar variabilele
- * de mediu.
- *
- * Obiectele rămân private: nu se generează URL-uri publice sau semnate, tot
- * traficul trece prin route handler-ul aplicației.
+ * Works against local MinIO and, with the same code, against S3/R2/Spaces in
+ * production: only the environment variables change. Objects stay private —
+ * no public or signed URLs, all traffic goes through the app's route handler.
  */
 export class S3Storage implements StorageProvider {
   readonly name = "s3";
@@ -47,7 +44,7 @@ export class S3Storage implements StorageProvider {
     });
   }
 
-  /** Creează bucket-ul la prima folosire, o singură dată per proces. */
+  /** Creates the bucket on first use, once per process. */
   private ensureBucket(): Promise<void> {
     this.bucketReady ??= (async () => {
       try {
@@ -56,8 +53,8 @@ export class S3Storage implements StorageProvider {
         try {
           await this.client.send(new CreateBucketCommand({ Bucket: this.bucket }));
         } catch (error) {
-          // Poate exista deja (creat între timp de alt proces) — dacă nu,
-          // eroarea reală apare oricum la prima operație.
+          // It may already exist; a real problem surfaces on the first
+          // operation anyway.
           console.warn("[storage] nu am putut crea bucket-ul:", error);
         }
       }
@@ -112,7 +109,7 @@ export class S3Storage implements StorageProvider {
   }
 }
 
-/** Configurația din variabile de mediu, sau null dacă nu e completă. */
+/** The config from the environment, or null if it is incomplete. */
 export function s3ConfigFromEnv(): S3Config | null {
   const bucket = process.env.S3_BUCKET;
   const accessKeyId = process.env.S3_ACCESS_KEY_ID;

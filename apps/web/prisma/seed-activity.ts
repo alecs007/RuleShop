@@ -1,20 +1,16 @@
 /**
- * Activitate demonstrativa: clienti, comenzi, incidente antifrauda si istoric
- * de evaluari.
+ * Demo activity: customers, orders, fraud incidents and evaluation history.
+ * Without them the panel starts empty, and neither the AI analysis nor the
+ * candidate-version simulation has anything to run on.
  *
- * Fara ele, panoul porneste gol — Clienti, Comenzi si Antifrauda nu au ce
- * arata, iar analiza IA si simularea unei versiuni candidat nu au pe ce rula,
- * pentru ca amandoua se sprijina pe evenimente de evaluare reale.
- *
- * Totul este determinist: acelasi generator pseudo-aleator pornit din acelasi
- * seed produce aceleasi date, iar cheile (email, numar de comanda) sunt
- * stabile. Reluarea seed-ului actualizeaza, nu dubleaza.
+ * Deterministic throughout: the same seed produces the same data, and the keys
+ * are stable, so re-running updates rather than duplicates.
  */
 import type { Prisma, PrismaClient, Product, Store } from "@prisma/client";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
-/** Generator determinist (mulberry32) — acelasi seed, aceeasi activitate. */
+/** A deterministic generator: same seed, same activity. */
 function rng(seed: number) {
   let state = seed >>> 0;
   return () => {
@@ -40,17 +36,16 @@ export interface SeedCustomer {
   name: string;
   loyaltyTier: "STANDARD" | "SILVER" | "GOLD" | "VIP";
   country: string;
-  /** Cate comenzi incasate primeste in istoric. */
+  /** How many paid orders they get in their history. */
   paidOrders: number;
 }
 
-/** Statusuri care NU inseamna „client a cumparat" — restul comenzilor. */
+/** The statuses that do not count as a purchase. */
 const OPEN_STATUSES = ["PENDING", "PENDING", "AWAITING_REVIEW", "CANCELLED"] as const;
 
 /**
- * Punctele de loialitate ale unei comenzi: un punct la 10 unitati monetare,
- * inmultit dupa treapta. Oglindeste ce face rulesetul LOYALTY, ca profilurile
- * sa nu arate ca si cum ar fi fost completate la intamplare.
+ * Mirrors what the LOYALTY ruleset does, so the demo profiles do not look
+ * filled in at random.
  */
 const TIER_MULTIPLIER: Record<SeedCustomer["loyaltyTier"], number> = {
   STANDARD: 1,
@@ -68,11 +63,11 @@ interface SeedActivityInput {
   store: Store;
   products: Product[];
   customers: SeedCustomer[];
-  /** Metodele de livrare ale magazinului, pentru `shippingMethod`. */
+  /** The store's shipping methods, for `shippingMethod`. */
   shippingMethodIds: string[];
-  /** Numarul de comenzi generate, inclusiv cele in regim guest. */
+  /** How many orders are generated, guest ones included. */
   orderCount: number;
-  /** Seed-ul generatorului — diferit per magazin, ca datele sa nu fie identice. */
+  /** The generator's seed, different per store. */
   randomSeed: number;
 }
 
@@ -98,7 +93,6 @@ export async function seedActivity({
 
   const random = rng(randomSeed);
 
-  // ---------------------------------------------------------------- clienti
   const userIds = new Map<string, string>();
   for (const customer of customers) {
     const attributes = { country: customer.country, segment: "demo" };
@@ -123,11 +117,9 @@ export async function seedActivity({
     userIds.set(customer.email, user.id);
   }
 
-  // ---------------------------------------------------------------- comenzi
-  // Comenzile se planifica intai, nu se improvizeaza in bucla: fiecare client
-  // primeste exact cate comenzi incasate spune profilul lui. Altfel un client
-  // VIP putea ajunge cu zero comenzi si zero cheltuit, ceea ce ar contrazice
-  // treapta pe care o are.
+  // Orders are planned up front rather than improvised in the loop: each
+  // customer gets exactly as many paid orders as their profile says, or a VIP
+  // could end up with nothing spent, contradicting their tier.
   interface OrderPlan {
     customer: SeedCustomer | null;
     status: (typeof OPEN_STATUSES)[number] | "PAID" | "FULFILLED";
@@ -139,27 +131,25 @@ export async function seedActivity({
       plan.push({ customer, status: i % 3 === 0 ? "PAID" : "FULFILLED" });
     }
   }
-  // Restul, pana la `orderCount`: comenzi in curs, anulate si cumparaturi in
-  // regim guest — panoul trebuie sa arate si cazul fara cont, pe care regulile
-  // il vad ca `session.isGuest`.
+  // The rest: orders in flight, cancelled ones and guest purchases, which the
+  // rules see as `session.isGuest`.
   for (let i = plan.length; i < orderCount; i++) {
     plan.push({
       customer: i % 2 === 0 || !customers.length ? null : pick(random, customers),
       status: pick(random, OPEN_STATUSES),
     });
   }
-  // Amestecare determinista, ca sa nu iasa comenzile grupate pe client.
+  // Deterministic shuffle, so the orders do not come out grouped by customer.
   for (let i = plan.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));
     [plan[i], plan[j]] = [plan[j]!, plan[i]!];
   }
 
-  // Numerele sunt fixe (`RS-DEMO-0001`), deci reluarea seed-ului actualizeaza
-  // aceleasi comenzi in loc sa adauge un rand nou de fiecare data.
+  // Fixed numbers, so re-seeding updates the same orders.
   const prefix = store.slug.toUpperCase().includes("DE") ? "DE" : "RS";
 
-  // Daca `orderCount` scade intre doua rulari, comenzile de peste noul prag ar
-  // ramane orfane. Se sterg intai, ca numarul afisat sa fie cel real.
+  // If `orderCount` shrinks between runs, the orders past the new bound would
+  // be orphaned, so they are removed first.
   const keep = new Set(
     plan.map((_, i) => `${prefix}-DEMO-${String(i + 1).padStart(4, "0")}`),
   );
@@ -184,7 +174,7 @@ export async function seedActivity({
     const status = entry.status;
     const placedAt = daysAgo(Math.floor(random() * 60) + 1, 9 + Math.floor(random() * 9));
 
-    // 1-3 linii, produse distincte.
+    // One to three lines, all distinct products.
     const lineCount = 1 + Math.floor(random() * 3);
     const chosen: Product[] = [];
     for (let l = 0; l < lineCount; l++) {
@@ -219,7 +209,7 @@ export async function seedActivity({
     const subtotalCents = items.reduce((sum, item) => sum + item.basePriceCents * item.quantity, 0);
     const discountCents = items.reduce((sum, item) => sum + item.discountCents, 0);
     const goodsCents = subtotalCents - discountCents;
-    // Livrare gratuita peste prag — aceeasi idee ca in rulesetul SHIPPING.
+    // Free shipping over a threshold, as the SHIPPING ruleset does.
     const freeShipping = goodsCents >= 30000;
     const shippingCents = freeShipping ? 0 : 1999;
     const totalCents = goodsCents + shippingCents;
@@ -276,7 +266,7 @@ export async function seedActivity({
 
     if (existing) {
       await db.order.update({ where: { id: existing.id }, data: common });
-      // Liniile se rescriu, ca preturile sa ramana in acord cu catalogul.
+      // Lines are rewritten so their prices track the catalog.
       await db.orderItem.deleteMany({ where: { orderId: existing.id } });
       await db.orderItem.createMany({
         data: items.map((item) => ({ ...item, orderId: existing.id })),
@@ -294,12 +284,9 @@ export async function seedActivity({
     orders++;
   }
 
-  // ----------------------------------------------- statistici de client
-  // Se deduc din comenzi, nu se scriu de mana, ca sa nu existe clienti VIP cu
-  // zero cheltuit. Aceeasi regula ca in `lib/shop/customer-stats.ts`: conteaza
-  // doar comenzile incasate, iar soldul de puncte este suma peste ele. Logica
-  // e repetata aici pentru ca modulul original este `server-only` si nu poate
-  // fi importat dintr-un script.
+  // Derived from the orders rather than written by hand, on the same rule as
+  // `lib/shop/customer-stats.ts`. It is repeated here because that module is
+  // `server-only` and cannot be imported from a script.
   for (const userId of userIds.values()) {
     const paid = await db.order.findMany({
       where: { storeId: store.id, userId, status: { in: ["PAID", "FULFILLED"] } },
@@ -315,8 +302,7 @@ export async function seedActivity({
     });
   }
 
-  // ------------------------------------------------------ incidente frauda
-  // Fara cheie naturala: se sterg cele din seed si se rescriu.
+  // No natural key, so the seeded incidents are deleted and rewritten.
   await db.fraudIncident.deleteMany({
     where: { storeId: store.id, sessionKey: { startsWith: "seed-" } },
   });
@@ -363,9 +349,8 @@ export async function seedActivity({
     incidents++;
   }
 
-  // -------------------------------------------------- istoric de evaluari
-  // Pe astea se sprijina statisticile per regula si simularea unei versiuni
-  // candidat. Se rescriu la fiecare seed, ca sa nu se acumuleze la infinit.
+  // These back the per-rule statistics and the candidate simulation. Rewritten
+  // on every seed so they do not pile up.
   await db.evaluationEvent.deleteMany({ where: { storeId: store.id, source: "seed" } });
 
   const events: Prisma.EvaluationEventCreateManyInput[] = [];

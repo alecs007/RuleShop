@@ -5,18 +5,22 @@ import type { PriceView } from "@/lib/shop/pricing";
 import {
   availabilityLabel,
   type AvailabilityView,
-} from "@/lib/shop/availability-view";
+} from "@ruleshop/storefront";
 import { Badge } from "@/components/ui/badge";
 import { Price } from "./price";
+import { storeHref } from "@/lib/shop/routing";
 
 export function ProductCard({
   product,
   price,
   availability,
+  prefix,
 }: {
+  /** The store prefix, so the card links inside the same store. */
+  prefix: string | null;
   product: Product;
   price: PriceView;
-  /** Decizia AVAILABILITY; fara ea, cardul se ghideaza doar dupa stoc. */
+  /** The AVAILABILITY decision; without it the card goes by stock alone. */
   availability?: AvailabilityView;
 }) {
   const image = product.imageUrls[0];
@@ -28,9 +32,8 @@ export function ProductCard({
     ? availability.lowStock
     : product.stock > 0 && product.stock <= 5;
 
-  // Etichetele de sub preț, ca valori gata de randat. Condiția de afișare
-  // trebuie sa fie BOOLEANA: `array.length && <JSX>` ar randa „0" pe cardurile
-  // fara etichete, pentru ca 0 este o valoare pe care React o afiseaza.
+  // The visibility condition must be boolean: `array.length && <JSX>` would
+  // render a literal 0 on cards with no badges.
   const badges = availability?.badges ?? [];
   const showLowStock = lowStock && !unavailable;
   const message =
@@ -39,8 +42,8 @@ export function ProductCard({
 
   return (
     <Link
-      href={`/products/${product.slug}`}
-      // `h-full`: cardul umple celula de grilă, care acum e învelișul de animație.
+      href={storeHref(prefix, `/products/${product.slug}`)}
+      // `h-full`: the card fills the grid cell, now the animation wrapper.
       className="group flex h-full flex-col overflow-hidden rounded-xl border border-line bg-surface-raised transition-all hover:border-ink-faint hover:shadow-subtle"
     >
       <div className="relative aspect-square overflow-hidden bg-white">

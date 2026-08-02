@@ -28,15 +28,14 @@ const productSchema = z.object({
     .transform((s) => s.toLowerCase()),
   brand: z.string().trim().max(60).optional().or(z.literal("")),
   description: z.string().trim().max(2000).optional().or(z.literal("")),
-  /** Pretul vine din formular in lei (ex: "349.90") si se stocheaza in bani. */
+  /** Entered in major units, stored in minor ones. */
   price: z.coerce.number().positive().max(10_000_000),
   stock: z.coerce.number().int().min(0).max(1_000_000),
-  /** Greutatea de livrare, in grame — o citesc regulile prin `cart.weightGrams`. */
+  /** Shipping weight in grams, read by rules as `cart.weightGrams`. */
   weightGrams: z.coerce.number().int().min(0).max(1_000_000),
   /**
-   * Imaginile vin din dropzone ca JSON. Se acceptă doar două forme: media
-   * proprie (`/api/v1/media/<cheie>`, deci ceva ce am stocat noi) sau un URL
-   * https extern — altfel un `javascript:` sau `data:` ar ajunge în `src`.
+   * Only two shapes are accepted: our own media, or an external https URL.
+   * Anything else would let a `javascript:` or `data:` URL reach `src`.
    */
   imageUrls: z
     .string()
@@ -113,7 +112,7 @@ function toData(values: z.infer<typeof productSchema>, storeId: string) {
     basePriceCents: Math.round(values.price * 100),
     stock: values.stock,
     weightGrams: values.weightGrams,
-    // Fără imagini încărcate rămâne una demo, ca produsul să nu apară gol.
+    // With no uploads a demo image stays, so the product is not blank.
     imageUrls:
       values.imageUrls.length > 0
         ? values.imageUrls
@@ -171,7 +170,7 @@ export async function updateProductAction(
 ): Promise<ProductFormState> {
   const { user, storeId } = await requireAdmin();
 
-  // Scoping pe storeId: un admin nu poate atinge produsele altui magazin.
+  // Scoped by storeId: an admin cannot touch another store's products.
   const existing = await prisma.product.findFirst({
     where: { id: productId, storeId },
   });
@@ -216,7 +215,7 @@ export async function updateProductAction(
   redirect(withFlash("/admin/products", "product-updated"));
 }
 
-/** Dezactivare (soft delete) — comenzile si istoricul raman intacte. */
+/** Soft delete: orders and history stay intact. */
 export async function toggleProductAction(formData: FormData): Promise<void> {
   const { user, storeId } = await requireAdmin();
   const productId = formData.get("productId");

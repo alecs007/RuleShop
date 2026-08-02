@@ -14,11 +14,9 @@ import { assertAiQuota, generateJson } from "./gemini";
 import { describeCatalog, RULE_FORMAT_SPEC } from "./rule-catalog";
 
 /**
- * Generarea unei reguli structurate dintr-o cerinta in limbaj natural.
- *
- * IA propune DOAR structura (conditii/actiuni din cataloagele motorului);
- * rezultatul trece prin `validateRule` — aceeasi validare ca la editarea
- * manuala — si devine cel mult un DRAFT pe care un om il publica explicit.
+ * Generates a structured rule from a natural language requirement. The AI
+ * proposes structure only; the result goes through `validateRule`, the same
+ * validation manual editing uses, and becomes a DRAFT at most.
  */
 
 const PROMPT_VERSION = 1;
@@ -44,16 +42,16 @@ const proposalParser = z.object({
 export interface RuleProposal {
   rule: EngineRule;
   rationale: string;
-  /** 0..1 — autoevaluarea modelului; sub 0.5 UI-ul avertizeaza. */
+  /** The model's own 0..1 estimate; the UI warns below 0.5. */
   confidence: number;
-  /** Problemele gasite de validarea aplicatiei (goale = valida). */
+  /** What the application's validation found; empty means valid. */
   issues: ValidationIssue[];
   model: string;
   promptVersion: number;
   rawText: string;
 }
 
-/** kebab-case sigur + unicitate fata de cheile existente. */
+/** Safe kebab-case, unique against the existing keys. */
 function normalizeKey(raw: string, existingKeys: Set<string>): string {
   let key = raw
     .toLowerCase()
@@ -117,7 +115,7 @@ ${input.request.trim()}
     actions: proposal.actions.map((a) => ({ type: a.type, params: a.params ?? {} })),
   };
 
-  // Aceeasi validare ca pentru regulile scrise de mana — IA nu are scurtaturi.
+  // The same validation hand-written rules get: the AI has no shortcut.
   const issues = validateRule(rule, input.category);
 
   return {
@@ -132,10 +130,8 @@ ${input.request.trim()}
 }
 
 /**
- * Salveaza o propunere validata ca regula DRAFT — sursa AI_SUGGESTION, cu
- * motivatia si increderea pastrate pe regula. NU publica nimic: draftul intra
- * in vigoare doar prin fluxul manual de publicare. Folosita si de actiunea din
- * control plane si de API-ul consumat de serverul MCP.
+ * Saves a validated proposal as a DRAFT rule, keeping its rationale and
+ * confidence. Publishes nothing: only the manual flow puts a draft in force.
  */
 export async function createDraftFromProposal(input: {
   storeId: string;

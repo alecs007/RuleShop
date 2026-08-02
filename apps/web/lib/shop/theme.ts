@@ -3,9 +3,9 @@ import { cache } from "react";
 import { getActiveRuleset } from "@/lib/rules/service";
 import { recordEvaluation } from "@/lib/rules/evaluation-log";
 import { getEvaluationActor } from "./context";
-import { computeTheme, type ThemeView } from "./theme-view";
+import { computeTheme, type ThemeView } from "@ruleshop/storefront";
 
-export type { ThemeView } from "./theme-view";
+export type { ThemeView } from "@ruleshop/storefront";
 export {
   DEFAULT_LAYOUT_VARIANT,
   explainTheme,
@@ -13,18 +13,16 @@ export {
   LAYOUT_VARIANT_LABELS,
   THEME_TOKEN_CSS_VARS,
   THEME_TOKEN_LABELS,
-} from "./theme-view";
+} from "@ruleshop/storefront";
 
 const getThemeRuleset = cache(async (storeId: string) =>
   getActiveRuleset(storeId, "THEME"),
 );
 
 /**
- * Tema magazinului pentru vizitatorul curent.
- *
- * Cache per request: tema se cere din layout, din catalog si din testere, dar se
- * evalueaza o singura data. Evaluarea ajunge in istoric doar din layout (o data
- * pe pagina), altfel fiecare cerere ar scrie de mai multe ori acelasi eveniment.
+ * Cached per request: the layout, the catalog and the testers all ask for the
+ * theme, but it is evaluated once. Only the layout records it in the history,
+ * or a single request would write the same event several times.
  */
 export const getThemeView = cache(
   async (storeId: string, record?: "layout"): Promise<ThemeView> => {

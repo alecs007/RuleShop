@@ -4,11 +4,9 @@ import { Toaster as SonnerToaster } from "sonner";
 import { AlertCircle, CheckCircle2, Info } from "lucide-react";
 
 /**
- * Toast-urile aplicației (sonner), stilate cu tokenii proiectului: card alb,
- * linie subțire, umbră discretă — nu paleta implicită a bibliotecii.
- *
- * Poziția e sus-centru, decalată sub headerul sticky, ca să nu acopere
- * căutarea și ca să nu se bată cu foaia de filtre de jos pe mobil.
+ * Toasts styled with the project's tokens rather than the library's palette.
+ * Positioned below the sticky header, so they cover neither the search nor
+ * the filter sheet at the bottom on mobile.
  */
 export function Toaster() {
   return (

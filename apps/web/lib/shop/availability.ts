@@ -9,28 +9,28 @@ import {
   computeAvailability,
   type AvailabilityView,
   type ProductAvailabilityFacts,
-} from "./availability-view";
+} from "@ruleshop/storefront";
 
 export type {
   AvailabilityReason,
   AvailabilityView,
   ProductAvailabilityFacts,
-} from "./availability-view";
+} from "@ruleshop/storefront";
 export {
   availabilityLabel,
   availabilityTone,
   clampQuantity,
   unavailableMessage,
-} from "./availability-view";
+} from "@ruleshop/storefront";
 
-/** Cate produse se evalueaza cel mult la scanarea catalogului pentru „ascunse". */
+/** How many products the hidden-product catalog scan evaluates at most. */
 const HIDDEN_SCAN_LIMIT = 500;
 
 const getAvailabilityRuleset = cache(async (storeId: string) =>
   getActiveRuleset(storeId, "AVAILABILITY"),
 );
 
-/** Faptele de produs pentru motor, dintr-un rand din baza de date. */
+/** Engine product facts, from a database row. */
 export function availabilityFacts(
   product: Pick<
     Product,
@@ -58,11 +58,7 @@ export function availabilityFacts(
   };
 }
 
-/**
- * Disponibilitatea unui produs pentru vizitatorul curent: rulesetul
- * AVAILABILITY publicat, evaluat cu faptele produsului si ale clientului.
- * Fara versiune publicata (sau cu kill switch) conteaza doar stocul.
- */
+/** Without a published version, or with the kill switch on, only stock counts. */
 export async function getAvailabilityView(
   product: Product,
   options: { record?: "product-page" | "cart" | "checkout" } = {},
@@ -78,13 +74,12 @@ export async function getAvailabilityView(
     actor,
   });
 
-  // Doar evaluarile pe ruleset real intra in istoric: fara versiune publicata
-  // nu exista nimic de re-simulat.
+  // Only evaluations against a real ruleset are worth replaying.
   if (options.record && ruleset && !ruleset.killSwitch) {
     recordEvaluation({
       storeId: product.storeId,
       category: "AVAILABILITY",
-      // Acelasi context pe care il construieste computeAvailability.
+      // The same context computeAvailability builds.
       context: {
         product: {
           id: facts.id,
@@ -129,12 +124,9 @@ export async function getAvailabilityViews(
 }
 
 /**
- * Produsele ascunse de reguli (HIDE_PRODUCT) pentru vizitatorul curent.
- *
- * Ascunderea se aplica INAINTE de paginare, altfel numaratorile si paginile ar
- * fi gresite — deci are nevoie de o scanare a catalogului. Scanarea se face
- * doar cand rulesetul activ chiar contine o regula care poate ascunde ceva;
- * in rest costul este zero.
+ * Hiding is applied before pagination, or counts and pages would be wrong, so
+ * it needs a catalog scan. The scan only runs when the active ruleset actually
+ * contains a rule that can hide something.
  */
 export const getHiddenProductIds = cache(
   async (storeId: string): Promise<string[]> => {

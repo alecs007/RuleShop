@@ -10,11 +10,11 @@ import {
   pointsLabel,
   type ActorFacts,
   type LoyaltyView,
-} from "@/lib/shop/loyalty-view";
+} from "@ruleshop/storefront";
 import { formatMoney } from "@/lib/utils/money";
 import { Badge } from "@/components/ui/badge";
 
-/** Scenariul simulat, din query string — testul e partajabil prin URL. */
+/** The simulated scenario, from the query string, so the test is shareable. */
 export interface LoyaltySimulation {
   subtotalLei: number;
   itemCount: number;
@@ -139,9 +139,9 @@ const inputCls =
   "h-9 rounded-lg border border-line bg-surface px-2.5 text-sm outline-none transition-colors focus:border-accent";
 
 /**
- * „Testează un scenariu": recompensele pentru un coș, calculate cu versiunea
- * activa si — daca exista drafturi — cu snapshotul care ar rezulta din
- * publicare. Foloseste exact aceeasi functie ca magazinul (`computeLoyalty`).
+ * Rewards for a cart under the active version and, if there are drafts, under
+ * the snapshot a publish would produce. Uses `computeLoyalty`, the same
+ * function the storefront does.
  */
 export async function LoyaltyTester({
   storeId,
@@ -197,7 +197,7 @@ export async function LoyaltyTester({
       </h2>
 
       <div className="mt-3 rounded-xl border border-line bg-surface-raised p-4">
-        {/* Navigare GET: testul se poate trimite prin link */}
+        {/* GET navigation, so the test can be shared as a link */}
         <form className="flex flex-wrap items-end gap-3">
           <label className="text-sm">
             <span className="text-ink-muted">Subtotal coș</span>

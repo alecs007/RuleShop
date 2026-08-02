@@ -2,9 +2,8 @@ import "server-only";
 import Redis from "ioredis";
 
 /**
- * Clientul Redis, creat o singură dată per proces (în dev, `globalThis` îl
- * păstrează peste hot reload). Întoarce null când `REDIS_URL` lipsește: Redis
- * este optimizare si protecție, nu o dependință fără care aplicația cade.
+ * One client per process, kept on `globalThis` across hot reloads. Returns
+ * null without `REDIS_URL`: Redis is protection, not a hard dependency.
  */
 const globalForRedis = globalThis as unknown as { redis?: Redis | null };
 
@@ -20,7 +19,7 @@ export function getRedis(): Redis | null {
   const client = new Redis(url, {
     maxRetriesPerRequest: 1,
     lazyConnect: true,
-    // Fără asta, un Redis oprit ar umple consola cu reîncercări.
+    // Without this, a stopped Redis floods the console with retries.
     retryStrategy: (times) => (times > 3 ? null : 200),
   });
   client.on("error", (error) => {

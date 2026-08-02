@@ -14,15 +14,13 @@ import {
 } from "./store-switcher";
 
 /**
- * Cadrul control plane-ului.
+ * The control plane frame. From `lg` up the sidebar is fixed beside the
+ * content; on smaller screens it opens over it and closes on navigation,
+ * Escape or a click on the backdrop.
  *
- * De la `lg` in sus sidebar-ul e fix, langa continut. Pe ecrane mici nu ocupa
- * permanent din latime: se deschide ca panou peste continut, dintr-un buton din
- * headerul mobil, si se inchide la navigare, la Escape sau la clic pe fundal.
- *
- * Comutatorul de magazin sta in header — vizibil la orice latime, si pe telefon
- * fara sa deschizi meniul. Un singur control, ca sa nu existe doua liste care
- * pot arata stari diferite; sidebar-ul doar scrie pe ce magazin lucrezi.
+ * The store switcher lives in the header, visible at any width. One control
+ * only, so two lists cannot show different states; the sidebar merely says
+ * which store you are working on.
  */
 export function AdminShell({
   storeName,
@@ -37,7 +35,7 @@ export function AdminShell({
   storeName: string;
   userLabel: string;
   signOutAction: () => Promise<void>;
-  /** PLATFORM_ADMIN: vede comutatorul de magazin si pagina Magazine. */
+  /** PLATFORM_ADMIN: sees the store switcher and the Stores page. */
   platformAdmin?: boolean;
   stores?: StoreOption[];
   currentStoreId?: string;
@@ -45,7 +43,7 @@ export function AdminShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  // Comutarea are sens doar pentru platforma si doar daca exista unde sa comuti.
+  // Switching makes sense only for the platform, and only if there is somewhere to go.
   const switchProps =
     platformAdmin && selectStoreAction && currentStoreId && stores.length > 1
       ? { stores, currentStoreId, selectAction: selectStoreAction }
@@ -54,7 +52,7 @@ export function AdminShell({
   const openButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Navigarea incheiata (inclusiv back/forward) inchide panoul.
+  // A finished navigation, back/forward included, closes the panel.
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
@@ -70,7 +68,7 @@ export function AdminShell({
       }
     };
     document.addEventListener("keydown", onKeyDown);
-    // Cat timp panoul e deschis, pagina de dedesubt nu se deruleaza.
+    // While the panel is open, the page underneath does not scroll.
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
@@ -82,7 +80,6 @@ export function AdminShell({
 
   return (
     <div className="min-h-screen">
-      {/* Fundalul panoului */}
       {open && (
         <button
           type="button"
@@ -95,8 +92,7 @@ export function AdminShell({
 
       <aside
         id="admin-sidebar"
-        // `invisible` cand e inchis: altfel linkurile ascunse ar rămâne
-        // accesibile din tastatura pe telefon.
+        // `invisible` when closed, or the hidden links stay keyboard-reachable.
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-line bg-surface-raised transition-transform duration-200 ease-out lg:w-60 lg:translate-x-0 lg:visible",
           open ? "translate-x-0 shadow-xl" : "invisible -translate-x-full",
@@ -104,8 +100,8 @@ export function AdminShell({
       >
         <div className="flex min-h-14 items-center gap-2.5 border-b border-line px-4 py-2 lg:min-h-16">
           <LogoMark alt={storeName} />
-          {/* Comutatorul sta in header, unde se vede la orice lățime; aici doar
-              scrie pe ce magazin lucrezi, ca sa nu existe doua controale identice. */}
+          {/* The switcher lives in the header; this only names the store you
+              are working on, so there are not two identical controls. */}
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{storeName}</p>
             <p className="text-xs text-ink-faint">
@@ -123,8 +119,9 @@ export function AdminShell({
           </button>
         </div>
 
-        {/* Un clic pe orice link inchide panoul — si cand duce la pagina curenta,
-            caz in care ruta nu se schimba si efectul de mai sus nu s-ar declansa. */}
+        {/* A click on any link closes the panel, including one leading to the
+            current page, where the route does not change and the effect above
+            would never fire. */}
         <div
           className="flex min-h-0 flex-1 flex-col"
           onClick={(event) => {
@@ -134,8 +131,8 @@ export function AdminShell({
           <AdminNav platformAdmin={platformAdmin} />
 
           <div className="space-y-1 border-t border-line p-3">
-            {/* Duce la magazinul ACTIV, care poate fi altul decat cel administrat:
-                pentru platforma spunem asta in text, ca sa nu para o eroare. */}
+            {/* This goes to the active store, which may differ from the one
+                being administered; the title says so, to avoid confusion. */}
             <Link
               href="/"
               title={
@@ -162,9 +159,9 @@ export function AdminShell({
       </aside>
 
       <div className="min-w-0 lg:ml-60">
-        {/* Header-ul panoului, la orice lățime: aici se comută magazinul
-            administrat, fără să deschizi meniul. Stă în coloana de conținut, la
-            dreapta sidebar-ului fix, deci nu se suprapun. */}
+        {/* The panel header, at any width: the store is switched here without
+            opening the menu. It sits in the content column, right of the fixed
+            sidebar, so the two never overlap. */}
         <header className="sticky top-0 z-30 flex h-14 items-center border-b border-line bg-surface-raised px-3 sm:px-8 lg:h-16">
           <div className="mx-auto flex w-full max-w-6xl items-center gap-3">
             <button

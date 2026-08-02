@@ -1,10 +1,3 @@
-/**
- * @ruleshop/rate-limit — limitare de rată cu GCRA.
- *
- * Punct unic de import. Algoritmul (`gcra`) este pur și testabil separat;
- * magazinele (memorie / Redis) doar îi păstrează starea.
- */
-
 export { gcra, gcraParams, ttlMs } from "./gcra";
 export type { GcraOutcome, GcraParams } from "./gcra";
 

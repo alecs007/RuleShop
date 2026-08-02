@@ -9,7 +9,7 @@ import { getActiveRuleset } from "@/lib/rules/service";
 import {
   readShippingMethods,
   usesDefaultShippingMethods,
-} from "@/lib/shop/shipping-methods";
+} from "@ruleshop/storefront";
 import { Badge } from "@/components/ui/badge";
 import {
   ShippingMethodsForm,
@@ -19,7 +19,7 @@ import { saveShippingMethodsAction } from "./actions";
 
 export const metadata: Metadata = { title: "Livrare" };
 
-/** Regulile publicate, in limbaj natural — ce fac ele efectiv cu metodele. */
+/** The published rules in plain language: what they do to the methods. */
 function activeRuleLines(snapshot: RuleSetSnapshot | null): string[] {
   if (!snapshot) return [];
   return snapshot.rules.flatMap((rule) => {
@@ -28,7 +28,7 @@ function activeRuleLines(snapshot: RuleSetSnapshot | null): string[] {
   });
 }
 
-/** ID-urile de metode numite explicit de regulile publicate. */
+/** The method ids the published rules name explicitly. */
 function referencedIds(snapshot: RuleSetSnapshot | null): Set<string> {
   const ids = new Set<string>();
   for (const rule of snapshot?.rules ?? []) {
@@ -104,7 +104,7 @@ export default async function AdminShippingPage() {
         />
       </div>
 
-      {/* Ce fac regulile publicate cu aceste metode */}
+      {/* What the published rules do with these methods */}
       <h2 className="mt-10 text-lg font-semibold">Ce spun regulile acum</h2>
       {ruleLines.length === 0 ? (
         <p className="mt-2 text-sm text-ink-muted">

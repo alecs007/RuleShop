@@ -1,8 +1,7 @@
 # 🚦 @ruleshop/rate-limit
 
-Limitare de rată cu GCRA (Generic Cell Rate Algorithm): atomică, într-un singur
-apel către Redis, cu degradare în memoria procesului la indisponibilitatea
-acestuia.
+Rate limiting with GCRA (Generic Cell Rate Algorithm): atomic, in a single call
+to Redis, degrading to process memory when Redis is unavailable.
 
 ```ts
 import { RateLimiter, RedisStore, rateLimitHeaders } from "@ruleshop/rate-limit";
@@ -17,59 +16,58 @@ const gate = await limiter.consume(`login:${email}`, {
 });
 
 if (!gate.allowed) {
-  return new Response("Prea multe încercări", {
+  return new Response("Too many attempts", {
     status: 429,
     headers: rateLimitHeaders(gate),
   });
 }
 ```
 
-## ⚙️ Politici
+## ⚙️ Policies
 
-| Câmp            | Implicit   | Rol                                                              |
+| Field           | Default    | Role                                                             |
 | --------------- | ---------- | ---------------------------------------------------------------- |
-| `limit`         | —          | Câte cereri sunt permise într-o perioadă                          |
-| `windowSeconds` | —          | Lungimea perioadei                                                |
-| `burst`         | `limit`    | Cât are voie traficul să se înghesuie. `1` impune ritm uniform    |
-| `onStoreError`  | `fallback` | Comportamentul când magazinul de stare nu răspunde                |
+| `limit`         | —          | How many requests are allowed within a period                    |
+| `windowSeconds` | —          | The length of the period                                         |
+| `burst`         | `limit`    | How much traffic may bunch up. `1` enforces an even pace         |
+| `onStoreError`  | `fallback` | The behaviour when the state store does not respond              |
 
-`onStoreError` acceptă `fallback` (limitare din memoria procesului), `allow`
-(cererea trece) și `deny` (cererea se refuză). `fallback` este diferența față de
-un limitator *fail-open*: protecția nu mai este partajată între instanțe, dar nu
-dispare în momentul în care Redis devine indisponibil.
+`onStoreError` accepts `fallback` (limiting from process memory), `allow`
+(the request goes through) and `deny` (the request is rejected). `fallback` is
+the difference from a *fail-open* limiter: the protection is no longer shared
+between instances, but it does not vanish the moment Redis becomes unavailable.
 
-## 📤 Rezultat
+## 📤 Result
 
-`consume()` întoarce `allowed`, `limit`, `remaining`, `retryAfterSeconds`,
-`resetSeconds` și `source` (`redis`, `memory` sau `store-error`).
-`rateLimitHeaders()` le transformă în `X-RateLimit-*` și `Retry-After`.
+`consume()` returns `allowed`, `limit`, `remaining`, `retryAfterSeconds`,
+`resetSeconds` and `source` (`redis`, `memory` or `store-error`).
+`rateLimitHeaders()` turns them into `X-RateLimit-*` and `Retry-After`.
 
-`reset(key)` șterge bugetul unei chei — folosit după o autentificare reușită,
-astfel încât încercările greșite dinaintea ei să nu se adune peste sesiunea
-următoare.
+`reset(key)` clears a key's budget — used after a successful sign-in, so that the
+failed attempts before it do not carry over into the next session.
 
-## 🔍 Algoritmul
+## 🔍 The algorithm
 
-Starea unei chei este un singur număr, `tat` (theoretical arrival time), momentul
-la care ar trebui să sosească următoarea cerere într-un trafic perfect uniform.
-Bugetul se reface continuu, nu la granițe de fereastră, iar cererile refuzate nu
-îl consumă. Calculul se execută într-un script Lua, deci atomic și într-un singur
-apel, folosind ceasul serverului Redis (`TIME`), astfel încât ceasurile
-instanțelor web nu trebuie sincronizate.
+A key's state is a single number, `tat` (theoretical arrival time), the moment at
+which the next request should arrive under perfectly even traffic. The budget
+refills continuously, not at window boundaries, and rejected requests do not
+consume it. The computation runs inside a Lua script, so it is atomic and takes a
+single call, using the Redis server's clock (`TIME`), so the clocks of the web
+instances do not need to be synchronised.
 
-Față de o fereastră fixă pe `INCR` + `EXPIRE`, aceasta elimină rafala de la
-granița ferestrei (limita dublă în două secunde consecutive), condiția de cursă
-dintre `INCR` și `EXPIRE` care poate lăsa o cheie fără termen de expirare, și
-contorizarea cererilor deja respinse.
+Compared to a fixed window on `INCR` + `EXPIRE`, this eliminates the burst at the
+window boundary (double the limit within two consecutive seconds), the race
+between `INCR` and `EXPIRE` that can leave a key without an expiry, and the
+counting of already-rejected requests.
 
-## 📦 Structură
+## 📦 Structure
 
-| Fișier            | Rol                                                            |
+| File              | Role                                                           |
 | ----------------- | -------------------------------------------------------------- |
-| `gcra.ts`         | Algoritmul, funcție pură — fără ceas, chei sau I/O             |
-| `memory-store.ts` | Stare în proces: fără Redis, în teste și ca rezervă            |
-| `redis-store.ts`  | Scriptul Lua și `defineCommand`                                |
-| `limiter.ts`      | Selecția magazinului, politica la eroare, antetele              |
+| `gcra.ts`         | The algorithm, a pure function — no clock, keys or I/O          |
+| `memory-store.ts` | In-process state: without Redis, in tests and as a fallback     |
+| `redis-store.ts`  | The Lua script and `defineCommand`                              |
+| `limiter.ts`      | Store selection, the error policy, the headers                  |
 
 ```bash
 pnpm --filter @ruleshop/rate-limit test

@@ -20,9 +20,8 @@ import {
 import { classifyIncident } from "@/lib/ai/classify-incident";
 
 /**
- * Actiunile server ale modulului IA. Toate cer rol de admin/staff verificat pe
- * server si niciuna nu publica reguli: rezultatele IA devin cel mult DRAFT-uri
- * sau opinii afisate, iar publicarea ramane fluxul manual existent.
+ * The AI module's server actions. All require a server-checked staff role, and
+ * none publishes anything: AI output becomes a DRAFT or a displayed opinion.
  */
 
 function parseCategory(raw: unknown): DecisionCategory {
@@ -31,7 +30,7 @@ function parseCategory(raw: unknown): DecisionCategory {
   return value;
 }
 
-/** Mesaj prietenos pentru erorile providerului IA. */
+/** A friendly message for provider errors. */
 function aiErrorMessage(error: unknown): string {
   if (
     error instanceof AiNotConfiguredError ||
@@ -49,10 +48,6 @@ export interface AiActionState {
   message?: string;
   issues?: string[];
 }
-
-// ---------------------------------------------------------------------------
-// Analiza rulesetului
-// ---------------------------------------------------------------------------
 
 export async function runAiAnalysisAction(
   category: string,
@@ -80,10 +75,6 @@ export async function runAiAnalysisAction(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Decizia umana asupra sugestiilor
-// ---------------------------------------------------------------------------
-
 export async function acceptSuggestionAction(formData: FormData): Promise<void> {
   const { user, storeId } = await requireAdmin();
   const suggestionId = formData.get("suggestionId");
@@ -109,10 +100,6 @@ export async function rejectSuggestionAction(formData: FormData): Promise<void> 
   if (!result.ok) throw new Error(result.message);
   revalidatePath("/admin/rules", "layout");
 }
-
-// ---------------------------------------------------------------------------
-// Generarea unei reguli din limbaj natural
-// ---------------------------------------------------------------------------
 
 export async function generateAiRuleAction(
   category: string,
@@ -158,8 +145,8 @@ export async function generateAiRuleAction(
     };
   }
 
-  // Regula intra ca DRAFT, cu sursa si motivatia IA — un om o verifica in
-  // editor si tot un om o publica. Nimic nu ajunge automat in magazin.
+  // It enters as a DRAFT: a human checks it in the editor and a human
+  // publishes it. Nothing reaches the storefront on its own.
   const { ruleId } = await createDraftFromProposal({
     storeId,
     category: cat,
@@ -171,10 +158,6 @@ export async function generateAiRuleAction(
   revalidatePath("/admin/rules", "layout");
   redirect(`/admin/rules/${cat.toLowerCase()}/${ruleId}?generated=1`);
 }
-
-// ---------------------------------------------------------------------------
-// Clasificarea unui incident antifrauda
-// ---------------------------------------------------------------------------
 
 export async function classifyIncidentAction(
   _prev: AiActionState | undefined,

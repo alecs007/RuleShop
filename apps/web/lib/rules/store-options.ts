@@ -4,13 +4,12 @@ import type { DecisionCategory } from "@ruleshop/rule-engine";
 import {
   readShippingMethods,
   shippingMethodOptions,
-} from "@/lib/shop/shipping-methods";
+} from "@ruleshop/storefront";
 import type { DynamicParamOptions } from "./form-mapping";
 
 /**
- * Listele de valori care depind de configurarea magazinului, pentru editorul
- * de reguli. Astfel administratorul alege metoda de livrare dintr-un dropdown
- * cu metodele lui reale, in loc sa scrie un ID pe care il poate greși.
+ * The value lists that depend on store configuration, so an admin picks a
+ * shipping method from a dropdown of their real ones instead of typing an id.
  */
 export async function getDynamicParamOptions(
   storeId: string,

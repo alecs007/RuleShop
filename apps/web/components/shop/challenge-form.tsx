@@ -7,16 +7,19 @@ import { Spinner } from "@/components/ui/spinner";
 import {
   verifyChallengeAction,
   type CheckoutState,
-} from "@/app/(shop)/checkout/actions";
+} from "@/app/(shop)/[store]/checkout/actions";
+import { StorePrefixField } from "./store-prefix-field";
 
 /**
- * Pasul de verificare cerut de antifraudă (CHALLENGE). In demo, codul este
- * afisat pe pagina; intr-un sistem real ar ajunge prin email sau SMS.
+ * The verification step a CHALLENGE decision asks for. In this demo the code
+ * is shown on the page; a real system would send it by email or SMS.
  */
 export function ChallengeForm({
+  prefix,
   orderNumber,
   demoCode,
 }: {
+  prefix: string | null;
   orderNumber: string;
   demoCode: string;
 }) {
@@ -59,6 +62,7 @@ export function ChallengeForm({
       </p>
 
       <form action={formAction} className="mt-3 flex flex-wrap items-start gap-2">
+        <StorePrefixField prefix={prefix} />
         <input type="hidden" name="orderNumber" value={orderNumber} />
         <input
           name="code"

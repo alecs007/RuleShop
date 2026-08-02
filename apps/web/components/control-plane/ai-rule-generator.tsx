@@ -6,9 +6,9 @@ import { Spinner } from "@/components/ui/spinner";
 import type { AiActionState } from "@/app/(control-plane)/admin/rules/ai-actions";
 
 /**
- * „Descrie regula în cuvinte": cerinta in limbaj natural -> regula structurata
- * generata de IA, salvata ca DRAFT si deschisa in editor pentru verificare.
- * La succes actiunea redirectioneaza spre editor; aici raman doar erorile.
+ * A natural language requirement becomes a structured rule, saved as a DRAFT
+ * and opened in the editor. On success the action redirects there, so only
+ * errors surface here.
  */
 export function AiRuleGenerator({
   action,

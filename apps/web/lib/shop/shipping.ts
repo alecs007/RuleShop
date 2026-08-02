@@ -3,17 +3,17 @@ import { cache } from "react";
 import { getActiveRuleset } from "@/lib/rules/service";
 import { recordEvaluation } from "@/lib/rules/evaluation-log";
 import { getEvaluationActor } from "./context";
-import { readShippingMethods } from "./shipping-methods";
-import { computeShippingQuote, type CartShippingFacts, type ShippingQuote } from "./shipping-quote";
+import { readShippingMethods } from "@ruleshop/storefront";
+import { computeShippingQuote, type CartShippingFacts, type ShippingQuote } from "@ruleshop/storefront";
 import type { CartTotals, CartWithItems } from "./cart";
 
 export type {
   CartShippingFacts,
   ShippingOption,
   ShippingQuote,
-} from "./shipping-quote";
+} from "@ruleshop/storefront";
 
-/** Faptele de cos pentru regulile de livrare, dintr-un cos real. */
+/** Cart facts for the shipping rules, from a real cart. */
 export function cartShippingFacts(
   cart: CartWithItems | null,
   totals: CartTotals,
@@ -36,20 +36,17 @@ const getShippingRuleset = cache(async (storeId: string) =>
 
 export interface QuoteInput {
   storeId: string;
-  /** `Store.settings` — de aici vin metodele configurate ale magazinului. */
+  /** `Store.settings`, where the configured methods come from. */
   storeSettings: unknown;
   currency: string;
   cart: CartShippingFacts;
-  /** Metoda aleasa de client (Cart.shippingMethodId). */
+  /** The customer's chosen method. */
   selectedMethodId?: string | null;
-  /** Inregistreaza evaluarea metodei selectate in istoricul de evenimente. */
+  /** Record the selected method's evaluation in the event history. */
   record?: "cart" | "checkout";
 }
 
-/**
- * Cotatia de livrare pentru cererea curenta: metodele magazinului trecute prin
- * rulesetul SHIPPING publicat, cu faptele clientului din sesiune.
- */
+/** The store's methods run through the published SHIPPING ruleset. */
 export async function quoteShipping(input: QuoteInput): Promise<ShippingQuote> {
   const ruleset = await getShippingRuleset(input.storeId);
   const actor = ruleset && !ruleset.killSwitch ? await getEvaluationActor() : undefined;
@@ -64,8 +61,8 @@ export async function quoteShipping(input: QuoteInput): Promise<ShippingQuote> {
     selectedMethodId: input.selectedMethodId,
   });
 
-  // Istoricul pastreaza evaluarea metodei pe care clientul chiar o foloseste,
-  // cu acelasi context per-metoda pe care il vede motorul (shipping.methodId).
+  // History keeps the evaluation of the method actually in use, with the same
+  // per-method context the engine saw.
   if (input.record && ruleset && !ruleset.killSwitch && quote.selected) {
     recordEvaluation({
       storeId: input.storeId,

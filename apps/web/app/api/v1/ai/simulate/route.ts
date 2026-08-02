@@ -15,9 +15,8 @@ const bodySchema = z.object({
 });
 
 /**
- * POST /api/v1/ai/simulate — simuleaza draftul curent fata de versiunea activa
- * pe evenimentele istorice inregistrate. Nicio interventie IA: totul este
- * calculat de aplicatie cu propriul motor de reguli.
+ * Simulates the current draft against the active version over the recorded
+ * history. No AI involved: the application computes it with its own engine.
  */
 export async function POST(request: NextRequest) {
   const actor = await authorizeAiApi(request);

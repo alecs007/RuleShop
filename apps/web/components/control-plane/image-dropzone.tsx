@@ -8,12 +8,11 @@ import { cn } from "@/lib/utils/cn";
 import { Spinner } from "@/components/ui/spinner";
 
 /**
- * Încărcarea imaginilor de produs: trage fișierele peste zonă sau apasă pentru
- * a le alege. Se acceptă mai multe imagini simultan; prima din listă e cea
- * principală (cea din catalog), de aceea ordinea se poate schimba.
+ * Product image upload. The first image in the list is the catalog one, which
+ * is why the order can be changed.
  *
- * Validarea reală se face pe server (semnătura fișierului). Verificările de
- * aici sunt doar pentru feedback imediat — nu se bazează nimic pe ele.
+ * The real validation happens on the server, against the file's signature.
+ * The checks here exist for immediate feedback and nothing relies on them.
  */
 
 const ACCEPT = "image/jpeg,image/png,image/webp,image/avif,image/gif";
@@ -28,7 +27,7 @@ export function ImageDropzone({
   name,
   initial = [],
 }: {
-  /** Numele câmpului ascuns care ajunge în formular (JSON cu URL-urile). */
+  /** The hidden field carrying the URLs into the form, as JSON. */
   name: string;
   initial?: string[];
 }) {
@@ -103,7 +102,7 @@ export function ImageDropzone({
     if (files.length > 0) void upload(files);
   };
 
-  /** Scoate imaginea din listă; obiectele deja urcate se șterg si din bucket. */
+  /** Removes the image; already-uploaded objects are deleted from the bucket too. */
   const remove = async (url: string) => {
     setUrls((prev) => prev.filter((u) => u !== url));
     if (url.startsWith("/api/v1/media/")) {
@@ -112,8 +111,8 @@ export function ImageDropzone({
           method: "DELETE",
         });
       } catch {
-        // Fișierul rămâne orfan în bucket, dar produsul nu-l mai referă —
-        // nu merită să blocăm interfața pentru asta.
+        // The file is orphaned in the bucket but no longer referenced; not
+        // worth blocking the UI over.
       }
     }
   };
@@ -151,7 +150,7 @@ export function ImageDropzone({
           onChange={(e) => {
             const files = [...(e.target.files ?? [])];
             if (files.length > 0) void upload(files);
-            // Reset, ca alegerea aceluiași fișier să declanșeze din nou change.
+            // Reset, so picking the same file fires change again.
             e.target.value = "";
           }}
         />

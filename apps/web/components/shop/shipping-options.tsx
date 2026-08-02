@@ -2,11 +2,9 @@ import { Truck } from "lucide-react";
 import type { ShippingQuote } from "@/lib/shop/shipping";
 
 /**
- * Explicația deciziei de livrare (ce reguli au acționat).
- *
- * Lista de metode și rândul de livrare din sumar trăiesc în
- * `components/shop/cart-view.tsx`, unde alegerea clientului se aplică optimist;
- * aici rămâne doar partea care nu depinde de interacțiune.
+ * The shipping decision's explanation. The method list and the summary row
+ * live in `cart-view.tsx`, where the choice is applied optimistically; only
+ * the interaction-free part stays here.
  */
 export function ShippingExplanation({
   quote,

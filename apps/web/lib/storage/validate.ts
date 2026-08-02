@@ -1,15 +1,12 @@
 /**
- * Validarea fișierelor încărcate. Modul PUR — fără acces la rețea sau disc,
- * deci se poate testa direct.
- *
- * Principiul: nimic din ce spune clientul nu se crede. Numele fișierului nu
- * ajunge niciodată în cheia obiectului (o generăm noi), iar tipul se stabilește
- * din primii bytes ai conținutului, nu din `Content-Type`-ul trimis de browser.
+ * Upload validation. Nothing the client says is trusted: the filename never
+ * reaches the object key, and the type comes from the content's first bytes,
+ * not from the browser's `Content-Type`.
  */
 
 /**
- * Formatele acceptate. SVG lipsește intenționat: e un document XML care poate
- * purta `<script>`, deci servit de pe domeniul nostru ar fi un vector XSS.
+ * SVG is left out on purpose: it is an XML document that can carry `<script>`,
+ * so serving one from our own domain would be an XSS vector.
  */
 export const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",
@@ -29,10 +26,10 @@ export const EXTENSION_BY_TYPE: Record<AllowedImageType, string> = {
   "image/gif": "gif",
 };
 
-/** Limite per cerere — un client nu poate cere aplicației memorie nelimitată. */
+/** Per-request limits, so a client cannot ask the app for unbounded memory. */
 export const MAX_FILE_BYTES = 5 * 1024 * 1024;
 export const MAX_FILES_PER_REQUEST = 8;
-/** Sub atât nu există imagine validă; e un fișier gol sau trunchiat. */
+/** Below this there is no valid image, only an empty or truncated file. */
 const MIN_FILE_BYTES = 64;
 
 function startsWith(bytes: Uint8Array, signature: number[], offset = 0): boolean {
@@ -44,11 +41,7 @@ function ascii(bytes: Uint8Array, start: number, end: number): string {
   return String.fromCharCode(...bytes.slice(start, end));
 }
 
-/**
- * Tipul real al fișierului, după semnătura din conținut (magic bytes).
- * Întoarce null pentru orice altceva — inclusiv pentru SVG, HTML sau arhive
- * redenumite în `.png`.
- */
+/** The real type, from the magic bytes. Anything else, renamed or not, is null. */
 export function sniffImageType(bytes: Uint8Array): AllowedImageType | null {
   if (startsWith(bytes, [0xff, 0xd8, 0xff])) return "image/jpeg";
   if (startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) {
@@ -74,7 +67,7 @@ export function sniffImageType(bytes: Uint8Array): AllowedImageType | null {
   return null;
 }
 
-/** `image/jpg` si parametrii de charset sunt frecvente în browsere. */
+/** `image/jpg` and charset parameters are common in browsers. */
 function normalizeDeclaredType(declared: string): string {
   const base = declared.split(";")[0]!.trim().toLowerCase();
   return base === "image/jpg" ? "image/jpeg" : base;
@@ -86,7 +79,7 @@ export type ImageValidation =
 
 const ACCEPTED_LABEL = "JPEG, PNG, WebP, AVIF sau GIF";
 
-/** Validează un singur fișier: dimensiune, semnătură și acordul cu tipul declarat. */
+/** Checks size, signature, and that they agree with the declared type. */
 export function validateImage(input: {
   size: number;
   declaredType?: string;
@@ -105,7 +98,7 @@ export function validateImage(input: {
     return { ok: false, error: `Format neacceptat — folosește ${ACCEPTED_LABEL}.` };
   }
 
-  // Nepotrivirea dintre conținut si tipul declarat e semn de fișier mascat.
+  // Content that disagrees with the declared type suggests a disguised file.
   const declared = input.declaredType ? normalizeDeclaredType(input.declaredType) : "";
   if (
     declared &&
@@ -122,9 +115,8 @@ export function validateImage(input: {
 }
 
 /**
- * Cheia obiectului în bucket. Compusă exclusiv din valori pe care le controlăm
- * (magazin, dată, UUID) — numele venit de la client nu apare deloc, deci nu
- * există cale de traversare (`../`) sau coliziune de nume.
+ * Built only from values we control (store, date, UUID). The client's filename
+ * appears nowhere, so there is no path traversal and no name collision.
  */
 export function buildObjectKey(input: {
   storeId: string;
@@ -141,10 +133,7 @@ export function buildObjectKey(input: {
 const KEY_PATTERN =
   /^[a-zA-Z0-9][a-zA-Z0-9_-]*(?:\/[a-zA-Z0-9_-]+)*\.(?:jpg|jpeg|png|webp|avif|gif)$/;
 
-/**
- * Poarta pentru cheile venite din exterior (servire, ștergere): fără `..`,
- * fără cale absolută, fără caractere speciale, cu extensie din listă.
- */
+/** Gate for keys arriving from outside: no `..`, no absolute paths, known extension. */
 export function isValidObjectKey(key: string): boolean {
   return (
     key.length > 0 &&
@@ -154,7 +143,7 @@ export function isValidObjectKey(key: string): boolean {
   );
 }
 
-/** Tipul de conținut cu care se servește o cheie, după extensie. */
+/** The content type a key is served with, by extension. */
 export function contentTypeForKey(key: string): AllowedImageType | null {
   const extension = key.slice(key.lastIndexOf(".") + 1).toLowerCase();
   const found = Object.entries(EXTENSION_BY_TYPE).find(

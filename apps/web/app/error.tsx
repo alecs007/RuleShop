@@ -4,9 +4,9 @@ import { useEffect } from "react";
 import { TriangleAlert } from "lucide-react";
 
 /**
- * Plasa de siguranta pentru erorile neprinse: utilizatorul primeste un mesaj
- * curat si un buton de reincercare, nu un ecran alb. Detaliile raman doar in
- * logurile serverului — mesajul erorii nu se afiseaza (poate contine interne).
+ * The safety net for uncaught errors: a clean message and a retry button
+ * instead of a blank screen. The error's own message is not shown, since it
+ * may carry internals; the detail stays in the server logs.
  */
 export default function ErrorBoundary({
   error,

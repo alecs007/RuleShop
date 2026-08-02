@@ -9,9 +9,8 @@ export * from "./validate";
 let provider: StorageProvider | null = null;
 
 /**
- * Driverul de stocare activ: MinIO/S3 dacă e configurat, altfel discul local.
- * Rezerva pe disc este intenționată — aplicația trebuie să poată încărca imagini
- * si când containerul de storage nu rulează.
+ * MinIO/S3 when configured, the local disk otherwise: uploads must keep
+ * working when the storage container is not running.
  */
 export function getStorage(): StorageProvider {
   if (provider) return provider;

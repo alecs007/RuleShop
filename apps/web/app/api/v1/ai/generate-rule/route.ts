@@ -17,14 +17,14 @@ import {
 const bodySchema = z.object({
   category: z.enum(DECISION_CATEGORIES),
   request: z.string().trim().min(10).max(1000),
-  /** true => doar propunerea, fara sa creeze draftul. */
+  /** true returns the proposal without creating the draft. */
   dryRun: z.boolean().default(false),
 });
 
 /**
- * POST /api/v1/ai/generate-rule — cerinta in limbaj natural -> regula
- * structurata, validata de motor. Fara `dryRun`, propunerea valida devine o
- * regula DRAFT (nepublicata); publicarea ramane exclusiv manuala.
+ * A natural language requirement becomes a structured rule, validated by the
+ * engine. Without `dryRun` a valid proposal becomes a DRAFT; publishing stays
+ * manual.
  */
 export async function POST(request: NextRequest) {
   const actor = await authorizeAiApi(request);

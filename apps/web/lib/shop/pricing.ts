@@ -4,23 +4,21 @@ import type { Product } from "@prisma/client";
 import { evaluateRuleSet } from "@ruleshop/rule-engine";
 import { getActiveRuleset } from "@/lib/rules/service";
 import { recordEvaluation } from "@/lib/rules/evaluation-log";
-import { applyPricingDecision } from "./pricing-decision";
+import { applyPricingDecision } from "@ruleshop/storefront";
 import { getEvaluationActor } from "./context";
 
 export interface PriceViewOptions {
   /**
-   * Inregistreaza evaluarea in istoricul de evenimente (pentru istoric si
-   * simulare IA). Se cere explicit doar in punctele semnificative — pagina de
-   * produs si checkout — nu la fiecare card din catalog.
+   * Record the evaluation in the event history. Asked for only at the points
+   * that matter — product page, checkout — not for every catalog card.
    */
   record?: "product-page" | "checkout" | "cart";
 }
 
 /**
- * Prezentarea de pret a unui produs — rezultatul evaluarii rulesetului
- * PRICING publicat. Fara versiune publicata (sau cu kill switch activ),
- * pretul ramane cel de baza. UI-ul consuma doar PriceView, deci orice
- * schimbare de reguli modifica magazinul fara nicio modificare de cod.
+ * A product's price as the published PRICING ruleset decides it. The UI only
+ * ever consumes PriceView, so a rule change moves the storefront with no code
+ * change at all.
  */
 export interface PriceView {
   baseCents: number;
@@ -28,7 +26,7 @@ export interface PriceView {
   discountPercent: number;
   currency: string;
   badges: string[];
-  /** Cheile regulilor care au produs pretul + versiunea folosita. */
+  /** The rules behind the price, and the version used. */
   matchedRules: string[];
   rulesetVersion: number | null;
   traceId: string | null;

@@ -13,8 +13,8 @@ const STORES = [
 
 describe("resolveAdminStoreId", () => {
   it("tine personalul pe magazinul din contul lui, orice ar cere cookie-ul", () => {
-    // Esenta izolarii multi-tenant: un STORE_ADMIN nu isi poate schimba
-    // magazinul setandu-si un cookie.
+    // The heart of the isolation: a STORE_ADMIN cannot change store with a
+    // cookie.
     for (const role of ["STORE_ADMIN", "OPERATOR"] as const) {
       expect(
         resolveAdminStoreId({
@@ -29,7 +29,7 @@ describe("resolveAdminStoreId", () => {
   });
 
   it("nu da drept de alegere personalului fara magazin in cont", () => {
-    // Fara `storeId` nu inseamna „poate orice": cade pe magazinul activ.
+    // No `storeId` does not mean free rein: it falls back to the active store.
     expect(
       resolveAdminStoreId({
         role: "OPERATOR",
@@ -54,8 +54,8 @@ describe("resolveAdminStoreId", () => {
   });
 
   it("lasa platforma sa comute si cand contul a rămas cu un storeId", () => {
-    // Un cont promovat din STORE_ADMIN pastreaza `storeId` in rand. Daca acela ar
-    // avea prioritate, comutarea din panou n-ar avea niciun efect.
+    // An account promoted from STORE_ADMIN keeps its `storeId`. If that won,
+    // switching from the panel would do nothing at all.
     expect(
       resolveAdminStoreId({
         role: "PLATFORM_ADMIN",
@@ -110,8 +110,8 @@ describe("buildAdminStoreOptions", () => {
   });
 
   it("pastreaza magazinul administrat chiar daca a fost oprit", () => {
-    // Altfel comutatorul ar afisa alt magazin decat cel pe care lucrezi:
-    // un `select` controlat fara `option` potrivita cade pe prima valoare.
+    // Otherwise the switcher would show a store you are not working in: a
+    // controlled `select` with no matching `option` falls to its first value.
     expect(
       buildAdminStoreOptions({ stores: OPTIONS, currentStoreId: "closed" }).map(
         (store) => store.id,

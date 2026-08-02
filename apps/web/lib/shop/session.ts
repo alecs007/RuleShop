@@ -5,19 +5,15 @@ import { randomUUID } from "crypto";
 const SESSION_COOKIE = "rs_session";
 
 /**
- * Identificator stabil de sesiune de cumparaturi (guest sau autentificat).
- * Pe el se leaga cosul si, ulterior, repartizarea canary determinista.
+ * A stable shopping-session id, guest or signed in. The cart hangs off it, and
+ * so does the deterministic canary assignment.
  */
 export async function getSessionKey(): Promise<string | null> {
   const jar = await cookies();
   return jar.get(SESSION_COOKIE)?.value ?? null;
 }
 
-/**
- * Ca mai sus, dar creeaza cookie-ul daca lipseste. De apelat DOAR din
- * server actions / route handlers (Next interzice scrierea cookie-urilor
- * in timpul randarii).
- */
+/** Creates the cookie if missing. Server actions and route handlers only. */
 export async function getOrCreateSessionKey(): Promise<string> {
   const jar = await cookies();
   const existing = jar.get(SESSION_COOKIE)?.value;

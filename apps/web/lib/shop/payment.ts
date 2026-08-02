@@ -1,7 +1,7 @@
 /**
- * Plata — simulata, dar in spatele unei interfete de provider, ca integrarea
- * unui procesator real (Stripe, Netopia) sa nu ceara modificarea fluxului de
- * checkout: se adauga o implementare noua si se schimba `getPaymentProvider`.
+ * Payment is simulated, but behind a provider interface, so wiring up a real
+ * processor means a new implementation and a change in `getPaymentProvider`,
+ * not a change to the checkout flow.
  */
 
 export const PAYMENT_METHODS = [
@@ -29,11 +29,11 @@ export interface PaymentIntent {
 
 export interface PaymentResult {
   ok: boolean;
-  /** Referinta tranzactiei, pastrata pe comanda. */
+  /** The transaction reference, kept on the order. */
   reference: string | null;
-  /** Mesaj pentru client cand plata a fost refuzata. */
+  /** Shown to the customer when the payment was declined. */
   message?: string;
-  /** true cand plata se incaseaza la livrare (ramburs). */
+  /** true for cash on delivery. */
   deferred?: boolean;
 }
 
@@ -46,10 +46,7 @@ function reference(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
-/**
- * Provider simulat: autorizeaza instant. Metoda „card-refuzat" exista ca
- * jurizarea sa poata verifica si tratarea plăților eșuate.
- */
+/** Authorizes instantly. The "declined card" method exists to exercise failures. */
 export const simulatedPaymentProvider: PaymentProvider = {
   id: "simulated",
   async authorize(intent) {
@@ -71,6 +68,6 @@ export const simulatedPaymentProvider: PaymentProvider = {
 };
 
 export function getPaymentProvider(): PaymentProvider {
-  // Aici se va alege providerul real cand exista chei configurate.
+  // A real provider would be selected here once keys are configured.
   return simulatedPaymentProvider;
 }

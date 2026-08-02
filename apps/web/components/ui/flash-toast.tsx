@@ -7,9 +7,9 @@ import { flashMessage, FLASH_PARAM, isFlashKey } from "@/lib/ui/flash";
 import { skipNextScrollReset } from "./scroll-to-top";
 
 /**
- * Transformă `?flash=<cheie>` în toast, apoi scoate parametrul din URL ca
- * mesajul să nu reapară la refresh sau back. `id: key` lasă sonner să
- * deduplice (efectele rulează de două ori în dev).
+ * Turns `?flash=<key>` into a toast, then drops the parameter so the message
+ * does not come back on refresh. `id: key` lets sonner deduplicate, since
+ * effects run twice in dev.
  */
 export function FlashToast() {
   const router = useRouter();
@@ -29,7 +29,7 @@ export function FlashToast() {
     const next = new URLSearchParams(searchParams);
     next.delete(FLASH_PARAM);
     const search = next.toString();
-    // Curățarea parametrului nu e o navigare — nu mișcăm pagina.
+    // Clearing the parameter is not a navigation: do not move the page.
     skipNextScrollReset();
     router.replace(`${pathname}${search ? `?${search}` : ""}`, {
       scroll: false,

@@ -13,10 +13,10 @@ import {
   THEME_TOKEN_LABELS,
   type ActorFacts,
   type ThemeView,
-} from "@/lib/shop/theme-view";
+} from "@ruleshop/storefront";
 import { Badge } from "@/components/ui/badge";
 
-/** Cine se uita la magazin — tema poate depinde de client sau de sesiune. */
+/** Who is looking: the theme may depend on customer or session. */
 export type ThemeWho = "guest" | "client" | "vip";
 
 const WHO_LABELS: Record<ThemeWho, string> = {
@@ -54,7 +54,7 @@ function actorFor(simulation: ThemeSimulation): ActorFacts {
   };
 }
 
-/** Previzualizare in miniatura a magazinului, cu tokenurile temei aplicate. */
+/** A miniature of the storefront, with the theme tokens applied. */
 function Preview({ view }: { view: ThemeView }) {
   return (
     <div
@@ -146,7 +146,7 @@ function ResultCard({
             : view.matchedRules.map((key) => ruleNames.get(key) ?? key).join(", ")}
       </p>
 
-      {/* Tokenurile respinse sunt cel mai des cauza unei reguli „fara efect" */}
+      {/* Rejected tokens are the usual reason a rule seems to do nothing */}
       {view.rejectedTokens.length > 0 && (
         <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-2.5">
           <p className="flex items-center gap-1.5 text-xs font-medium text-critical">
@@ -171,10 +171,9 @@ const inputCls =
   "h-9 rounded-lg border border-line bg-surface px-2.5 text-sm outline-none transition-colors focus:border-accent";
 
 /**
- * „Testează tema": cum arata magazinul cu versiunea activa si — daca exista
- * drafturi — cu snapshotul care ar rezulta din publicare. Foloseste exact
- * aceeasi functie ca magazinul (`computeTheme`), deci previzualizarea nu poate
- * sa difere de realitate.
+ * The store under the active version and, if there are drafts, under the
+ * snapshot a publish would produce. Uses `computeTheme`, the same function the
+ * storefront does, so the preview cannot drift from reality.
  */
 export async function ThemeTester({
   storeId,
@@ -211,7 +210,7 @@ export async function ThemeTester({
       </h2>
 
       <div className="mt-3 rounded-xl border border-line bg-surface-raised p-4">
-        {/* Navigare GET: testul se poate trimite prin link */}
+        {/* GET navigation, so the test can be shared as a link */}
         <form className="flex flex-wrap items-end gap-3">
           <label className="text-sm">
             <span className="text-ink-muted">Vizitator</span>

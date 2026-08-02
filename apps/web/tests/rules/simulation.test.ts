@@ -42,7 +42,7 @@ const categoryIs = (value: string): ConditionNode => ({
   value,
 });
 
-/** Un eveniment de PRICING pentru un produs dintr-o categorie, la un pret dat. */
+/** A PRICING event for a product in a category, at a given price. */
 function pricingEvent(category: string, basePriceCents: number): SimulationEvent {
   return {
     context: {

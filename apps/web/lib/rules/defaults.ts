@@ -21,27 +21,24 @@ interface CategoryDefaults {
   defaultDecision: Record<string, unknown>;
 }
 
-/** Setari initiale la crearea unui ruleset (fail-safe rezonabile). */
+/** Initial settings for a new ruleset: sensible fail-safes. */
 export const CATEGORY_DEFAULTS: Record<DecisionCategory, CategoryDefaults> = {
   PRICING: {
     conflictStrategy: "BEST_FOR_CUSTOMER",
     defaultDecision: {},
   },
   SHIPPING: {
-    // Decizia de livrare are campuri independente (cost, disponibilitate,
-    // estimare), deci o strategie cu un singur castigator ar arunca in silentiu
-    // regulile de disponibilitate atunci cand exista si una de cost. Toate
-    // regulile potrivite se aplica; prioritatea mai mare are ultimul cuvant pe
-    // campurile suprascrise. Administratorul poate schimba strategia oricand.
+    // The shipping decision has independent fields, so a single-winner
+    // strategy would silently drop the availability rules whenever a cost rule
+    // also matched. All matching rules apply; the highest priority wins the
+    // fields they overlap on.
     conflictStrategy: "PRIORITY_ALL_MATCHES",
-    // Gol intentionat: fara reguli, fiecare metoda isi pastreaza costul de
-    // lista din setarile magazinului (fail-safe la kill switch).
+    // Empty on purpose: with no rules each method keeps its list price.
     defaultDecision: {},
   },
   FRAUD: {
     conflictStrategy: "PRIORITY_ALL_MATCHES",
-    // Fara cheia `decision`: prezenta ei in rezultat inseamna ca o regula a
-    // fixat decizia explicit. Altfel decizia se deduce din scor, prin praguri.
+    // No `decision` key: its presence means a rule pinned the decision.
     defaultDecision: {
       riskScore: 0,
       signals: [],
@@ -49,10 +46,7 @@ export const CATEGORY_DEFAULTS: Record<DecisionCategory, CategoryDefaults> = {
     },
   },
   AVAILABILITY: {
-    // Aceeasi situatie ca la SHIPPING: decizia are campuri independente
-    // (disponibil, ascuns, plafon, badge-uri, mesaj), deci un singur castigator
-    // ar arunca in silentiu regulile care nu au castigat. Se aplica toate;
-    // prioritatea mai mare are ultimul cuvant pe campurile suprascrise.
+    // Same as SHIPPING: independent fields, so all matching rules apply.
     conflictStrategy: "PRIORITY_ALL_MATCHES",
     defaultDecision: { available: true, hidden: false },
   },

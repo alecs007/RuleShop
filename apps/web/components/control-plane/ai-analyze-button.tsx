@@ -7,10 +7,9 @@ import { Spinner } from "@/components/ui/spinner";
 import type { AiActionState } from "@/app/(control-plane)/admin/rules/ai-actions";
 
 /**
- * Butonul „Analizează cu IA": porneste analiza pe server si raporteaza
- * rezultatul prin toast. Analiza poate dura cateva secunde — starea de
- * asteptare e vizibila, iar erorile (IA neconfigurata, timeout) ajung la
- * administrator cu mesajul lor real.
+ * Starts the analysis on the server and reports back in a toast. It can take a
+ * few seconds, so the pending state is visible and errors reach the admin with
+ * their real message.
  */
 export function AiAnalyzeButton({
   action,

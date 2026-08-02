@@ -11,10 +11,7 @@ import { nearestPriorityValue, PRIORITY_LEVELS } from "@/lib/rules/priority";
 import { formatMoney } from "@/lib/utils/money";
 import type { RuleFormState } from "@/app/(control-plane)/admin/rules/actions";
 
-// ---------------------------------------------------------------------------
-// Tipuri serializabile primite de la server (fara functii)
-// ---------------------------------------------------------------------------
-
+// Serializable types from the server: no functions.
 export interface OperatorOption {
   id: string;
   label: string;
@@ -36,7 +33,7 @@ export interface ActionParamOption {
   min?: number;
   max?: number;
   oneOf?: string[];
-  /** Lista de valori venita din configurarea magazinului (ex: metodele de livrare). */
+  /** Values from the store's own configuration, e.g. its shipping methods. */
   options?: { value: string; label: string }[];
 }
 
@@ -74,14 +71,10 @@ type SaveAction = (
   formData: FormData,
 ) => Promise<RuleFormState>;
 
-// ---------------------------------------------------------------------------
-// Constructia JSON-ului din randuri
-// ---------------------------------------------------------------------------
-
 function parseValue(row: ConditionRow, factType: string, operator?: OperatorOption): unknown {
   if (operator?.unary) return undefined;
   if (row.operator === "between") {
-    // Valori incomplete => undefined, ca sa nu se salveze 0 pe furis.
+    // Incomplete values become undefined, so no sneaky 0 gets saved.
     if (row.value === "" || row.value2 === "") return undefined;
     return [Number(row.value), Number(row.value2)];
   }
@@ -121,9 +114,8 @@ function buildConditionsJson(
 }
 
 /**
- * Valoarea implicita a unui parametru cu lista de valori: primul element.
- * Un select afiseaza oricum prima opțiune, deci fara asta s-ar trimite gol
- * exact valoarea pe care administratorul o vede selectata.
+ * A select already shows its first option, so without this the admin would
+ * submit an empty value for exactly what they see selected.
  */
 function defaultParamValue(spec: ActionParamOption): string | undefined {
   return spec.options?.[0]?.value ?? spec.oneOf?.[0];
@@ -145,15 +137,11 @@ function buildActionsJson(rows: ActionRow[], actionDefs: ActionOption[]): string
   );
 }
 
-// ---------------------------------------------------------------------------
-// Componenta
-// ---------------------------------------------------------------------------
-
-// `max-w-full`: pe telefon un select cu etichetă lungă nu trebuie să lățească pagina.
+// `max-w-full`: on a phone a long option label must not widen the page.
 const inputCls =
   "h-9 max-w-full rounded-lg border border-line bg-surface px-2.5 text-sm outline-none transition-colors focus:border-accent focus:bg-surface-raised";
 
-/** Nume prietenoase pentru parametrii actiunilor (in loc de cheile tehnice). */
+/** Friendly names for action parameters, instead of their technical keys. */
 const PARAM_LABELS: Record<string, string> = {
   value: "valoare",
   valueCents: "sumă în bani",
@@ -175,7 +163,7 @@ const PARAM_LABELS: Record<string, string> = {
   available: "disponibil",
 };
 
-/** Sufix de unitate afisat langa input (%, lei etc). */
+/** Unit suffix shown next to the input. */
 function paramSuffix(actionType: string, paramName: string): string | null {
   if (paramName.endsWith("Cents")) return null; // arata echivalentul in lei
   if (actionType.includes("DISCOUNT_PERCENT") && paramName === "value") return "%";
@@ -223,8 +211,7 @@ export function RuleForm({
     [actionRows, actionDefs],
   );
 
-  // Previzualizare live: regula tradusa in limbaj natural, ca sa fie clar
-  // pentru oricine ce va face inainte de salvare.
+  // Live preview, so it is clear what the rule will do before saving.
   const preview = useMemo(() => {
     try {
       return tryHumanizeRule(JSON.parse(conditionsJson), JSON.parse(actionsJson));
@@ -267,7 +254,6 @@ export function RuleForm({
         </div>
       )}
 
-      {/* Date generale */}
       <div className="grid gap-4 sm:grid-cols-[1fr_280px]">
         <div>
           <label htmlFor="name" className="text-sm font-medium">Nume</label>
@@ -310,7 +296,6 @@ export function RuleForm({
         />
       </div>
 
-      {/* Conditii */}
       <fieldset className="rounded-xl border border-line bg-surface-raised p-4">
         <legend className="sr-only">Condiții</legend>
         <div className="flex items-center justify-between">
@@ -447,7 +432,7 @@ export function RuleForm({
                           }
                           className={`${inputCls} min-w-40 flex-1`}
                         />
-                        {/* Sumele sunt in bani — aratam echivalentul in lei */}
+                        {/* Amounts are in minor units; show the major one */}
                         {row.fact.endsWith("Cents") && row.value !== "" &&
                           Number.isFinite(Number(row.value)) && (
                             <span className="text-xs text-ink-faint">
@@ -488,7 +473,6 @@ export function RuleForm({
         )}
       </fieldset>
 
-      {/* Actiuni — acelasi layout de randuri ca la conditii */}
       <fieldset className="rounded-xl border border-line bg-surface-raised p-4">
         <legend className="sr-only">Acțiuni</legend>
         <div className="flex items-center justify-between">
@@ -585,7 +569,7 @@ export function RuleForm({
                           {paramSuffix(row.type, spec.name)}
                         </span>
                       )}
-                      {/* Sumele se introduc in bani — aratam echivalentul in lei */}
+                      {/* Amounts are entered in minor units; show the major one */}
                       {spec.name.endsWith("Cents") &&
                         row.params[spec.name] &&
                         Number.isFinite(Number(row.params[spec.name])) && (
@@ -629,7 +613,6 @@ export function RuleForm({
         </div>
       </fieldset>
 
-      {/* Previzualizare live in limbaj natural */}
       <div className="flex items-start gap-2.5 rounded-xl border border-blue-100 bg-blue-50 p-4">
         <Sparkles className="mt-0.5 size-4 shrink-0 text-accent" strokeWidth={1.75} />
         <div className="min-w-0 text-sm leading-relaxed">

@@ -4,16 +4,16 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 /**
- * Ce trebuie sa demonstreze: interfata coșului răspunde INAINTE de server.
- * Server action-urile sunt inlocuite cu promisiuni pe care testul le rezolva
- * cand vrea — intre clic si rezolvare, ecranul trebuie sa arate deja rezultatul.
+ * The cart's UI must respond before the server does. The server actions are
+ * replaced with promises the test resolves when it likes: between the click
+ * and the resolution, the screen must already show the result.
  */
 
 const setQuantity = vi.fn();
 const removeItem = vi.fn();
 const selectMethod = vi.fn();
 
-vi.mock("@/app/(shop)/cart/actions", () => ({
+vi.mock("@/app/(shop)/[store]/cart/actions", () => ({
   setQuantityAction: (data: FormData) => setQuantity(data),
   removeItemAction: (data: FormData) => removeItem(data),
   selectShippingMethodAction: (data: FormData) => selectMethod(data),
@@ -26,7 +26,7 @@ const { CartView } = await import("@/components/shop/cart-view");
 type CartViewProps = Parameters<typeof CartView>[0];
 type CartLineView = CartViewProps["lines"][number];
 
-/** Server action care nu se termina pana nu vrea testul. */
+/** A server action that does not finish until the test says so. */
 function pending() {
   let release!: () => void;
   const promise = new Promise<void>((resolve) => {
@@ -81,6 +81,7 @@ const OPTIONS: CartViewProps["shippingOptions"] = [
 function renderCart(overrides: Partial<CartViewProps> = {}) {
   return render(
     <CartView
+      prefix={null}
       lines={[ARIA, WAVE]}
       currency="RON"
       shippingOptions={OPTIONS}
@@ -90,7 +91,7 @@ function renderCart(overrides: Partial<CartViewProps> = {}) {
   );
 }
 
-/** Linia de sumar cu eticheta data (Subtotal / Livrare / Total). */
+/** The summary row with the given label. */
 function summary(label: RegExp): string {
   const aside = screen.getByRole("complementary");
   const row = within(aside)
@@ -127,7 +128,7 @@ describe("CartView", () => {
       }),
     );
 
-    // Serverul e inca in aer: valorile de pe ecran sunt cele optimiste.
+    // The server is still in flight: the values on screen are optimistic.
     expect(setQuantity).toHaveBeenCalledTimes(1);
     expect(within(line("Căști Aria")).getByText("3")).toBeTruthy();
     expect(summary(/Subtotal/)).toContain("350,00");
@@ -196,7 +197,7 @@ describe("CartView", () => {
 
     expect(screen.queryByRole("link", { name: "Căști Aria" })).toBeNull();
     expect(summary(/Subtotal/)).toContain("50,00");
-    // Confirmarea vine abia dupa ce serverul a sters efectiv.
+    // The confirmation only comes once the server has actually deleted.
     expect(toastInfo).not.toHaveBeenCalled();
     action.release();
   });

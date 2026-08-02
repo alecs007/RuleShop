@@ -1,13 +1,11 @@
 import { contentTypeForKey, getStorage, isValidObjectKey } from "@/lib/storage";
 
 /**
- * Servirea imaginilor din bucket. Obiectele nu sunt publice: nimeni nu vorbește
- * direct cu MinIO/S3, tot traficul trece prin acest handler, care validează
- * cheia înainte de orice acces.
+ * Serves images from the bucket. The objects are not public: all traffic goes
+ * through here and the key is validated first.
  *
- * Tipul de conținut se stabilește din extensia (deja validată a) cheii, nu din
- * metadatele obiectului, iar `nosniff` împiedică browserul să reinterpreteze
- * conținutul ca altceva decât o imagine.
+ * The content type comes from the key's already-validated extension, not from
+ * the object's metadata, and `nosniff` stops the browser reinterpreting it.
  */
 export async function GET(
   _request: Request,
@@ -29,7 +27,7 @@ export async function GET(
   return new Response(object.body as BodyInit, {
     headers: {
       "Content-Type": contentType,
-      // Cheile conțin un UUID, deci conținutul unei chei nu se schimbă niciodată.
+      // Keys carry a UUID, so a key's content never changes.
       "Cache-Control": "public, max-age=31536000, immutable",
       "X-Content-Type-Options": "nosniff",
       "Content-Disposition": "inline",

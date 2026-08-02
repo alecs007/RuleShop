@@ -56,10 +56,10 @@ describe("CatalogFilters", () => {
     render(<CatalogFilters facets={FACETS} />);
     const { dialog } = await openPanel();
 
-    // Mobil: ancorat jos, inaltime plafonata, deci pagina rămâne vizibilă sus.
+    // Mobile: anchored to the bottom, capped height, page visible above.
     expect(dialog.className).toContain("max-h-[85svh]");
     expect(dialog.className).toContain("rounded-t-2xl");
-    // Peste `sm`: coloana din stanga, cu chenar la dreapta.
+    // From `sm` up: a left-hand column with a border on its right.
     expect(dialog.className).toContain("sm:border-r");
     expect(dialog.parentElement?.className).toContain("sm:justify-start");
     expect(dialog.parentElement?.className).toContain("items-end");
@@ -69,9 +69,9 @@ describe("CatalogFilters", () => {
     const { container } = render(<CatalogFilters facets={FACETS} />);
     const { dialog } = await openPanel();
 
-    // Portal: învelișul e copil direct al lui `body`, nu al componentei. Altfel
-    // un strămoș cu `transform` (animația de intrare a paginii) ar deveni
-    // containing block si fundalul ar acoperi doar cutia conținutului.
+    // The wrapper is a direct child of `body`: otherwise an ancestor with a
+    // `transform` would become the containing block and the backdrop would
+    // cover only the content box.
     const root = dialog.parentElement!;
     expect(root.parentElement).toBe(document.body);
     expect(container.contains(dialog)).toBe(false);

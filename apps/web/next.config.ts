@@ -15,19 +15,21 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
 
-  // Monorepo: rădăcina pentru urmărirea fișierelor la build este workspace-ul,
-  // nu doar acest director — altfel pachetele din `packages/` lipsesc din output.
+  // The build's file tracing root is the workspace, not this directory, or
+  // the `packages/` output is missing.
   outputFileTracingRoot: path.join(__dirname, "../../"),
 
-  // Pachetele din workspace sunt publicate ca TypeScript, nu precompilate:
-  // Next le transpilează, deci o modificare în motor se vede imediat, fără un
-  // pas de build între ele.
-  transpilePackages: ["@ruleshop/rule-engine", "@ruleshop/rate-limit"],
+  // The workspace packages ship as TypeScript, so a change in the engine shows
+  // up immediately with no build step between.
+  transpilePackages: [
+    "@ruleshop/rule-engine",
+    "@ruleshop/rate-limit",
+    "@ruleshop/storefront",
+  ],
 
   experimental: {
-    // `lucide-react` exportă mii de iconițe dintr-un singur index. Fără asta,
-    // un import de trei iconițe trage tot barrel-ul în graful de module —
-    // se simte mai ales la compilarea din `dev`.
+    // `lucide-react` exports thousands of icons from one index; without this,
+    // importing three pulls the whole barrel into the module graph.
     optimizePackageImports: ["lucide-react", "framer-motion"],
   },
 

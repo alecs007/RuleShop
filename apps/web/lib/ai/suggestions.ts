@@ -6,12 +6,10 @@ import { validateRule, type DecisionCategory, type EngineRule } from "@ruleshop/
 import { getOrCreateRuleSet } from "@/lib/rules/service";
 
 /**
- * Ciclul de viata al sugestiilor IA — cu control uman OBLIGATORIU.
- *
- * Acceptarea unei sugestii NU publica nimic: cel mult creeaza sau modifica o
- * regula cu status DRAFT, care intra in vigoare doar cand un administrator
- * apasa explicit „Publică" (fluxul manual existent, cu validare si versiune
- * imutabila). Respingerea pastreaza sugestia in istoric, pentru audit.
+ * The lifecycle of AI suggestions, with mandatory human control. Accepting one
+ * publishes nothing: at most it creates or edits a DRAFT rule, which takes
+ * effect only through the existing manual publish. Rejecting keeps the
+ * suggestion in the history, for audit.
  */
 
 export async function listSuggestions(
@@ -29,7 +27,7 @@ export async function listSuggestions(
 export interface DecisionResult {
   ok: boolean;
   message: string;
-  /** id-ul regulii DRAFT create/modificate, daca exista. */
+  /** The DRAFT rule created or edited, if any. */
   ruleId?: string;
 }
 
@@ -38,7 +36,7 @@ interface Actor {
   email: string | null;
 }
 
-/** Sugestia, doar daca apartine magazinului si inca asteapta decizie. */
+/** The suggestion, only if it belongs to the store and is still pending. */
 async function findPending(
   storeId: string,
   suggestionId: string,
@@ -65,7 +63,7 @@ export async function acceptSuggestion(
     const proposed = suggestion.proposedRule as unknown as EngineRule | null;
     if (!proposed) return { ok: false, message: "Sugestia nu conține o regulă." };
 
-    // Re-validare la aplicare: intre timp regulile/catalogul se puteau schimba.
+    // Re-validated on apply: the rules or the catalog may have moved since.
     const issues = validateRule(proposed, suggestion.category).filter(
       (i) => i.severity === "error",
     );
@@ -139,7 +137,7 @@ export async function acceptSuggestion(
       data: { enabled: false, status: "DRAFT" },
     });
   }
-  // INFO: nimic de aplicat — acceptarea doar consemneaza ca a fost citita.
+  // INFO: nothing to apply; accepting only records that it was read.
 
   await prisma.aiSuggestion.update({
     where: { id: suggestion.id },

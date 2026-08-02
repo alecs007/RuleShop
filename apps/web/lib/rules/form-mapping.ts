@@ -1,7 +1,6 @@
 /**
- * Punte intre motor si editorul de reguli: transforma definitiile motorului
- * in optiuni serializabile (fara functii) si reconstruieste starea
- * formularului dintr-o regula stocata.
+ * Bridges the engine and the rule editor: turns engine definitions into
+ * serializable options, and rebuilds form state from a stored rule.
  */
 import {
   OPERATORS,
@@ -18,7 +17,7 @@ import type {
   RuleFormInitial,
 } from "@/components/control-plane/rule-form";
 
-/** Doar faptele care exista in contextul categoriei editate. */
+/** Only the facts present in the edited category's context. */
 export function getFactOptions(category: DecisionCategory): FactOption[] {
   return factsForCategory(category).map(({ path, label, type, example }) => ({
     path,
@@ -38,12 +37,11 @@ export function getOperatorOptions(): OperatorOption[] {
 }
 
 /**
- * Valori de configurare ale magazinului oferite ca liste in editor. Nu intra
- * in catalogul motorului: metodele de livrare difera de la magazin la magazin,
- * deci nu pot fi validate ca enum fix in `@ruleshop/rule-engine`.
+ * Store configuration offered as dropdowns. It stays out of the engine
+ * catalog: shipping methods differ per store, so they cannot be a fixed enum.
  */
 export interface DynamicParamOptions {
-  /** Metodele de livrare configurate, pentru parametrul „metodă". */
+  /** The configured shipping methods, for the "method" parameter. */
   shippingMethods?: { value: string; label: string }[];
 }
 
@@ -69,9 +67,8 @@ function valueToString(value: unknown): string {
 }
 
 /**
- * Incearca sa aduca arborele de conditii in forma simpla a editorului
- * (un singur nivel AND/OR cu frunze). Daca structura e mai complexa
- * (grupuri imbricate, NOT), intoarce null — editorul comuta pe modul JSON.
+ * Flattens the condition tree into the editor's simple form. Anything more
+ * complex (nested groups, NOT) returns null and the editor switches to JSON.
  */
 function conditionsToRows(node: ConditionNode): {
   rootOp: "AND" | "OR";

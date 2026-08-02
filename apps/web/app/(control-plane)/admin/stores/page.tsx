@@ -9,14 +9,14 @@ import {
 import {
   createStoreAction,
   selectStoreAction,
-  setDefaultStoreAction,
+  setMainStoreAction,
   setStoreActiveAction,
 } from "./actions";
 
 export const metadata: Metadata = { title: "Magazine" };
 
 export default async function AdminStoresPage() {
-  // Doar platforma: un STORE_ADMIN administreaza magazinul lui, nu lista lor.
+  // Platform only: a STORE_ADMIN runs their store, not the list of them.
   const { storeId } = await requirePlatformAdmin();
   const stores = await listStoresWithCounts();
 
@@ -27,7 +27,7 @@ export default async function AdminStoresPage() {
     currency: store.currency,
     locale: store.locale,
     active: store.active,
-    isDefault: store.isDefault,
+    pathPrefix: store.pathPrefix,
     products: store._count.products,
     orders: store._count.orders,
   }));
@@ -52,7 +52,7 @@ export default async function AdminStoresPage() {
         envOverrideSlug={process.env.DEFAULT_STORE_SLUG}
         createAction={createStoreAction}
         selectAction={selectStoreAction}
-        setDefaultAction={setDefaultStoreAction}
+        setMainAction={setMainStoreAction}
         setActiveAction={setStoreActiveAction}
       />
     </div>

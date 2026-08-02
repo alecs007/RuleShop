@@ -7,10 +7,9 @@ import type { ObjectBody, StorageProvider, StoredObject } from "./provider";
 import { contentTypeForKey, isValidObjectKey } from "./validate";
 
 /**
- * Driver de rezervă: fișierele stau într-un folder de pe disc, în afara
- * `public/`, deci nu sunt servite direct de server — trec prin route handler-ul
- * de media, care le validează cheia. Folosit când MinIO/S3 nu e configurat, ca
- * aplicația să funcționeze si fără container de storage.
+ * Fallback driver: files live on disk outside `public/`, so they are never
+ * served directly — the media route handler validates the key first. Used when
+ * MinIO/S3 is not configured, so the app works without a storage container.
  */
 export class LocalStorage implements StorageProvider {
   readonly name = "local";
@@ -20,10 +19,7 @@ export class LocalStorage implements StorageProvider {
     this.root = path.resolve(process.cwd(), root);
   }
 
-  /**
-   * Calea absolută a unei chei. Cheile sunt generate de noi, dar aici se
-   * verifică din nou: orice cale care ar ieși din rădăcină e respinsă.
-   */
+  /** We generate the keys, but check again: any path escaping the root is refused. */
   private resolve(key: string): string {
     if (!isValidObjectKey(key)) {
       throw new Error("Cheie de obiect invalidă.");

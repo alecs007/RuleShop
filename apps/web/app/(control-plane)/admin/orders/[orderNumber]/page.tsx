@@ -10,7 +10,7 @@ import {
   ORDER_STATUS_LABELS,
   ORDER_STATUS_TONES,
   TRANSITION_LABELS,
-} from "@/lib/shop/order-status";
+} from "@ruleshop/storefront";
 import { formatMoney } from "@/lib/utils/money";
 import { Badge } from "@/components/ui/badge";
 import { ActionForm } from "@/components/ui/action-form";
@@ -124,7 +124,7 @@ export default async function AdminOrderDetailPage({
           </div>
         </div>
 
-        {/* Gestionarea comenzii: doar tranzitiile permise din statusul curent */}
+        {/* Only the transitions the current status allows */}
         {transitions.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             {transitions.map((next) => (
@@ -166,7 +166,7 @@ export default async function AdminOrderDetailPage({
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
         <div className="space-y-6">
-          {/* Liniile comenzii, cu preturile decise de reguli */}
+          {/* The order lines, at the prices the rules decided */}
           <div className="overflow-x-auto rounded-xl border border-line bg-surface-raised">
             <table className="w-full text-sm">
               <thead>

@@ -1,7 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
+import { storeHref } from "@/lib/shop/routing";
 
-export function Footer({ storeName = "RuleShop" }: { storeName?: string }) {
+export function Footer({
+  storeName = "RuleShop",
+  prefix,
+}: {
+  storeName?: string;
+  /** The store prefix, so links stay inside the same store. */
+  prefix: string | null;
+}) {
   return (
     <footer className="mt-16 border-t border-line bg-surface-raised">
       <div className="mx-auto grid max-w-7xl gap-12 px-4 py-10 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
@@ -21,12 +29,12 @@ export function Footer({ storeName = "RuleShop" }: { storeName?: string }) {
           <p className="text-sm font-semibold">Magazin</p>
           <ul className="mt-2 space-y-1.5 text-sm text-ink-muted">
             <li>
-              <Link href="/products" className="hover:text-ink">
+              <Link href={storeHref(prefix, "/products")} className="hover:text-ink">
                 Toate produsele
               </Link>
             </li>
             <li>
-              <Link href="/cart" className="hover:text-ink">
+              <Link href={storeHref(prefix, "/cart")} className="hover:text-ink">
                 Coșul meu
               </Link>
             </li>
@@ -36,12 +44,12 @@ export function Footer({ storeName = "RuleShop" }: { storeName?: string }) {
           <p className="text-sm font-semibold">Cont</p>
           <ul className="mt-2 space-y-1.5 text-sm text-ink-muted">
             <li>
-              <Link href="/account" className="hover:text-ink">
+              <Link href={storeHref(prefix, "/account")} className="hover:text-ink">
                 Contul meu
               </Link>
             </li>
             <li>
-              <Link href="/orders" className="hover:text-ink">
+              <Link href={storeHref(prefix, "/orders")} className="hover:text-ink">
                 Comenzile mele
               </Link>
             </li>

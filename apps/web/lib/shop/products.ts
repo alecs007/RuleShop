@@ -5,7 +5,7 @@ import {
   NEW_ARRIVAL_DAYS,
   type CatalogSelection,
   type CatalogSort,
-} from "./catalog-params";
+} from "@ruleshop/storefront";
 
 export const PRODUCT_SORTS = {
   newest: { createdAt: "desc" },
@@ -20,23 +20,22 @@ export type ProductSort = CatalogSort;
 
 export type CatalogQuery = Partial<CatalogSelection> & {
   pageSize?: number;
-  /** Produse scoase din catalog de regulile AVAILABILITY (HIDE_PRODUCT). */
+  /** Products pulled from the catalog by AVAILABILITY rules. */
   excludeIds?: string[];
 };
 
-/** Traduce selectia de filtre in `where`-ul Prisma al catalogului public. */
+/** Translates the filter selection into the catalog's Prisma `where`. */
 function catalogWhere(
   storeId: string,
   query: CatalogQuery,
 ): Prisma.ProductWhereInput {
   const and: Prisma.ProductWhereInput[] = [];
 
-  // Ascunderea prin reguli se aplica inaintea paginarii, altfel numaratorile
-  // si paginile ar fi gresite.
+  // Applied before pagination, or counts and pages would be wrong.
   if (query.excludeIds?.length) and.push({ id: { notIn: query.excludeIds } });
   if (query.categories?.length) and.push({ category: { in: query.categories } });
   if (query.brands?.length) and.push({ brand: { in: query.brands } });
-  // `hasSome`: produsul trece daca are cel putin una din etichetele cerute.
+  // `hasSome`: the product passes with at least one of the tags asked for.
   if (query.tags?.length) and.push({ tags: { hasSome: query.tags } });
   if (query.inStockOnly) and.push({ stock: { gt: 0 } });
 
@@ -45,7 +44,7 @@ function catalogWhere(
     and.push({ createdAt: { gte: since } });
   }
 
-  // Pragurile vin in lei, baza de date tine bani.
+  // Bounds arrive in major units; the database stores minor ones.
   if (query.minPrice != null) {
     and.push({ basePriceCents: { gte: Math.round(query.minPrice * 100) } });
   }
@@ -70,7 +69,7 @@ function catalogWhere(
   };
 }
 
-/** Catalogul unui magazin: cautare + filtrare + sortare + paginare. */
+/** A store's catalog: search, filter, sort, paginate. */
 export async function queryCatalog(storeId: string, query: CatalogQuery) {
   const pageSize = query.pageSize ?? 12;
   const page = Math.max(1, query.page ?? 1);
@@ -95,7 +94,7 @@ export async function queryCatalog(storeId: string, query: CatalogQuery) {
   };
 }
 
-/** Categoriile existente in catalog (pentru navigare si filtre). */
+/** The categories present in the catalog. */
 export async function getCategories(storeId: string): Promise<string[]> {
   const rows = await prisma.product.findMany({
     where: { storeId, active: true },
@@ -111,12 +110,12 @@ export interface FacetOption {
   count: number;
 }
 
-/** Tot ce are nevoie panoul de filtre pentru a se desena singur. */
+/** Everything the filter panel needs to draw itself. */
 export interface CatalogFacets {
   categories: FacetOption[];
   brands: FacetOption[];
   tags: FacetOption[];
-  /** Intervalul real de preț din catalog, in lei (rotunjit spre exterior). */
+  /** The catalog's real price range, rounded outwards. */
   minPrice: number;
   maxPrice: number;
   inStockCount: number;
@@ -131,14 +130,13 @@ function tally(map: Map<string, number>, key: string) {
 function toOptions(map: Map<string, number>): FacetOption[] {
   return [...map.entries()]
     .map(([value, count]) => ({ value, count }))
-    // Intai cele mai frecvente, apoi alfabetic — lista rămâne stabila.
+    // Most frequent first, then alphabetical, so the list stays stable.
     .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, "ro"));
 }
 
 /**
- * Valorile disponibile pentru filtrare, calculate peste tot catalogul activ
- * (nu peste rezultatul filtrat) — altfel opțiunile ar dispărea pe măsură ce
- * utilizatorul filtrează și nu ar mai putea reveni.
+ * Computed over the whole active catalog, not the filtered result: otherwise
+ * options would vanish as the user filters and they could not go back.
  */
 export async function getCatalogFacets(
   storeId: string,

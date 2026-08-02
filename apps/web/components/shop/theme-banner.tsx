@@ -1,8 +1,8 @@
 import { Megaphone } from "lucide-react";
 
 /**
- * Bannerul decis de rulesetul THEME. Textul este randat de React ca text, nu ca
- * HTML — o regula nu poate injecta markup in pagina.
+ * The banner the THEME ruleset decides. React renders it as text, not HTML, so
+ * a rule cannot inject markup into the page.
  */
 export function ThemeBanner({ message }: { message: string }) {
   return (

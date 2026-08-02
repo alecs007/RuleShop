@@ -1,7 +1,6 @@
 /**
- * Date demonstrative: doua magazine independente (izolare multi-tenant),
- * fiecare cu propriul catalog si propriul set de reguli publicate.
- * Scriptul este idempotent (upsert).
+ * Demo data: two independent stores, each with its own catalog and its own
+ * published rules. Idempotent.
  */
 import { PrismaClient } from "@prisma/client";
 import { provisionStarterRulesets } from "../lib/rules/provision";
@@ -11,9 +10,8 @@ import { seedActivity, type SeedCustomer } from "./seed-activity";
 const prisma = new PrismaClient();
 
 /**
- * Ilustrațiile sunt generate din `scripts/product-art.ts` cu `pnpm product-art`
- * și versionate în `public/images/products/`. Fiecare produs primește imaginea
- * lucrului pe care îl vinde, pe fundal alb — nu o fotografie oarecare.
+ * The illustrations come from `scripts/product-art.ts` (`pnpm product-art`) and
+ * are versioned under `public/images/products/`.
  */
 const img = (art: string) => `/images/products/${art}.png`;
 
@@ -25,17 +23,16 @@ interface SeedProduct {
   priceCents: number;
   stock: number;
   description: string;
-  /** Greutatea de livrare — faptul `cart.weightGrams` din regulile de livrare. */
+  /** Shipping weight, read by shipping rules as `cart.weightGrams`. */
   weightGrams: number;
-  /** Numele ilustrației din `public/images/products/`, fără extensie. */
+  /** The illustration's name, without its extension. */
   art: string;
   tags?: string[];
 }
 
 /**
- * Metodele de livrare, ca setari de magazin: fiecare magazin are lista lui, iar
- * costul final il decide rulesetul SHIPPING la runtime. Cele doua magazine au
- * intentionat liste diferite — izolarea multi-tenant se vede si aici.
+ * Shipping methods are store settings, and the final cost is the SHIPPING
+ * ruleset's call at runtime. The two stores have deliberately different lists.
  */
 const roShippingMethods = [
   { id: "curier-standard", label: "Curier standard", costCents: 1999, etaDaysMin: 2, etaDaysMax: 4, sortOrder: 1 },
@@ -51,33 +48,28 @@ const deShippingMethods = [
 ];
 
 const roProducts: SeedProduct[] = [
-  // audio
   { sku: "AUD-001", name: "Căști wireless Aria X2", category: "audio", brand: "Aria", priceCents: 34900, stock: 42, weightGrams: 320, description: "Căști over-ear cu anulare activă a zgomotului, autonomie de 40 de ore și încărcare rapidă USB-C.", art: "headphones", tags: ["wireless", "noise-cancelling"] },
   { sku: "AUD-002", name: "Boxă portabilă Wave Mini", category: "audio", brand: "Wave", priceCents: 19900, stock: 65, weightGrams: 580, description: "Boxă bluetooth compactă, rezistentă la apă IPX7, 12 ore de redare.", art: "speaker", tags: ["bluetooth", "portabil"] },
   { sku: "AUD-003", name: "Căști in-ear Pulse Buds Pro", category: "audio", brand: "Pulse", priceCents: 24900, stock: 4, weightGrams: 60, description: "True wireless cu ANC hibrid, două microfoane per cască și carcasă cu încărcare wireless.", art: "earbuds", tags: ["wireless"] },
-  // laptopuri
   { sku: "LAP-001", name: "Laptop Nova Air 14", category: "laptopuri", brand: "Nova", priceCents: 429900, stock: 12, weightGrams: 1200, description: "Ultraportabil de 14\", 1.2 kg, ecran 2.8K 90 Hz, 16 GB RAM și SSD de 1 TB.", art: "laptop", tags: ["ultraportabil"] },
   { sku: "LAP-002", name: "Laptop Nova Pro 16", category: "laptopuri", brand: "Nova", priceCents: 689900, stock: 7, weightGrams: 2100, description: "Stație de lucru mobilă cu ecran 16\" 120 Hz, GPU dedicat și răcire cu două ventilatoare.", art: "laptop", tags: ["performanta"] },
   { sku: "LAP-003", name: "Laptop Atlas Studio 15", category: "laptopuri", brand: "Atlas", priceCents: 549900, stock: 0, weightGrams: 1800, description: "Pentru creatori de conținut: ecran OLED calibrat, 32 GB RAM, SSD 2 TB.", art: "laptop", tags: ["creator", "oled"] },
-  // telefoane
   { sku: "TEL-001", name: "Telefon Vertex 9", category: "telefoane", brand: "Vertex", priceCents: 399900, stock: 25, weightGrams: 195, description: "Ecran AMOLED 6.4\" 120 Hz, cameră principală de 50 MP cu stabilizare optică, baterie de 5000 mAh.", art: "phone", tags: ["5g"] },
   { sku: "TEL-002", name: "Telefon Vertex 9 Pro", category: "telefoane", brand: "Vertex", priceCents: 549900, stock: 18, weightGrams: 210, description: "Varianta Pro cu teleobiectiv periscop 5x, încărcare 80W și certificare IP68.", art: "phone", tags: ["5g", "flagship"] },
   { sku: "TEL-003", name: "Telefon Mono Lite", category: "telefoane", brand: "Mono", priceCents: 149900, stock: 50, weightGrams: 180, description: "Esențialul făcut bine: ecran de 6.1\", două zile de autonomie, Android curat.", art: "phone", tags: ["buget"] },
-  // accesorii
   { sku: "ACC-001", name: "Încărcător GaN 65W", category: "accesorii", brand: "Volt", priceCents: 12900, stock: 80, weightGrams: 120, description: "Încărcător compact GaN cu 2×USB-C și 1×USB-A, putere totală de 65W.", art: "charger", tags: ["usb-c"] },
   { sku: "ACC-002", name: "Mouse ergonomic Drift", category: "accesorii", brand: "Drift", priceCents: 15900, stock: 35, weightGrams: 95, description: "Mouse vertical wireless cu senzor de 4000 DPI și click-uri silențioase.", art: "mouse", tags: ["ergonomic", "wireless"] },
   { sku: "ACC-003", name: "Tastatură mecanică Keystone 75", category: "accesorii", brand: "Keystone", priceCents: 44900, stock: 22, weightGrams: 850, description: "Layout 75%, switch-uri hot-swap, iluminare RGB per tastă, carcasă din aluminiu.", art: "keyboard", tags: ["mecanica", "rgb"] },
   { sku: "ACC-004", name: "Hub USB-C 8-in-1", category: "accesorii", brand: "Volt", priceCents: 18900, stock: 3, weightGrams: 75, description: "HDMI 4K60, 2×USB 3.2, cititor SD/microSD, Ethernet gigabit și Power Delivery 100W.", art: "hub", tags: ["usb-c"] },
-  // gaming
   { sku: "GAM-001", name: "Controller Nimbus Pro", category: "gaming", brand: "Nimbus", priceCents: 27900, stock: 30, weightGrams: 280, description: "Controller wireless cu trigger-e adaptive, butoane spate programabile și autonomie de 30 de ore.", art: "controller", tags: ["wireless"] },
   { sku: "GAM-002", name: "Monitor gaming Prism 27", category: "gaming", brand: "Prism", priceCents: 179900, stock: 9, weightGrams: 6400, description: "27\" QHD, 165 Hz, 1 ms, HDR400 și suport cu reglaj complet pe înălțime.", art: "monitor", tags: ["165hz", "qhd"] },
   { sku: "GAM-003", name: "Scaun gaming Throne S", category: "gaming", brand: "Throne", priceCents: 129900, stock: 6, weightGrams: 21500, description: "Spătar reglabil 165°, suport lombar magnetic, tapițerie textilă respirabilă.", art: "gaming-chair", tags: ["ergonomic"] },
 ];
 
 /**
- * Clientii demonstrativi. Treptele de loialitate sunt alese ca sa acopere
- * ramurile regulilor: un VIP prinde reducerea de 15%, un STANDARD nu prinde
- * nimic, iar `country` schimba tema si intra in evaluarea antifrauda.
+ * The tiers are chosen to cover the rules' branches: a VIP catches the 15%
+ * discount, a STANDARD catches nothing, and `country` moves both the theme and
+ * the fraud evaluation.
  */
 const roCustomers: SeedCustomer[] = [
   { email: "ana.popescu@example.com", name: "Ana Popescu", loyaltyTier: "VIP", country: "RO", paidOrders: 4 },
@@ -108,13 +100,15 @@ interface SeedStoreInput {
   name: string;
   currency: string;
   locale: string;
+  /** The path prefix; `null` is the main store, served at the root. */
+  pathPrefix: string | null;
   products: SeedProduct[];
   shippingMethods: (typeof roShippingMethods)[number][];
   ruleOptions: StoreRuleOptions;
   customers: SeedCustomer[];
-  /** Cate comenzi demonstrative primeste magazinul. */
+  /** How many demo orders the store gets. */
   orderCount: number;
-  /** Seed-ul generatorului determinist — diferit per magazin. */
+  /** The deterministic generator's seed, different per store. */
   randomSeed: number;
 }
 
@@ -123,6 +117,7 @@ async function seedStore({
   name,
   currency,
   locale,
+  pathPrefix,
   products,
   shippingMethods,
   ruleOptions,
@@ -133,8 +128,10 @@ async function seedStore({
   const settings = { shippingMethods };
   const store = await prisma.store.upsert({
     where: { slug },
-    create: { slug, name, currency, locale, settings },
-    update: { name, currency, locale, settings },
+    create: { slug, name, currency, locale, pathPrefix, settings },
+    // The prefix is written on update too: the seed defines the demo
+    // topology, including which store is served at the root.
+    update: { name, currency, locale, pathPrefix, settings },
   });
 
   for (const p of products) {
@@ -183,8 +180,8 @@ async function seedStore({
     changeSummary: "Reguli demonstrative de start (seed).",
   });
 
-  // Activitatea se genereaza peste produsele deja scrise, ca liniile de comanda
-  // sa trimita la produse reale din acest magazin.
+  // Activity is generated over the products already written, so order lines
+  // point at real products from this store.
   const catalog = await prisma.product.findMany({ where: { storeId: store.id } });
   const activity = await seedActivity({
     db: prisma,
@@ -214,6 +211,7 @@ async function main() {
     name: "RuleShop",
     currency: "RON",
     locale: "ro-RO",
+    pathPrefix: null,
     products: roProducts,
     shippingMethods: roShippingMethods,
     ruleOptions: {
@@ -229,29 +227,18 @@ async function main() {
     name: "RuleShop DE",
     currency: "EUR",
     locale: "de-DE",
+    pathPrefix: "de",
     products: deProducts,
     shippingMethods: deShippingMethods,
     ruleOptions: {
       shipping: { express: "dhl-express", locker: "packstation" },
-      // Alt accent pentru magazinul german: aceeasi platforma, alta identitate.
+      // A different accent for the German store: same platform, own identity.
       theme: { hex: "#0f766e", ink: "#115e59", countryCode: "DE" },
     },
     customers: deCustomers,
     orderCount: 12,
     randomSeed: 20260202,
   });
-
-  // Clientii au nevoie de un magazin activ. Un re-seed NU il schimba:
-  // administratorul poate fi mutat magazinul activ din panou, iar seed-ul nu are
-  // ce sa corecteze acolo.
-  const withDefault = await prisma.store.count({ where: { isDefault: true } });
-  if (withDefault === 0) {
-    const store = await prisma.store.update({
-      where: { slug: "ruleshop-ro" },
-      data: { isDefault: true },
-    });
-    console.log(`✔ magazin activ (cel văzut de clienți): ${store.slug}`);
-  }
 }
 
 main()

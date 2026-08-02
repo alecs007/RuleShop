@@ -1,13 +1,8 @@
 import type { RateLimitStore } from "./types";
 
 /**
- * Clientul Redis, redus la ce folosim. Tipat structural ca să nu impunem
- * `ioredis` ca dependință a pachetului — orice client cu `defineCommand` merge.
- *
- * Comanda definită la runtime prin `defineCommand` nu există în tipul
- * clientului, deci se citește printr-un acces indexat explicit (`asRecord`) în
- * loc de o semnătură de index pe interfață — aceea ar fi respinsă de `Redis`,
- * care nu declară una.
+ * The Redis client reduced to what we use, typed structurally so the package
+ * does not depend on `ioredis`.
  */
 export interface RedisLike {
   defineCommand(
@@ -17,22 +12,14 @@ export interface RedisLike {
   del(key: string): Promise<unknown>;
 }
 
+/** `defineCommand` adds the command at runtime, so it is not on the type. */
 function asRecord(client: RedisLike): Record<string, unknown> {
   return client as unknown as Record<string, unknown>;
 }
 
 /**
- * GCRA într-un singur script Lua — deci într-un singur drum dus-întors și
- * atomic.
- *
- * Varianta cu `INCR` + `EXPIRE` + `TTL` are două defecte pe care asta le
- * închide: sunt trei comenzi (deci trei drumuri, iar între `INCR` și `EXPIRE`
- * procesul poate muri și cheia rămâne fără termen de expirare, blocând clientul
- * pentru totdeauna), și nu sunt atomice, deci două cereri simultane pot citi
- * aceeași stare.
- *
- * Ceasul e cel al serverului Redis (`TIME`), nu al aplicației: cu mai multe
- * instanțe web, ceasurile lor nu trebuie să fie de acord între ele.
+ * GCRA in one Lua script: atomic, one round trip, and on the Redis server's
+ * clock (`TIME`), so the web instances' clocks need not agree.
  */
 const GCRA_LUA = `
 local emission  = tonumber(ARGV[1])
@@ -54,8 +41,7 @@ local allowAt = newTat - tolerance
 
 local allowed, finalTat
 if allowAt > now then
-  -- Refuzată: bugetul NU se consumă, altfel un client care insistă și-ar
-  -- împinge singur fereastra tot mai departe.
+  -- Rejected requests do not consume budget.
   allowed  = 0
   finalTat = tat
 else
@@ -84,8 +70,7 @@ export class RedisStore implements RateLimitStore {
   readonly name = "redis" as const;
 
   constructor(private readonly redis: RedisLike) {
-    // `defineCommand` trimite EVALSHA și retrimite scriptul singur dacă Redis a
-    // fost repornit și nu îl mai are în cache.
+    // Sends EVALSHA and resends the script itself if Redis lost its cache.
     this.redis.defineCommand(COMMAND, { numberOfKeys: 1, lua: GCRA_LUA });
   }
 
@@ -96,8 +81,7 @@ export class RedisStore implements RateLimitStore {
     toleranceMs: number,
     cost: number,
   ) {
-    // Apelat ca metodă, nu ca funcție extrasă: comanda generată de ioredis are
-    // nevoie de `this` — clientul.
+    // Called as a method: the ioredis-generated command needs `this`.
     const run = asRecord(this.redis)[COMMAND] as (
       this: RedisLike,
       key: string,

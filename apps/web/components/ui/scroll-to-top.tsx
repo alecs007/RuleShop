@@ -4,23 +4,19 @@ import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 /**
- * Duce pagina în capăt la fiecare schimbare de adresă.
+ * Scrolls to the top on every address change. Next does this itself, but not
+ * reliably here: `template.tsx` animates the content with a `transform`, and
+ * Next's "is the top already visible?" heuristic reads the shifted position
+ * and skips the scroll.
  *
- * Next face asta singur, dar nu de încredere aici: `template.tsx` animează
- * conținutul cu un `transform`, iar euristica lui („e deja vizibil vârful
- * paginii?") citește poziția deplasată de animație și sare peste derulare. Un
- * efect explicit e mai simplu de urmărit decât să ne luptăm cu euristica.
- *
- * Două excepții, amândouă anunțate din cod prin `skipNextScrollReset()`:
- *  - back/forward, unde browserul restaurează poziția — a duce utilizatorul în
- *    capăt când se întoarce într-o listă lungă ar fi o regresie;
- *  - navigările care schimbă doar query string-ul ca stare de UI, nu ca pagină
- *    nouă (testerul de preț, curățarea parametrului `flash`).
+ * Two exceptions, both announced from code through `skipNextScrollReset()`:
+ * back/forward, where the browser restores the position, and navigations that
+ * only change the query string as UI state rather than as a new page.
  */
 
 let skipNext = false;
 
-/** Sări peste următoarea readucere în capăt (navigare care nu e „pagină nouă"). */
+/** Skip the next scroll reset, for a navigation that is not a new page. */
 export function skipNextScrollReset() {
   skipNext = true;
 }
@@ -29,8 +25,8 @@ export function ScrollToTop() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Back/forward: lăsăm restaurarea browserului. `popstate` ajunge înaintea
-  // re-randării, deci steagul e pus la timp.
+  // Leave back/forward to the browser. `popstate` arrives before the
+  // re-render, so the flag is set in time.
   useEffect(() => {
     const onPopState = () => skipNextScrollReset();
     window.addEventListener("popstate", onPopState);

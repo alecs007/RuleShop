@@ -10,11 +10,11 @@ import {
   computeAvailability,
   type ActorFacts,
   type AvailabilityView,
-} from "@/lib/shop/availability-view";
+} from "@ruleshop/storefront";
 import { Badge } from "@/components/ui/badge";
 import { ProductSearch } from "./product-search";
 
-/** Cine se uita la produs — regulile pot depinde de client sau sesiune. */
+/** Who is looking: the rules may depend on customer or session. */
 export type TesterWho = "guest" | "client" | "vip";
 
 const WHO_LABELS: Record<TesterWho, string> = {
@@ -99,10 +99,9 @@ const inputCls =
   "h-9 rounded-lg border border-line bg-surface px-2.5 text-sm outline-none transition-colors focus:border-accent";
 
 /**
- * „Testează pe un produs": disponibilitatea decisa de versiunea activa si —
- * daca exista drafturi — de snapshotul care ar rezulta din publicare. Foloseste
- * exact aceeasi functie ca magazinul (`computeAvailability`), deci ce se vede
- * aici este ce vede clientul.
+ * Availability under the active version and, if there are drafts, under the
+ * snapshot a publish would produce. Uses `computeAvailability`, the same
+ * function the storefront does, so this is what the customer sees.
  */
 export async function AvailabilityTester({
   storeId,
@@ -197,7 +196,7 @@ export async function AvailabilityTester({
             extraParams={who === "guest" ? undefined : { who }}
           />
 
-          {/* Navigare GET: testul se poate trimite prin link */}
+          {/* GET navigation, so the test can be shared as a link */}
           <form className="flex items-end gap-2">
             {testedProductId && (
               <input type="hidden" name="test" value={testedProductId} />
@@ -224,7 +223,6 @@ export async function AvailabilityTester({
 
         {tested && live && candidate && (
           <div className="mt-4 flex flex-col gap-4 lg:flex-row">
-            {/* Produsul testat, cu imagine si stocul real */}
             <div className="flex w-full items-center gap-3 lg:w-56 lg:flex-col lg:items-start">
               <div className="relative size-20 shrink-0 overflow-hidden rounded-xl bg-zinc-100 lg:size-32 lg:w-full">
                 {tested.imageUrls[0] && (

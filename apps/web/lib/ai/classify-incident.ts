@@ -5,12 +5,9 @@ import { logAudit } from "@/lib/audit";
 import { assertAiQuota, generateJson } from "./gemini";
 
 /**
- * Clasificarea asistata a unui incident antifrauda.
- *
- * IA primeste semnalele si contextul incidentului (calculate deja de motor si
- * de aplicatie) si intoarce o OPINIE: probabil frauda / probabil legitim /
- * date insuficiente, cu incredere si motivatie. Decizia ramane a operatorului
- * — fluxul de review din /admin/fraud nu se schimba; opinia doar il ajuta.
+ * The AI receives the incident's signals and context, already computed, and
+ * returns an opinion with a confidence and a rationale. The decision stays
+ * with the operator: the review flow in /admin/fraud is unchanged.
  */
 
 const PROMPT_VERSION = 1;
@@ -47,7 +44,7 @@ export async function classifyIncident(
   });
   if (!incident) throw new Error("Incidentul nu există.");
 
-  // Istoricul aceluiasi cumparator — calculat de aplicatie, nu de IA.
+  // The same buyer's history, computed by the app, not the model.
   const [priorIncidents, priorOrders] = await Promise.all([
     prisma.fraudIncident.count({
       where: {

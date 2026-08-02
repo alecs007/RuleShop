@@ -3,20 +3,15 @@ import { MemoryStore } from "./memory-store";
 import type { RateLimitPolicy, RateLimitResult, RateLimitStore } from "./types";
 
 export interface RateLimiterOptions {
-  /** Magazinul principal. Lipsă = se folosește doar memoria procesului. */
+  /** The primary store. Omitted means process memory only. */
   store?: RateLimitStore | null;
-  /** Prefix pentru toate cheile, ca să nu se lovească de alte date din Redis. */
   prefix?: string;
-  /** Notificat când magazinul principal cedează (o dată per eroare). */
   onStoreError?: (error: unknown) => void;
 }
 
 /**
- * Limitatorul de rată.
- *
- * Ține un magazin principal (Redis) și unul de rezervă (memoria procesului).
- * Când principalul cedează, comportamentul e ales de politică — implicit se
- * cade pe memorie, ca protecția să slăbească, nu să dispară.
+ * Holds a primary store (Redis) and a process-memory fallback, so that when
+ * the primary fails the protection weakens instead of disappearing.
  */
 export class RateLimiter {
   private readonly store: RateLimitStore | null;
@@ -30,12 +25,7 @@ export class RateLimiter {
     this.onStoreError = options.onStoreError;
   }
 
-  /**
-   * Consumă o unitate din bugetul cheii.
-   *
-   * `cost` permite ca o operație scumpă să consume mai mult decât una ieftină
-   * (de exemplu un apel AI care generează o regulă întreagă).
-   */
+  /** `cost` lets an expensive operation (e.g. an AI call) draw more budget. */
   async consume(
     key: string,
     policy: RateLimitPolicy,
@@ -83,7 +73,7 @@ export class RateLimiter {
             source: "store-error",
           };
         }
-        // `fallback` — mai jos, pe memorie.
+        // `fallback` — falls through to memory below.
       }
     }
 
@@ -98,9 +88,8 @@ export class RateLimiter {
   }
 
   /**
-   * Șterge bugetul unei chei. Se cheamă după o operație reușită care nu ar
-   * trebui să lase urme — de exemplu un login corect, ca încercările greșite
-   * dinaintea lui să nu se adune peste sesiunea următoare.
+   * Clears a key's budget, so failed attempts before a successful sign-in do
+   * not carry over into the next session.
    */
   async reset(key: string): Promise<void> {
     const namespaced = `${this.prefix}:${key}`;
@@ -131,7 +120,6 @@ export class RateLimiter {
   }
 }
 
-/** Antetele standard pentru un răspuns 429 (sau pentru orice răspuns limitat). */
 export function rateLimitHeaders(result: RateLimitResult): Record<string, string> {
   const headers: Record<string, string> = {
     "X-RateLimit-Limit": String(result.limit),

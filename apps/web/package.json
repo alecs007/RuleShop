@@ -33,6 +33,7 @@
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@prisma/client": "^6.16.2",
     "@ruleshop/rate-limit": "workspace:*",
+    "@ruleshop/storefront": "workspace:*",
     "@ruleshop/rule-engine": "workspace:*",
     "bcryptjs": "^3.0.2",
     "clsx": "^2.1.1",

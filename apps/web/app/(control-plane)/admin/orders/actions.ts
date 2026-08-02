@@ -5,7 +5,7 @@ import type { OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { requireStaff } from "@/lib/auth/guards";
 import { logAudit } from "@/lib/audit";
-import { allowedTransitions } from "@/lib/shop/order-status";
+import { allowedTransitions } from "@ruleshop/storefront";
 import { syncCustomerStats } from "@/lib/shop/customer-stats";
 
 export async function updateOrderStatusAction(formData: FormData): Promise<void> {
@@ -14,14 +14,14 @@ export async function updateOrderStatusAction(formData: FormData): Promise<void>
   const nextStatus = formData.get("status") as OrderStatus | null;
   if (typeof orderId !== "string" || !nextStatus) return;
 
-  // Scoping pe storeId: comenzile altui magazin nu exista pentru acest staff.
+  // Scoped by storeId: another store's orders do not exist here.
   const order = await prisma.order.findFirst({ where: { id: orderId, storeId } });
   if (!order) return;
   if (!allowedTransitions(order.status).includes(nextStatus)) {
     throw new Error("Tranziție de status nepermisă.");
   }
 
-  // Anularea intoarce stocul in catalog (comanda l-a scazut la plasare).
+  // Cancelling returns the stock the order took at placement.
   if (nextStatus === "CANCELLED") {
     const items = await prisma.orderItem.findMany({
       where: { orderId: order.id },
@@ -40,8 +40,8 @@ export async function updateOrderStatusAction(formData: FormData): Promise<void>
     where: { id: order.id },
     data: { status: nextStatus },
   });
-  // Statusul a intrat sau a ieșit din categoria „incasat" ⇒ faptele de client
-  // folosite de reguli trebuie recalculate.
+  // The status crossed the "paid" line, so the customer facts the rules read
+  // must be recomputed.
   await syncCustomerStats(storeId, order.userId);
   await logAudit({
     storeId,
@@ -56,8 +56,8 @@ export async function updateOrderStatusAction(formData: FormData): Promise<void>
     metadata: { orderNumber: order.orderNumber },
   });
 
-  // `layout` acopera si paginile clientului: comanda lui isi arata noul status
-  // la prima navigare, fara sa fie nevoie de vreo acțiune din partea lui.
+  // `layout` covers the customer's pages too, so their order shows the new
+  // status on their next navigation.
   revalidatePath("/admin/orders");
   revalidatePath("/", "layout");
 }

@@ -1,14 +1,9 @@
 /**
- * Mesaje „flash”: confirmări care trebuie să supraviețuiască unei navigări.
- *
- * Un server action care se termină cu `redirect()` (sau un `signIn`/`signOut`
- * care reîncarcă pagina) nu poate afișa el însuși un toast — componenta care
- * l-a pornit nu mai există. Așa că acțiunea pune o cheie în URL
- * (`?flash=signed-in`), iar `components/ui/flash-toast.tsx` o transformă în
- * toast la încărcare și curăță parametrul.
- *
- * Doar chei, niciodată text liber în URL: mesajul vine din registrul de aici,
- * deci nimeni nu poate injecta conținut prin query string.
+ * Confirmations that must survive a navigation. An action ending in
+ * `redirect()` cannot show a toast itself — the component that started it is
+ * gone — so it puts a key in the URL and `flash-toast.tsx` turns it into a
+ * toast on load. Keys only, never free text: the message comes from the
+ * registry here, so nothing can be injected through the query string.
  */
 
 export const FLASH_PARAM = "flash";
@@ -40,16 +35,12 @@ export function isFlashKey(value: unknown): value is FlashKey {
   return typeof value === "string" && value in FLASH_MESSAGES;
 }
 
-/** Accesor tipizat: `satisfies` păstrează cheile, dar îngustează prea mult valorile. */
+/** Typed accessor: `satisfies` keeps the keys but narrows the values too far. */
 export function flashMessage(key: FlashKey): FlashMessage {
   return FLASH_MESSAGES[key];
 }
 
-/**
- * Adaugă cheia de flash la o adresă internă, păstrând parametrii existenți.
- * Baza `http://flash.local` e doar un artificiu ca `URL` să accepte căi
- * relative; nu ajunge niciodată în rezultat.
- */
+/** The `http://flash.local` base only makes `URL` accept relative paths. */
 export function withFlash(path: string, key: FlashKey): string {
   const url = new URL(path, "http://flash.local");
   url.searchParams.set(FLASH_PARAM, key);

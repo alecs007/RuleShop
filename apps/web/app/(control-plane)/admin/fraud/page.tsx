@@ -5,9 +5,9 @@ import type { Prisma } from "@prisma/client";
 import { requireStaff } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
 import { getRuleNames } from "@/lib/rules/service";
-import { DECISION_LABELS, RISK_LEVEL_LABELS } from "@/lib/shop/fraud-risk";
-import type { FraudDecisionValue, RiskLevelValue } from "@/lib/shop/fraud-risk";
-import { ORDER_STATUS_LABELS, ORDER_STATUS_TONES } from "@/lib/shop/order-status";
+import { DECISION_LABELS, RISK_LEVEL_LABELS } from "@ruleshop/storefront";
+import type { FraudDecisionValue, RiskLevelValue } from "@ruleshop/storefront";
+import { ORDER_STATUS_LABELS, ORDER_STATUS_TONES } from "@ruleshop/storefront";
 import { formatMoney } from "@/lib/utils/money";
 import { Badge } from "@/components/ui/badge";
 import { IncidentReview } from "@/components/control-plane/incident-review";
@@ -278,7 +278,7 @@ export default async function FraudPage({
                   )}
                 </div>
 
-                {/* Opinia IA — vizibila si dupa review, ca istoric */}
+                {/* The AI's opinion, kept visible after review as history */}
                 {(incident.reviewStatus === "OPEN" || incident.aiClassification) && (
                   <div className="mt-3 border-t border-line pt-3">
                     <AiIncidentOpinion

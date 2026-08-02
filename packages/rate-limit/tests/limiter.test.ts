@@ -4,7 +4,7 @@ import type { RateLimitPolicy, RateLimitStore } from "../src/types";
 
 const policy: RateLimitPolicy = { limit: 3, windowSeconds: 60 };
 
-/** Magazin care cedează mereu — pentru comportamentul la Redis căzut. */
+/** A store that always fails, for the Redis-down behaviour. */
 function brokenStore(): RateLimitStore {
   return {
     name: "redis",

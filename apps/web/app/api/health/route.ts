@@ -4,12 +4,10 @@ import { prisma } from "@/lib/db/prisma";
 export const dynamic = "force-dynamic";
 
 /**
- * Healthcheck public.
- *
- * Intoarce 200 cat timp aplicatia raspunde, cu starea bazei de date ca
- * diagnostic. Detaliul erorii NU ajunge in raspuns: mesajele Prisma pot
- * conține connection string-ul (deci si parola), iar endpointul este
- * neautentificat. Cauza reala se vede in logurile serverului.
+ * Public healthcheck. Returns 200 while the app answers, with the database
+ * state as a diagnostic. The error detail is deliberately left out: Prisma
+ * messages can carry the connection string, password included, and this
+ * endpoint is unauthenticated. The real cause is in the server logs.
  */
 export async function GET() {
   let database: "ok" | "unavailable" = "ok";

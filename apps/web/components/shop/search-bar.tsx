@@ -3,8 +3,9 @@
 import { Search } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { startRouteLoading } from "@/components/ui/route-loading";
+import { storeHref } from "@/lib/shop/routing";
 
-export function SearchBar() {
+export function SearchBar({ prefix }: { prefix: string | null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -17,7 +18,7 @@ export function SearchBar() {
         const q = new FormData(e.currentTarget).get("q");
         const params = new URLSearchParams();
         if (typeof q === "string" && q.trim()) params.set("q", q.trim());
-        const href = `/products${params.size ? `?${params}` : ""}`;
+        const href = storeHref(prefix, `/products${params.size ? `?${params}` : ""}`);
         startRouteLoading(href);
         router.push(href);
       }}

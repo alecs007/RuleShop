@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils/cn";
 const WIDE_LOGO = "/images/wide-logo.svg";
 const SQUARE_LOGO = "/images/square-logo.svg";
 
-/** Iconul pătrat (fără link) — pentru sidebar, favicon-like, avatare. */
+/** The square mark, without a link: sidebar, avatars, favicon-like uses. */
 export function LogoMark({
   className,
   alt = "RuleShop",
@@ -20,10 +20,7 @@ export function LogoMark({
   );
 }
 
-/**
- * Logo-ul magazinului: wordmark lat pe ecrane mari, iconul pătrat pe mobil.
- * Raportul SVG-urilor: wide 1600×332, square 1254×1254.
- */
+/** Wide wordmark on large screens, square mark on mobile. */
 export function Logo({
   name = "RuleShop",
   href = "/",

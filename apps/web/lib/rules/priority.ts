@@ -1,7 +1,6 @@
 /**
- * Prioritatea regulilor, pe intelesul administratorilor: 4 niveluri denumite
- * in loc de un numar abstract. Motorul lucreaza in continuare cu numere —
- * nivelurile sunt doar o harta prietenoasa peste ele.
+ * Four named levels instead of an abstract number. The engine still works in
+ * numbers; the levels are only a friendlier map over them.
  */
 export interface PriorityLevel {
   value: number;
@@ -16,7 +15,7 @@ export const PRIORITY_LEVELS: PriorityLevel[] = [
   { value: 1000, label: "Critică", hint: "bate aproape orice (ex: blocări, plafoane)" },
 ];
 
-/** Eticheta nivelului cel mai apropiat de un numar arbitrar. */
+/** The label of the level nearest an arbitrary number. */
 export function priorityLabel(priority: number): string {
   let best = PRIORITY_LEVELS[0]!;
   for (const level of PRIORITY_LEVELS) {
@@ -27,7 +26,7 @@ export function priorityLabel(priority: number): string {
   return best.label.toLowerCase();
 }
 
-/** Valoarea de nivel cea mai apropiata (pentru preselectarea in editor). */
+/** The nearest level value, for preselecting in the editor. */
 export function nearestPriorityValue(priority: number): number {
   let best = PRIORITY_LEVELS[0]!;
   for (const level of PRIORITY_LEVELS) {

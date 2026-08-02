@@ -1,8 +1,7 @@
 import "server-only";
 import { PrismaClient } from "@prisma/client";
 
-// Singleton: in dev, hot-reload-ul ar crea altfel o conexiune noua la fiecare
-// recompilare.
+// Singleton: hot reload would otherwise open a new connection per rebuild.
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient();

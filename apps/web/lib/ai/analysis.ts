@@ -22,22 +22,17 @@ import { assertAiQuota, generateJson } from "./gemini";
 import { describeCatalog, RULE_FORMAT_SPEC } from "./rule-catalog";
 
 /**
- * Analiza unui ruleset cu ajutorul IA.
- *
- * Impartirea responsabilitatilor (ceruta de barem):
- *  - APLICATIA calculeaza tot ce e masurabil: statistici de utilizare per
- *    regula din evenimente reale, dublurile de conditii, simularea
- *    candidatului pe istoric. IA nu evalueaza reguli si nu produce cifre.
- *  - IA interpreteaza cifrele si propune: reguli noi, modificari de praguri/
- *    prioritati/conditii, dezactivari — fiecare cu explicatie, impact estimat
- *    (marcat ca estimare) si un nivel de incredere.
- *  - Fiecare propunere trece prin validarea motorului si asteapta decizia
- *    unui OM (accepta => cel mult DRAFT; publicarea ramane manuala).
+ * AI-assisted ruleset analysis, with the split of responsibilities that makes
+ * it trustworthy: the application computes everything measurable (per-rule
+ * usage, duplicate conditions, the simulation over history), the AI only
+ * interprets those numbers and proposes changes, and every proposal goes
+ * through engine validation and waits for a human — accepting one yields a
+ * DRAFT at most.
  */
 
 const PROMPT_VERSION = 1;
 const MAX_SUGGESTIONS = 8;
-/** Sub atatea evaluari, "regula nefolosita" nu inseamna nimic. */
+/** Below this many evaluations, "unused rule" means nothing. */
 const MIN_EVENTS_FOR_USAGE = 10;
 
 const suggestionParser = z.object({
@@ -57,15 +52,15 @@ const suggestionParser = z.object({
 });
 
 export interface DeterministicFindings {
-  /** Reguli active fara nicio potrivire in fereastra analizata. */
+  /** Enabled rules with no match in the window analysed. */
   unusedRuleKeys: string[];
-  /** Grupuri de reguli cu arbori de conditii identici. */
+  /** Groups of rules with identical condition trees. */
   duplicateConditionGroups: string[][];
-  /** Reguli dezactivate care exista doar ca balast. */
+  /** Disabled rules that are only dead weight. */
   disabledRuleKeys: string[];
 }
 
-/** Constatarile pe care aplicatia le poate demonstra singura, fara IA. */
+/** What the application can demonstrate on its own, without the AI. */
 export function computeDeterministicFindings(
   snapshot: RuleSetSnapshot,
   stats: UsageStats,
@@ -113,7 +108,7 @@ export async function runRulesetAnalysis(
 ): Promise<AnalysisRun> {
   await assertAiQuota(storeId, "analyze");
 
-  // 1) Datele calculate de aplicatie.
+  // 1) The data the application computes.
   const [candidate, active, events] = await Promise.all([
     buildCandidateSnapshot(storeId, category),
     getActiveRuleset(storeId, category),
@@ -130,7 +125,7 @@ export async function runRulesetAnalysis(
       )
     : null;
 
-  // 2) Interpretarea IA.
+  // 2) The AI's interpretation.
   const rulesForPrompt = candidate.rules.map((rule) => {
     const usage = stats.perRule[rule.key];
     const text = tryHumanizeRule(rule.conditions, rule.actions);
@@ -190,7 +185,7 @@ ${JSON.stringify(promptPayload, null, 2)}`;
     temperature: 0.3,
   });
 
-  // 3) Validare + persistare cu trasabilitate completa.
+  // 3) Validation and persistence, with full traceability.
   const runId = randomUUID();
   const inputDigest = digestOf(promptPayload);
   const existingKeys = new Set(candidate.rules.map((r) => r.key));

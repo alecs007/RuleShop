@@ -15,19 +15,15 @@ import {
   SORT_OPTIONS,
   isCatalogSort,
   type CatalogSelection,
-} from "@/lib/shop/catalog-params";
+} from "@ruleshop/storefront";
 import { cn } from "@/lib/utils/cn";
 import { startRouteLoading } from "@/components/ui/route-loading";
 import { Button } from "@/components/ui/button";
 
 /**
- * Filtrele catalogului: un singur buton „Filtre” care deschide un panou cu
- * toate criteriile (categorie, brand, preț, stoc, noutăți, etichete, sortare).
- * Categoriile nu se mai repeta in pagina — navigarea pe categorii rămâne in
- * header, iar aici sunt filtre compozabile.
- *
- * Sursa de adevar e URL-ul: panoul lucreaza pe o copie locala („draft”) si o
- * comite la „Aplică”, ca sa nu declanseze o navigare per bifa.
+ * One button that opens a panel with every criterion. The URL is the source of
+ * truth: the panel works on a local draft and commits it on "Apply", so a tick
+ * does not trigger a navigation of its own.
  */
 export function CatalogFilters({ facets }: { facets: CatalogFacets }) {
   const router = useRouter();
@@ -43,14 +39,14 @@ export function CatalogFilters({ facets }: { facets: CatalogFacets }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<CatalogSelection>(applied);
 
-  // Panoul porneste mereu de la ce e deja aplicat.
+  // The panel always starts from what is already applied.
   useEffect(() => {
     if (open) setDraft(applied);
   }, [open, applied]);
 
   const navigate = useCallback(
     (selection: CatalogSelection) => {
-      // Orice schimbare de filtru readuce utilizatorul pe prima pagina.
+      // Any filter change returns to the first page.
       const href = catalogHref({ ...selection, page: 1 }, pathname);
       startRouteLoading(href);
       router.push(href);
@@ -65,7 +61,7 @@ export function CatalogFilters({ facets }: { facets: CatalogFacets }) {
 
   const clearAll = () => {
     setOpen(false);
-    // Căutarea din header nu e un filtru al panoului — o pastram.
+    // The header's search is not a panel filter, so it survives.
     navigate({ ...EMPTY_SELECTION, q: applied.q, sort: applied.sort });
   };
 
@@ -94,7 +90,7 @@ export function CatalogFilters({ facets }: { facets: CatalogFacets }) {
         )}
       </button>
 
-      {/* Filtrele active, ca etichete care se pot scoate una câte una. */}
+      {/* Active filters, removable one by one. */}
       {chips.map((chip) => (
         <button
           key={chip.key}
@@ -160,10 +156,6 @@ export function CatalogFilters({ facets }: { facets: CatalogFacets }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Panoul
-// ---------------------------------------------------------------------------
-
 function FilterPanel({
   facets,
   draft,
@@ -179,7 +171,7 @@ function FilterPanel({
   onApply: () => void;
   onReset: () => void;
 }) {
-  // Escape inchide panoul; cat e deschis, pagina din spate nu se mai deruleaza.
+  // Escape closes it; while open the page behind does not scroll.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -199,13 +191,11 @@ function FilterPanel({
     [facets.minPrice, facets.maxPrice],
   );
 
-  // Panoul se randează în `document.body`, nu în locul lui din arbore: altfel
-  // orice strămoș cu `transform` (animația de intrare a paginii, o tranziție
-  // framer-motion) devine containing block pentru `position: fixed`, iar
-  // fundalul ar acoperi doar cutia conținutului, nu tot ecranul.
+  // Rendered into `document.body`: any ancestor with a `transform` would
+  // become the containing block for `position: fixed`, and the backdrop would
+  // cover only the content box instead of the screen.
   return createPortal(
-    // Pe mobil: foaie de jos care lasă produsele la vedere deasupra.
-    // De la `sm` in sus: panou pe stânga, langă coloana de filtre a paginii.
+    // A bottom sheet on mobile, a left-hand panel from `sm` up.
     <div className="fixed inset-0 z-50 flex items-end sm:items-stretch sm:justify-start">
       <div
         className="absolute inset-0 bg-ink/30"
@@ -219,7 +209,7 @@ function FilterPanel({
         aria-labelledby="catalog-filters-title"
         className="filter-sheet relative flex max-h-[85svh] w-full flex-col rounded-t-2xl border-t border-line bg-surface-raised shadow-subtle sm:h-full sm:max-h-none sm:max-w-sm sm:rounded-none sm:border-r sm:border-t-0"
       >
-        {/* Prindere vizuală de foaie — doar pe mobil */}
+        {/* Sheet grabber, mobile only */}
         <div
           className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-line sm:hidden"
           aria-hidden
@@ -396,10 +386,6 @@ function FilterPanel({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Piese de UI
-// ---------------------------------------------------------------------------
-
 function Section({
   title,
   hint,
@@ -551,14 +537,10 @@ function PriceInput({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 interface ActiveChip {
   key: string;
   label: string;
-  /** Aceeasi selectie, fara filtrul reprezentat de eticheta. */
+  /** The same selection, without the filter this chip stands for. */
   without: CatalogSelection;
 }
 
@@ -623,7 +605,7 @@ function priceLabel(min: number | null, max: number | null): string {
   return `sub ${max} lei`;
 }
 
-/** Trepte „rotunde” pentru intervalele rapide de preț. */
+/** Round steps for the quick price ranges. */
 const NICE_STEPS = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10_000];
 
 function pricePresets(min: number, max: number) {

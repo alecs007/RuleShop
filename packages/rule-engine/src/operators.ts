@@ -1,10 +1,7 @@
 /**
- * Registrul de operatori al motorului de reguli.
- *
- * Fiecare operator declara tipurile de fapte cu care este compatibil —
- * editorul si validarea folosesc aceasta informatie ca sa ofere doar
- * operatori compatibili cu tipul datelor evaluate (cerinta din barem).
- * Compararea este stricta: tipuri incompatibile => false, niciodata exceptie.
+ * The operator registry. Each operator declares the fact types it accepts, so
+ * the editor and the validation can offer only compatible ones. Incompatible
+ * types compare to false, never to an exception.
  */
 
 export type FactType = "string" | "number" | "boolean" | "date" | "array" | "any";
@@ -12,14 +9,12 @@ export type FactType = "string" | "number" | "boolean" | "date" | "array" | "any
 export interface OperatorDef {
   id: string;
   label: string;
-  /** Tipurile de fact acceptate. */
   factTypes: FactType[];
-  /** true daca operatorul nu are nevoie de `value` (unar). */
+  /** true if the operator needs no `value`. */
   unary?: boolean;
   test: (actual: unknown, expected: unknown) => boolean;
 }
 
-/** Detecteaza tipul logic al unei valori din context. */
 export function factTypeOf(value: unknown): FactType | "null" {
   if (value === null || value === undefined) return "null";
   if (Array.isArray(value)) return "array";
@@ -36,13 +31,12 @@ export function factTypeOf(value: unknown): FactType | "null" {
   }
 }
 
-/** Coercitie numerica sigura (fara NaN silentios). */
 function asNumber(v: unknown): number | null {
   if (typeof v === "number" && Number.isFinite(v)) return v;
   return null;
 }
 
-/** Datele pot veni ca Date, ISO string sau timestamp numeric. */
+/** Dates arrive as Date, ISO string or numeric timestamp. */
 function asTime(v: unknown): number | null {
   if (v instanceof Date) return v.getTime();
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -61,7 +55,7 @@ function compareNumeric(
   const a = asNumber(actual);
   const b = asNumber(expected);
   if (a !== null && b !== null) return cmp(a, b);
-  // fallback: comparatie de date calendaristice
+  // Fall back to comparing them as dates.
   const ta = asTime(actual);
   const tb = asTime(expected);
   if (ta !== null && tb !== null) return cmp(ta, tb);
@@ -70,7 +64,7 @@ function compareNumeric(
 
 function looseEquals(a: unknown, b: unknown): boolean {
   if (a === b) return true;
-  // egalitate de date calendaristice indiferent de reprezentare
+  // Equal dates, whatever their representation.
   const ta = asTime(a);
   const tb = asTime(b);
   if (ta !== null && tb !== null && (a instanceof Date || b instanceof Date)) {
@@ -80,7 +74,6 @@ function looseEquals(a: unknown, b: unknown): boolean {
 }
 
 const defs: OperatorDef[] = [
-  // --- egalitate (orice tip primitiv) ---
   {
     id: "eq",
     label: "este egal cu",
@@ -94,7 +87,6 @@ const defs: OperatorDef[] = [
     test: (a, e) => !looseEquals(a, e),
   },
 
-  // --- comparatii numerice / temporale ---
   { id: "gt", label: "mai mare decât", factTypes: ["number", "date"], test: (a, e) => compareNumeric(a, e, (x, y) => x > y) },
   { id: "gte", label: "mai mare sau egal", factTypes: ["number", "date"], test: (a, e) => compareNumeric(a, e, (x, y) => x >= y) },
   { id: "lt", label: "mai mic decât", factTypes: ["number", "date"], test: (a, e) => compareNumeric(a, e, (x, y) => x < y) },
@@ -112,7 +104,6 @@ const defs: OperatorDef[] = [
     },
   },
 
-  // --- apartenenta la multime ---
   {
     id: "in",
     label: "este în listă",
@@ -126,7 +117,6 @@ const defs: OperatorDef[] = [
     test: (a, e) => Array.isArray(e) && !e.some((v) => looseEquals(a, v)),
   },
 
-  // --- text ---
   {
     id: "contains",
     label: "conține",
@@ -168,7 +158,6 @@ const defs: OperatorDef[] = [
       a.toLowerCase().endsWith(e.toLowerCase()),
   },
 
-  // --- array ---
   {
     id: "containsAny",
     label: "conține oricare din",
@@ -186,7 +175,6 @@ const defs: OperatorDef[] = [
       e.every((v) => a.some((x) => looseEquals(x, v))),
   },
 
-  // --- unari ---
   { id: "exists", label: "există", factTypes: ["any"], unary: true, test: (a) => a !== null && a !== undefined },
   { id: "notExists", label: "nu există", factTypes: ["any"], unary: true, test: (a) => a === null || a === undefined },
   { id: "isTrue", label: "este adevărat", factTypes: ["boolean"], unary: true, test: (a) => a === true },
@@ -203,7 +191,7 @@ export function getOperator(id: string): OperatorDef | undefined {
   return OPERATORS.get(id);
 }
 
-/** Operatorii compatibili cu un tip de fact — pentru editorul de reguli. */
+/** Used by the rule editor to offer only operators that fit the fact. */
 export function operatorsForFactType(type: FactType): OperatorDef[] {
   return defs.filter((d) => d.factTypes.includes(type) || d.factTypes.includes("any"));
 }

@@ -6,41 +6,33 @@ export { rateLimitHeaders } from "@ruleshop/rate-limit";
 export type { RateLimitResult } from "@ruleshop/rate-limit";
 
 /**
- * Politicile de limitare, într-un singur loc.
- *
- * Le ținem grupate ca să se poată răspunde dintr-o privire la „ce e limitat și
- * cât", în loc să fie numere risipite prin handlere. Fiecare spune și ce se
- * întâmplă dacă Redis cade — decizia nu este aceeași peste tot.
+ * Every rate-limit policy in one place, so "what is limited, and how much" is
+ * answerable at a glance. Each also states what happens if Redis falls over,
+ * because the answer is not the same everywhere.
  */
 export const POLICIES = {
   /**
-   * Anti brute-force pe cont. `burst: 3` lasă câteva greșeli de tastare
-   * consecutive, dar apoi forțează un ritm lent; `deny` la Redis căzut, pentru
-   * că un magazin de stare indisponibil nu e un motiv bun să deschidem
-   * autentificarea (rezerva din memorie ar prinde oricum majoritatea cazurilor,
-   * dar aici preferăm să nu depindem de asta).
+   * Anti brute-force. `burst: 3` allows a few consecutive typos and then
+   * forces a slow pace; `deny` on a Redis outage, because an unavailable
+   * state store is no reason to open up authentication.
    */
   login: { limit: 10, windowSeconds: 600, burst: 3, onStoreError: "deny" },
 
-  /** Codul de comandă are 6 cifre — fără plafon ar putea fi ghicit. */
+  /** The order code is 6 digits: without a cap it could be guessed. */
   orderChallenge: { limit: 5, windowSeconds: 900, burst: 2, onStoreError: "deny" },
 
-  /** Plasările repetate rapid sunt fie o eroare de UI, fie abuz. */
+  /** Rapid repeat submissions are either a UI bug or abuse. */
   checkout: { limit: 5, windowSeconds: 60, burst: 2 },
 
-  /** Încărcările de imagini din control plane. */
+  /** Image uploads from the control plane. */
   uploads: { limit: 60, windowSeconds: 60 },
 
-  /** Cotele cheii Gemini: un buton apăsat în buclă nu trebuie să le consume. */
+  /** Gemini quotas: a button held down must not burn through them. */
   aiAnalyze: { limit: 10, windowSeconds: 3600, burst: 3 },
   aiGenerate: { limit: 20, windowSeconds: 3600, burst: 5 },
   aiClassify: { limit: 30, windowSeconds: 3600, burst: 5 },
 
-  /**
-   * Plafon de scriere în istoricul de evaluări. Aici limitarea e igienă, nu
-   * securitate: dacă Redis lipsește, e mai bine să scriem istoricul decât să-l
-   * pierdem.
-   */
+  /** Hygiene, not security: with no Redis, better to write history than lose it. */
   evaluationLog: { limit: 120, windowSeconds: 60, onStoreError: "allow" },
 } as const satisfies Record<string, RateLimitPolicy>;
 
@@ -63,16 +55,14 @@ function getLimiter(): RateLimiter {
 }
 
 /**
- * Consumă o unitate din bugetul unei chei, sub o politică denumită.
- *
- * `subject` este ce anume limităm (email, sesiune, magazin) — se adaugă la
- * numele politicii, deci bugetele nu se amestecă între politici.
+ * `subject` is what is being limited (email, session, store); it is namespaced
+ * by the policy name, so budgets never bleed between policies.
  */
 export function rateLimit(policy: PolicyName, subject: string, cost = 1) {
   return getLimiter().consume(`${policy}:${subject}`, POLICIES[policy], cost);
 }
 
-/** Șterge bugetul unei chei — de exemplu după un login reușit. */
+/** Clears a key's budget, e.g. after a successful sign-in. */
 export function resetRateLimit(policy: PolicyName, subject: string) {
   return getLimiter().reset(`${policy}:${subject}`);
 }

@@ -1,0 +1,31 @@
+{
+  "name": "@ruleshop/storefront",
+  "version": "1.0.0",
+  "description": "Deciziile de storefront (preț, disponibilitate, livrare, fraudă, loialitate, temă), ca serviciu pur peste rule engine.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ruleshop/rule-engine": "workspace:*",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

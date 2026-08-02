@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { ShoppingBag } from "lucide-react";
+import { storeHref } from "@/lib/shop/routing";
 
-/** Coșul gol — aceeași stare pe server (coș inexistent) și în client (după ce ultima linie a fost ștearsă optimist). */
-export function EmptyCart() {
+/** The same empty state on the server and after the last line is removed. */
+export function EmptyCart({ prefix }: { prefix: string | null }) {
   return (
     <div className="flex flex-col items-center py-24 text-center">
       <ShoppingBag className="size-10 text-ink-faint" strokeWidth={1.5} />
@@ -11,7 +12,7 @@ export function EmptyCart() {
         Produsele adăugate rămân salvate, chiar și fără cont.
       </p>
       <Link
-        href="/products"
+        href={storeHref(prefix, "/products")}
         className="mt-6 inline-flex h-11 items-center rounded-lg bg-ink px-5 text-sm font-medium text-white transition-colors hover:bg-zinc-700"
       >
         Vezi produsele

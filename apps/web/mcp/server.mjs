@@ -1,21 +1,18 @@
 #!/usr/bin/env node
 /**
- * Serverul MCP al platformei RuleShop.
+ * RuleShop's MCP server, exposing the control plane's analysis tools over
+ * stdio so any MCP client can run rule analysis, history simulation and rule
+ * generation.
  *
- * Expune capabilitatile de analiza si asistenta ale control plane-ului ca
- * tool-uri MCP (stdio), astfel incat orice client MCP (Claude Code, alt agent)
- * poate opera analiza regulilor, simularea pe istoric si generarea de reguli.
+ * It never touches the database: it talks to /api/v1 with the service token,
+ * so every guarantee stays in the application — rule validation, multi-tenant
+ * isolation, the audit log, and the mandatory human approval. Nothing is
+ * published through MCP; suggestions become DRAFTs at most.
  *
- * Arhitectura: serverul NU atinge baza de date — vorbeste cu aplicatia prin
- * API-ul /api/v1 autorizat cu tokenul de serviciu (MCP_API_TOKEN). Astfel
- * toate garantiile raman in aplicatie: validarea regulilor, izolarea
- * multi-tenant, auditul si aprobarea umana obligatorie (nimic nu se publica
- * prin MCP — sugestiile devin cel mult DRAFT-uri).
- *
- * Pornire:  pnpm mcp
- * Env:      RULESHOP_URL (implicit http://localhost:3000)
- *           MCP_API_TOKEN (obligatoriu — acelasi din .env-ul aplicatiei)
- *           RULESHOP_STORE (slug-ul magazinului; implicit magazinul activ)
+ * Start with `pnpm mcp`.
+ * Env: RULESHOP_URL (default http://localhost:3000)
+ *      MCP_API_TOKEN (required, the same as the app's)
+ *      RULESHOP_STORE (store slug; defaults to the active store)
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -32,7 +29,7 @@ if (!TOKEN) {
   process.exit(1);
 }
 
-/** Apel autenticat spre API-ul aplicatiei; erorile devin mesaje lizibile. */
+/** An authenticated call to the app's API; errors become readable messages. */
 async function api(path, { method = "GET", body } = {}) {
   const url = new URL(`/api/v1${path}`, BASE_URL);
   if (STORE) url.searchParams.set("store", STORE);

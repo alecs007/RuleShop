@@ -1,16 +1,13 @@
 import { Spinner } from "./spinner";
 
 /**
- * Starea de încărcare a unei pagini, folosită de toate fișierele `loading.tsx`.
+ * The page loading state, used by every `loading.tsx`. One spinner rather than
+ * skeletons on purpose: the loading screen starts on click and must look the
+ * same until the content is ready, and a skeleton in between would break that.
  *
- * Deliberat un singur spinner, nu schelete: ecranul de încărcare porneșe la clic
- * (`components/ui/route-loading.tsx`) și trebuie să arate la fel până când
- * conținutul e gata — un schelet care apare între cele două ar rupe tranziția.
- *
- * `delayed-spinner` îl ține invizibil primele câteva sute de milisecunde: dacă
- * pagina vine repede, locul rămâne gol și nimeni nu vede un spinner care
- * clipește. Întârzierea e în CSS, nu în JS, pentru că asta e o graniță de
- * Suspense — nu avem unde rula un timer.
+ * `delayed-spinner` keeps it invisible for the first few hundred milliseconds.
+ * The delay is in CSS, not JS: this is a Suspense boundary, with nowhere to
+ * run a timer.
  */
 export function LoadingScreen() {
   return (

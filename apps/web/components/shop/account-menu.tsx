@@ -12,16 +12,23 @@ import {
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { withFlash } from "@/lib/ui/flash";
+import { storeHref } from "@/lib/shop/routing";
 
 interface SessionUser {
   name?: string | null;
   email?: string | null;
   image?: string | null;
-  /** Personalul vede scurtatura spre control plane, nu meniul de client. */
+  /** Staff get the control plane shortcut, not the customer menu. */
   isStaff?: boolean;
 }
 
-export function AccountMenu({ user }: { user: SessionUser | null }) {
+export function AccountMenu({
+  user,
+  prefix,
+}: {
+  user: SessionUser | null;
+  prefix: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -90,7 +97,7 @@ export function AccountMenu({ user }: { user: SessionUser | null }) {
           ) : (
             <>
               <Link
-                href="/account"
+                href={storeHref(prefix, "/account")}
                 role="menuitem"
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-zinc-100"
@@ -98,7 +105,7 @@ export function AccountMenu({ user }: { user: SessionUser | null }) {
                 <UserRound className="size-4" strokeWidth={1.75} /> Contul meu
               </Link>
               <Link
-                href="/orders"
+                href={storeHref(prefix, "/orders")}
                 role="menuitem"
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-zinc-100"

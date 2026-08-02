@@ -1,20 +1,11 @@
 /**
- * Regulile demonstrative de start, pentru toate cele sase categorii de decizie.
+ * Demo starter rules for all six decision categories, so a fresh install shows
+ * the engine actually working. They are a plausible starting point, not
+ * imposed behaviour: every rule can be edited, disabled or deleted.
  *
- * Rostul lor: un evaluator care deschide magazinul imediat dupa instalare
- * trebuie sa VADA motorul lucrand — prețuri modificate, livrare gratuită peste
- * un prag, comenzi suspecte oprite, plafoane de cantitate, puncte de loialitate
- * si o temă care se schimbă în funcție de client. Sunt un punct de plecare
- * plauzibil, nu un comportament impus: fiecare regulă se poate edita, dezactiva
- * sau șterge din control plane.
- *
- * Regulile sunt DATE, deci se pot descrie aici la fel ca in editor. Faptele,
- * operatorii si actiunile folosite sunt exact cele din cataloagele motorului —
- * `validateSnapshot` le verifica inainte de publicare (vezi
- * `lib/rules/provision.ts`), deci un set de start invalid nu trece in silentiu.
- *
- * Le foloseste si seed-ul demonstrativ, si crearea unui magazin nou din control
- * plane: un magazin proaspat porneste cu motorul deja functional.
+ * Used both by the seed and by store creation. `validateSnapshot` checks them
+ * before publishing (see `lib/rules/provision.ts`), so an invalid starter set
+ * cannot slip through quietly.
  */
 import type {
   ConditionNode,
@@ -31,7 +22,7 @@ export interface SeedRule {
   actions: EngineRule["actions"];
 }
 
-// --- prescurtari pentru condiții, ca definițiile să se citească ca în editor --
+// Condition shorthands, so the definitions read like they do in the editor.
 
 const eq = (fact: string, value: unknown): ConditionNode => ({
   type: "condition",
@@ -79,15 +70,13 @@ const all = (...children: ConditionNode[]): ConditionNode => ({
   children,
 });
 
-/** Prioritățile denumite din control plane (lib/rules/priority.ts). */
+/** The named priorities from the control plane (lib/rules/priority.ts). */
 const NORMAL = 100;
 const RIDICATA = 500;
 const CRITICA = 1000;
 
-// ---------------------------------------------------------------------------
-// PRICING — strategia implicită e „cea mai avantajoasă pentru client", deci
-// dintre regulile potrivite câștigă UNA, cea care lasă prețul cel mai mic.
-// ---------------------------------------------------------------------------
+// PRICING — the default strategy is best-for-customer, so exactly one matching
+// rule wins: the one leaving the lowest price.
 
 const pricingRules: SeedRule[] = [
   {
@@ -135,10 +124,8 @@ const pricingRules: SeedRule[] = [
   },
 ];
 
-// ---------------------------------------------------------------------------
-// SHIPPING — se evaluează o dată per metodă; metodele diferă de la magazin la
-// magazin, deci regulile care vizează o metodă anume sunt parametrizate.
-// ---------------------------------------------------------------------------
+// SHIPPING — evaluated once per method, and methods differ between stores, so
+// rules targeting a specific method take it as a parameter.
 
 function shippingRules(methods: {
   express: string;
@@ -188,11 +175,8 @@ function shippingRules(methods: {
   ];
 }
 
-// ---------------------------------------------------------------------------
-// FRAUD — regulile adună scor; pragurile din defaultDecision traduc scorul în
-// verdict (challenge 30 / review 55 / block 80). O regulă poate fixa direct
-// decizia, iar atunci pragurile nu mai contează.
-// ---------------------------------------------------------------------------
+// FRAUD — rules add score, and the thresholds in defaultDecision turn it into
+// a verdict. A rule may pin the decision, and then thresholds do not matter.
 
 const fraudRules: SeedRule[] = [
   {
@@ -258,10 +242,8 @@ const fraudRules: SeedRule[] = [
   },
 ];
 
-// ---------------------------------------------------------------------------
-// AVAILABILITY — regulile pot doar să restrângă: stocul spune ce EXISTĂ,
-// regulile spun ce se poate CUMPĂRA.
-// ---------------------------------------------------------------------------
+// AVAILABILITY — rules can only restrict: stock says what exists, rules say
+// what can be bought.
 
 const availabilityRules: SeedRule[] = [
   {
@@ -312,10 +294,8 @@ const availabilityRules: SeedRule[] = [
   },
 ];
 
-// ---------------------------------------------------------------------------
-// LOYALTY — punctele de bază vin din valoarea coșului; regulile multiplică,
-// adaugă bonus, acordă beneficii și pot ridica nivelul afișat.
-// ---------------------------------------------------------------------------
+// LOYALTY — base points come from the cart value; rules multiply them, add
+// bonuses and benefits, and may raise the tier shown.
 
 const loyaltyRules: SeedRule[] = [
   {
@@ -366,10 +346,8 @@ const loyaltyRules: SeedRule[] = [
   },
 ];
 
-// ---------------------------------------------------------------------------
-// THEME — aspectul magazinului, decis de reguli. Tokenurile și variantele sunt
-// dintr-o listă închisă; o valoare în afara formatului permis este respinsă.
-// ---------------------------------------------------------------------------
+// THEME — tokens and variants come from a closed list; a value outside the
+// permitted format is rejected.
 
 function themeRules(accent: {
   hex: string;
@@ -445,16 +423,14 @@ function themeRules(accent: {
   ];
 }
 
-// ---------------------------------------------------------------------------
-
 export interface StoreRuleOptions {
-  /** Id-urile metodelor de livrare vizate de reguli (diferă per magazin). */
+  /** Ids of the shipping methods the rules target; these differ per store. */
   shipping: { express: string; locker: string };
-  /** Accentul „local" și țara pentru care se aplică. */
+  /** The "local" accent colour and the country it applies to. */
   theme: { hex: string; ink: string; countryCode: string };
 }
 
-/** Setul complet de reguli de start pentru un magazin, pe categorii. */
+/** The full starter set for a store, by category. */
 export function seedRulesFor(
   options: StoreRuleOptions,
 ): Record<DecisionCategory, SeedRule[]> {

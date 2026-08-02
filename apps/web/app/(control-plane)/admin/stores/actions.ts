@@ -9,7 +9,7 @@ import {
   StoreAdminError,
   createStore,
   selectAdminStore,
-  setDefaultStore,
+  setMainStore,
   setStoreActive,
 } from "@/lib/shop/store-admin";
 
@@ -21,7 +21,7 @@ export interface StoreActionState {
 const createSchema = z.object({
   name: z.string().trim().min(2).max(80),
   slug: storeSlugSchema,
-  // Coduri standard, ca sa nu ajunga in baza de date orice string.
+  // Standard codes, so not any string reaches the database.
   currency: z
     .string()
     .trim()
@@ -31,12 +31,18 @@ const createSchema = z.object({
     .string()
     .trim()
     .regex(/^[a-z]{2}-[A-Z]{2}$/, "Limba: format ll-CC (ex: ro-RO, de-DE)."),
-  makeDefault: z.coerce.boolean().default(false),
+  /** `de` -> /de. Empty means the main store; uniqueness is checked in `createStore`. */
+  pathPrefix: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z][a-z0-9-]{0,30}$/, "Prefixul: litere mici, cifre și cratime.")
+    .nullable(),
 });
 
 const storeIdSchema = z.object({ storeId: z.string().min(1) });
 
-/** Traduce erorile de business in mesaj pentru formular; restul rămân in loguri. */
+/** Turns business errors into form messages; the rest stay in the logs. */
 function failure(error: unknown, fallback: string): StoreActionState {
   if (error instanceof StoreAdminError) return { ok: false, message: error.message };
   console.error("[stores] operația a eșuat:", error);
@@ -54,7 +60,7 @@ export async function createStoreAction(
     slug: formData.get("slug"),
     currency: formData.get("currency"),
     locale: formData.get("locale"),
-    makeDefault: formData.get("makeDefault") === "on",
+    pathPrefix: (formData.get("pathPrefix") as string | null)?.trim() || null,
   });
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Date invalide." };
@@ -75,7 +81,7 @@ export async function createStoreAction(
         name: store.name,
         currency: store.currency,
         locale: store.locale,
-        isDefault: store.isDefault,
+        pathPrefix: store.pathPrefix,
       },
     });
 
@@ -90,12 +96,12 @@ export async function createStoreAction(
 }
 
 /**
- * Comuta panoul pe alt magazin. Nu schimba magazinul activ — clienții văd în
- * continuare același magazin.
+ * Switches the panel to another store. The active store is untouched, so
+ * customers still see the same one.
  *
- * Comutarea e o preferință de panou, deci un eșec nu dărâmă pagina: panoul
- * rămâne pe magazinul curent și motivul ajunge în interfață, ca administratorul
- * să nu creadă că lucrează pe alt magazin decât o arată panoul.
+ * This is a panel preference, so a failure does not break the page: the panel
+ * stays put and says why, rather than letting an admin believe they are
+ * working somewhere they are not.
  */
 export async function selectStoreAction(
   formData: FormData,
@@ -116,7 +122,7 @@ export async function selectStoreAction(
   return { ok: true, message: `Administrezi „${store.name}”.` };
 }
 
-export async function setDefaultStoreAction(
+export async function setMainStoreAction(
   _prev: StoreActionState | undefined,
   formData: FormData,
 ): Promise<StoreActionState> {
@@ -126,7 +132,7 @@ export async function setDefaultStoreAction(
   if (!parsed.success) return { ok: false, message: "Cerere invalidă." };
 
   try {
-    const store = await setDefaultStore(parsed.data.storeId);
+    const store = await setMainStore(parsed.data.storeId);
     await logAudit({
       storeId: store.id,
       action: "STORE_DEFAULT_CHANGED",
@@ -135,7 +141,7 @@ export async function setDefaultStoreAction(
       actorId: user.id,
       actorEmail: user.email,
       actorRole: user.role,
-      after: { slug: store.slug, isDefault: true },
+      after: { slug: store.slug, pathPrefix: null },
     });
 
     revalidatePath("/", "layout");

@@ -5,38 +5,33 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Spinner } from "./spinner";
 
 /**
- * Ecran de încărcare la schimbarea paginii.
+ * The loading screen shown while a route changes. App Router exposes no router
+ * events, so navigation is detected at the source: a click on an internal
+ * link, a GET form submit, or a `router.push` announced through
+ * `startRouteLoading`. It goes away once the route commits, where `loading.tsx`
+ * takes over with the same spinner.
  *
- * App Router nu expune evenimente de router, deci navigarea se detectează la
- * sursă: clic pe un link intern, trimiterea unui formular GET sau un
- * `router.push` anunțat prin `startRouteLoading`. Se stinge când ruta s-a
- * comis — de acolo preia `loading.tsx`, care arată același spinner
- * (`LoadingScreen`), deci utilizatorul vede o singură stare continuă.
- *
- * Cheia e CÂND apare: rutele sunt în mare parte prefetch-uite, așa că cele mai
- * multe navigări se termină în câteva zeci de milisecunde. Un overlay afișat
- * imediat ar clipi degeaba exact atunci când totul merge bine — de aceea
- * așteptăm `SHOW_DELAY_MS` înainte de a-l arăta, iar dacă ruta s-a comis până
- * atunci nu se vede nimic. Odată apărut, rămâne cel puțin `MIN_VISIBLE_MS`, ca
- * să nu pâlpâie.
+ * The timing is the point: most routes are prefetched and land in tens of
+ * milliseconds, so an immediate overlay would flash exactly when everything is
+ * going well. It waits `SHOW_DELAY_MS` before appearing, and once visible stays
+ * at least `MIN_VISIBLE_MS`.
  */
 
-/** Sub acest prag navigarea se simte instantanee — nu merită overlay. */
+/** Below this, navigation feels instant and needs no overlay. */
 const SHOW_DELAY_MS = 350;
 
-/** Cât rămâne minim pe ecran odată apărut (altfel ar clipi). */
+/** Minimum time on screen once shown, so it cannot flicker. */
 const MIN_VISIBLE_MS = 400;
 
-/** Plasă de siguranță: o navigare anulată nu trebuie să lase ecranul blocat. */
+/** Safety net: a cancelled navigation must not leave the screen stuck. */
 const FAILSAFE_MS = 8000;
 
 const ROUTE_LOADING_EVENT = "ruleshop:route-loading";
 
 /**
- * Pornește ecranul de încărcare pentru navigările făcute din cod
- * (`router.push`), pe care detectarea din DOM nu le poate vedea. Dacă
- * destinația e chiar adresa curentă nu se întâmplă nimic — altfel ecranul ar
- * aștepta o schimbare de rută care nu vine.
+ * For navigations made from code, which the DOM detection cannot see. A
+ * destination equal to the current address does nothing, or the screen would
+ * wait for a route change that never comes.
  */
 export function startRouteLoading(href: string) {
   if (typeof window === "undefined") return;
@@ -50,8 +45,8 @@ export function RouteLoading() {
   const searchParams = useSearchParams();
   const [visible, setVisible] = useState(false);
 
-  // Fazele navigării trăiesc în ref-uri: se schimbă din timere si din
-  // handlere de DOM, unde o valoare de state ar fi mereu cea veche.
+  // The phases live in refs: they change from timers and DOM handlers, where
+  // a state value would always be the stale one.
   const navigating = useRef(false);
   const shownAt = useRef(0);
   const showTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -63,13 +58,13 @@ export function RouteLoading() {
     ref.current = null;
   };
 
-  /** Ruta s-a comis (sau a expirat plasa de siguranță). */
+  /** The route committed, or the safety net expired. */
   const finish = useCallback(() => {
     navigating.current = false;
     clearTimer(showTimer);
     clearTimer(failsafeTimer);
 
-    // Navigare rapidă: overlay-ul nici nu a apucat să apară.
+    // Fast navigation: the overlay never even appeared.
     if (shownAt.current === 0) return;
 
     const elapsed = Date.now() - shownAt.current;
@@ -92,7 +87,7 @@ export function RouteLoading() {
     failsafeTimer.current = setTimeout(finish, FAILSAFE_MS);
   }, [finish]);
 
-  // Schimbarea rutei = navigarea s-a terminat.
+  // A route change means the navigation is over.
   useEffect(() => {
     finish();
   }, [pathname, searchParams, finish]);
@@ -102,7 +97,7 @@ export function RouteLoading() {
       url.pathname === location.pathname && url.search === location.search;
 
     const onClick = (event: MouseEvent) => {
-      // Clic modificat = taburi noi; clicul deja tratat de altcineva se ignoră.
+      // Modified clicks open tabs; already-handled clicks are not ours.
       if (
         event.defaultPrevented ||
         event.button !== 0 ||
@@ -129,16 +124,16 @@ export function RouteLoading() {
       } catch {
         return;
       }
-      // Alt domeniu, ancoră în pagină sau chiar pagina curentă — nicio navigare.
+      // Another origin, an in-page anchor, or the current page: no navigation.
       if (url.origin !== location.origin || isSamePlace(url)) return;
 
       start();
     };
 
     /**
-     * Doar formularele care chiar schimbă adresa. Formularele cu server action
-     * sunt randate de React cu `method="POST"` și rămân pe loc — dacă le-am
-     * trata ca navigare, orice buton de admin ar aprinde ecranul degeaba.
+     * Only forms that actually change the address. React renders server action
+     * forms with `method="POST"` and they stay put, so treating them as
+     * navigation would light the screen up on every admin button.
      */
     const onSubmit = (event: Event) => {
       if (event.defaultPrevented) return;
@@ -159,7 +154,7 @@ export function RouteLoading() {
     };
   }, [start]);
 
-  // Timerele nu trebuie să supraviețuiască demontării componentei.
+  // Timers must not outlive the component.
   useEffect(
     () => () => {
       clearTimer(showTimer);

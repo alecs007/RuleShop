@@ -18,7 +18,7 @@ import { CATEGORY_LABELS } from "@/lib/rules/defaults";
 import {
   ORDER_STATUS_LABELS,
   ORDER_STATUS_TONES,
-} from "@/lib/shop/order-status";
+} from "@ruleshop/storefront";
 import { formatMoney } from "@/lib/utils/money";
 import { Badge } from "@/components/ui/badge";
 import { CategoryIcon } from "@/components/control-plane/category-icon";
@@ -26,7 +26,7 @@ import { CategoryIcon } from "@/components/control-plane/category-icon";
 export const metadata: Metadata = { title: "Dashboard" };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-/** Sub acest stoc, produsul apare la „De rezolvat". */
+/** Below this stock a product shows up under "Needs attention". */
 const LOW_STOCK = 5;
 
 export default async function AdminDashboard() {
@@ -48,7 +48,7 @@ export default async function AdminDashboard() {
     lowStock,
     lowStockCount,
   ] = await Promise.all([
-    // Venitul = comenzile incasate/livrate din ultimele 30 de zile.
+    // Revenue: paid or fulfilled orders from the last 30 days.
     prisma.order.aggregate({
       where: {
         storeId,
@@ -156,7 +156,7 @@ export default async function AdminDashboard() {
         Starea magazinului și a motorului de reguli.
       </p>
 
-      {/* Kill switch-uri active — vizibile inaintea oricarei alte informatii */}
+      {/* Active kill switches, ahead of anything else */}
       {killSwitched.length > 0 && (
         <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-5">
           <p className="font-medium text-critical">Kill switch activ</p>
@@ -182,7 +182,6 @@ export default async function AdminDashboard() {
         ))}
       </div>
 
-      {/* Lucruri care asteapta o decizie */}
       {todo.length > 0 && (
         <div className="mt-6 rounded-xl border border-line bg-surface-raised p-5">
           <h2 className="font-semibold">De rezolvat</h2>
@@ -207,7 +206,6 @@ export default async function AdminDashboard() {
       )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-        {/* Ultimele comenzi */}
         <div className="rounded-xl border border-line bg-surface-raised">
           <div className="flex items-center justify-between px-5 pt-4">
             <h2 className="font-semibold">Ultimele comenzi</h2>
@@ -257,7 +255,6 @@ export default async function AdminDashboard() {
           )}
         </div>
 
-        {/* Motorul de reguli, pe categorii */}
         <div className="h-fit rounded-xl border border-line bg-surface-raised p-5">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold">Motorul de reguli</h2>

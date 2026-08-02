@@ -10,12 +10,9 @@ import { Spinner } from "@/components/ui/spinner";
 import { slugifyStoreName } from "@/lib/shop/store-slug";
 
 /**
- * Magazinele platformei: lista cu ce administrezi acum si care e magazinul activ
- * (cel pe care il vad clientii), plus formularul de magazin nou.
- *
- * Toate operatiile sunt server actions cu garda `requirePlatformAdmin` — butonul
- * ascuns nu e o masura de securitate, iar rolul se verifica pe server la fiecare
- * apel. Aici se rezolva doar prezentarea si confirmarea prin toast.
+ * The platform's stores, plus the new-store form. Every operation is a server
+ * action behind `requirePlatformAdmin` — a hidden button is not a security
+ * measure. This file only handles presentation and the confirmation toast.
  */
 
 export interface StoreRow {
@@ -25,7 +22,8 @@ export interface StoreRow {
   currency: string;
   locale: string;
   active: boolean;
-  isDefault: boolean;
+  /** The path prefix; `null` is the main store, served at the root. */
+  pathPrefix: string | null;
   products: number;
   orders: number;
 }
@@ -46,24 +44,24 @@ export function StoreManager({
   envOverrideSlug,
   createAction,
   selectAction,
-  setDefaultAction,
+  setMainAction,
   setActiveAction,
 }: {
   stores: StoreRow[];
-  /** Magazinul administrat acum (din comutatorul de panou). */
+  /** The store currently being administered. */
   currentStoreId: string;
-  /** `DEFAULT_STORE_SLUG` din .env, cand e setat — decide el magazinul activ. */
+  /** `DEFAULT_STORE_SLUG`, which overrides the active store when set. */
   envOverrideSlug?: string;
   createAction: StateAction;
   selectAction: (formData: FormData) => Promise<StoreActionState>;
-  setDefaultAction: StateAction;
+  setMainAction: StateAction;
   setActiveAction: StateAction;
 }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const router = useRouter();
 
-  /** Rulează o acțiune de rând și confirmă rezultatul în toast. */
+  /** Runs a row action and confirms the outcome in a toast. */
   function run(
     action: StateAction,
     store: StoreRow,
@@ -82,7 +80,7 @@ export function StoreManager({
     });
   }
 
-  /** Comuta panoul pe alt magazin, confirmand doar ce a acceptat serverul. */
+  /** Switches the panel, confirming only what the server accepted. */
   function select(store: StoreRow) {
     setPendingId(store.id);
     startTransition(async () => {
@@ -92,8 +90,7 @@ export function StoreManager({
       const state = await selectAction(data);
       setPendingId(null);
       if (state.ok) {
-        // Ca in comutatorul din header: rutele din cache-ul de router trebuie
-        // sa se reincarce pe magazinul nou.
+        // As in the header switcher: the cached routes must reload.
         router.refresh();
         toast.success(state.message ?? `Administrezi „${store.name}”.`);
       } else {
@@ -125,7 +122,11 @@ export function StoreManager({
                   <span className="font-mono text-xs text-ink-faint">
                     {store.slug}
                   </span>
-                  {store.isDefault && <Badge tone="accent">activ</Badge>}
+                  {store.pathPrefix === null ? (
+                    <Badge tone="accent">principal · /</Badge>
+                  ) : (
+                    <Badge tone="neutral">/{store.pathPrefix}</Badge>
+                  )}
                   {isCurrent && <Badge tone="positive">administrezi</Badge>}
                   {!store.active && <Badge tone="critical">oprit</Badge>}
                 </p>
@@ -148,31 +149,29 @@ export function StoreManager({
                     Administrează
                   </Button>
                 )}
-                {!store.isDefault && store.active && (
+                {store.pathPrefix !== null && (
                   <Button
                     variant="ghost"
                     size="sm"
                     disabled={busy}
-                    onClick={() => run(setDefaultAction, store, {})}
-                    title="Clienții vor vedea acest magazin"
+                    onClick={() => run(setMainAction, store, {})}
+                    title="Se va servi la rădăcină; magazinul principal de acum îi preia prefixul"
                   >
                     <Star className="size-4" strokeWidth={1.75} />
-                    Fă-l activ
+                    Fă-l principal
                   </Button>
                 )}
+                {/* Any store can be stopped, the main one included and all of
+                    them at once: a stopped store answers with a closed-store
+                    page rather than nothing. */}
                 <Button
                   variant={store.active ? "danger" : "ghost"}
                   size="sm"
-                  disabled={busy || (store.active && store.isDefault)}
+                  disabled={busy}
                   onClick={() =>
                     run(setActiveAction, store, {
                       active: store.active ? "false" : "true",
                     })
-                  }
-                  title={
-                    store.active && store.isDefault
-                      ? "Magazinul activ nu poate fi oprit — fă alt magazin activ mai întâi"
-                      : undefined
                   }
                 >
                   {store.active ? (
@@ -216,7 +215,7 @@ function CreateStoreForm({ action }: { action: StateAction }) {
 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
-  /** Slug-ul urmează numele până când administratorul îl scrie el însuși. */
+  /** The slug follows the name until the admin types one themselves. */
   const slugEdited = useRef(false);
 
   const lastState = useRef<StoreActionState | undefined>(undefined);

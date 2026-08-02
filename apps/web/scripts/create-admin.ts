@@ -1,11 +1,11 @@
 /**
- * Creeaza (sau reseteaza parola pentru) un administrator de magazin.
+ * Creates a store administrator, or resets their password.
  *
  *   pnpm create-admin --email admin@ruleshop.dev --password "..." \
- *     [--name "Nume"] [--store ruleshop-ro] [--role STORE_ADMIN|PLATFORM_ADMIN|OPERATOR]
+ *     [--name "..."] [--store ruleshop-ro] [--role STORE_ADMIN|PLATFORM_ADMIN|OPERATOR]
  *
- * Daca --password lipseste, se genereaza una aleatorie si se afiseaza o
- * singura data. Parola se stocheaza doar ca hash bcrypt.
+ * Without --password one is generated and shown once. Only the bcrypt hash is
+ * stored.
  */
 import { PrismaClient, Role } from "@prisma/client";
 import { hash } from "bcryptjs";
@@ -44,7 +44,7 @@ async function main() {
     process.exit(1);
   }
 
-  // PLATFORM_ADMIN este cont global; restul apartin unui magazin.
+  // PLATFORM_ADMIN is a global account; the rest belong to a store.
   let storeId: string | null = null;
   if (role !== "PLATFORM_ADMIN") {
     const storeSlug = getArg("store") ?? process.env.DEFAULT_STORE_SLUG ?? "ruleshop-ro";

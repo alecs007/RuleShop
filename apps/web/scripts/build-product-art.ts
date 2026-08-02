@@ -1,8 +1,7 @@
 /**
- * Rasterizează ilustrațiile din `product-art.ts` în `public/images/products/`.
- *
- * Se rulează manual (`pnpm product-art`), nu la fiecare build: rezultatele sunt
- * versionate, deci un clone proaspăt are imaginile fără să depindă de sharp.
+ * Rasterizes the illustrations from `product-art.ts`. Run by hand, not on every
+ * build: the results are versioned, so a fresh clone has the images without
+ * depending on sharp.
  */
 import { createRequire } from "node:module";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -10,8 +9,8 @@ import path from "node:path";
 import { ART } from "./product-art";
 
 /**
- * sharp ajunge aici ca dependință tranzitivă a lui Next, deci nu are tipuri
- * rezolvabile din acest pachet. Descriem doar metodele folosite.
+ * sharp arrives as a transitive dependency of Next, so its types are not
+ * resolvable here; only the methods used are described.
  */
 interface SharpPipeline {
   resize(w: number, h: number, opts: { fit: string; background: string }): SharpPipeline;

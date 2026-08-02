@@ -4,9 +4,9 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 /**
- * Comutatorul de magazin, din perspectiva administratorului: apare in header la
- * orice lățime, arata toate magazinele pornite si nu confirma o comutare pe care
- * serverul a refuzat-o.
+ * The store switcher from the admin's side: present in the header at any
+ * width, listing every running store, and never confirming a switch the server
+ * refused.
  */
 
 const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() };
@@ -83,7 +83,7 @@ describe("comutatorul de magazin din header", () => {
     await waitFor(() => expect(selectStoreAction).toHaveBeenCalledTimes(1));
     const sent = selectStoreAction.mock.calls[0]?.[0] as FormData;
     expect(sent.get("storeId")).toBe("de");
-    // Fara refresh, rutele deja prefetch-uite ar rămâne pe magazinul vechi.
+    // Without a refresh the prefetched routes would keep the old store.
     await waitFor(() => expect(refresh).toHaveBeenCalled());
     expect(toast.success).toHaveBeenCalledWith("Administrezi „RuleShop DE”.");
     expect(toast.error).not.toHaveBeenCalled();
@@ -120,7 +120,7 @@ describe("comutatorul de magazin din header", () => {
     renderShell({ platformAdmin: false });
 
     expect(screen.queryByRole("combobox")).toBeNull();
-    // In locul lui, headerul spune pe ce magazin lucrezi.
+    // Instead, the header says which store you are working in.
     expect(screen.getByText(/RuleShop RO · Panou de control/)).toBeTruthy();
   });
 

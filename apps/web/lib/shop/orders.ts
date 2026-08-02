@@ -3,11 +3,11 @@ import { Prisma, type OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import type { CartWithItems } from "./cart";
 import type { PriceView } from "./pricing";
-import type { ShippingQuote } from "./shipping-quote";
-import type { FraudAssessment } from "./fraud-risk";
-import type { LoyaltyView } from "./loyalty-view";
+import type { ShippingQuote } from "@ruleshop/storefront";
+import type { FraudAssessment } from "@ruleshop/storefront";
+import type { LoyaltyView } from "@ruleshop/storefront";
 
-/** Adresa, asa cum e completata la checkout. */
+/** The address as filled in at checkout. */
 export interface OrderAddress {
   name: string;
   phone: string;
@@ -17,10 +17,7 @@ export interface OrderAddress {
   postalCode: string;
 }
 
-/**
- * Numar de comanda lizibil, unic per magazin: RS-20260730-4F2A.
- * Se reincearca la coliziune (indexul unic [storeId, orderNumber] decide).
- */
+/** Readable, unique per store: RS-20260730-4F2A. Retried on collision. */
 function buildOrderNumber(): string {
   const day = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
@@ -33,7 +30,7 @@ export interface CreateOrderInput {
   prices: Map<string, PriceView>;
   quote: ShippingQuote;
   assessment: FraudAssessment;
-  /** Decizia LOYALTY pentru aceasta comanda (puncte, beneficii, nivel). */
+  /** The LOYALTY decision for this order. */
   loyalty: LoyaltyView;
   status: OrderStatus;
   sessionKey: string;
@@ -49,14 +46,14 @@ export interface CreateOrderInput {
   shippingCents: number;
   totalCents: number;
   currency: string;
-  /** Pasul de verificare suplimentara, cand antifrauda a cerut CHALLENGE. */
+  /** The extra verification step, when fraud asked for a CHALLENGE. */
   challenge?: { code: string; verified: boolean } | null;
 }
 
 /**
- * Creeaza comanda impreuna cu liniile ei si scade stocul, intr-o tranzactie.
- * Fiecare linie pastreaza pretul de baza, pretul final si regulile care l-au
- * produs — istoricul rămâne corect chiar daca produsul sau regulile se schimba.
+ * Creates the order with its lines and decrements stock, in one transaction.
+ * Each line keeps the base price, the final price and the rules behind it, so
+ * history stays accurate when the product or the rules change.
  */
 export async function createOrder(input: CreateOrderInput) {
   const { cart, prices, quote, assessment, loyalty } = input;
@@ -95,8 +92,8 @@ export async function createOrder(input: CreateOrderInput) {
   if (assessment.rulesetVersion !== null) rulesetVersions.FRAUD = assessment.rulesetVersion;
   if (loyalty.rulesetVersion !== null) rulesetVersions.LOYALTY = loyalty.rulesetVersion;
 
-  // Punctele se acorda doar unui cont; o comanda in regim guest nu are unde sa
-  // le acumuleze, deci se salveaza 0 (calculul rămâne in decisionSnapshot).
+  // Guests have no account to accrue on, so 0 is stored; the computation
+  // itself stays in decisionSnapshot.
   const loyaltyPointsEarned = loyalty.creditable ? loyalty.points : 0;
 
   const decisionSnapshot = {
@@ -141,13 +138,13 @@ export async function createOrder(input: CreateOrderInput) {
     ...(input.challenge ? { challenge: input.challenge } : {}),
   };
 
-  // Numarul de comanda se poate ciocni; reincercam de cateva ori.
+  // Order numbers can collide; retry a few times.
   for (let attempt = 0; attempt < 5; attempt++) {
     const orderNumber = buildOrderNumber();
     try {
       return await prisma.$transaction(async (tx) => {
-        // Stocul se scade condiționat: updateMany cu `gte` este atomic, deci
-        // doua comenzi simultane nu pot trece amandoua peste stocul disponibil.
+        // `updateMany` with a `gte` guard is atomic, so two concurrent
+        // orders cannot both draw past the available stock.
         for (const item of cart.items) {
           const updated = await tx.product.updateMany({
             where: {
@@ -186,9 +183,8 @@ export async function createOrder(input: CreateOrderInput) {
             rulesetVersions: rulesetVersions as Prisma.InputJsonValue,
             traceId: assessment.traceId,
             riskScore: assessment.riskScore,
-            // Punctele se scriu pe comanda, nu pe cont: soldul clientului este
-            // suma comenzilor incasate (vezi syncCustomerStats), deci o comanda
-            // anulata isi retrage punctele de la sine.
+            // Points live on the order, not the account: the balance is the
+            // sum over paid orders, so a cancelled one withdraws its own.
             loyaltyPointsEarned,
             placedAt: new Date(),
             items: { create: items },
@@ -196,7 +192,7 @@ export async function createOrder(input: CreateOrderInput) {
           select: { id: true, orderNumber: true, status: true },
         });
 
-        // Cosul se goleste: comanda preia liniile.
+        // The cart is emptied: the order takes over its lines.
         await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
 
         return order;
@@ -224,13 +220,12 @@ export interface OrderViewer {
 }
 
 /**
- * Comenzile pe care le poate urmari vizitatorul curent: cele ale contului lui
- * SI cele plasate din aceasta sesiune de browser. A doua parte e ce face
- * urmarirea posibila in regim guest — si face ca un client care isi creeaza
- * cont dupa cumparare sa-si vada in continuare comanda, fara nicio migrare.
+ * The orders the current visitor may track: their account's, plus those placed
+ * from this browser session — which is what makes guest tracking work, and
+ * what keeps an order visible after the buyer creates an account.
  *
- * Potrivirea se face pe cookie de sesiune (httpOnly), nu pe email: un email
- * introdus la checkout nu da acces la comenzile altcuiva.
+ * Matching is on the httpOnly session cookie, never on the email: typing
+ * someone else's address at checkout grants nothing.
  */
 export async function listOrdersForViewer(
   storeId: string,
@@ -250,7 +245,7 @@ export async function listOrdersForViewer(
   });
 }
 
-/** Comanda unui client/vizitator, cu verificarea dreptului de acces. */
+/** A single order, with the access check. */
 export async function findOrderForViewer(
   storeId: string,
   orderNumber: string,
@@ -262,7 +257,7 @@ export async function findOrderForViewer(
   });
   if (!order) return null;
 
-  // Comanda e vizibila proprietarului contului sau sesiunii care a plasat-o.
+  // Visible to the owning account, or to the session that placed it.
   const owns =
     (viewer.userId !== null && order.userId === viewer.userId) ||
     (viewer.sessionKey !== null && order.sessionKey === viewer.sessionKey);

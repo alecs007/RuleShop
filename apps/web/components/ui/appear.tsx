@@ -1,25 +1,20 @@
 /**
- * Apariția lină a unei liste de elemente (ex: cardurile de produs când se
- * schimbă categoria).
+ * Fades a list of items in. `resetKey` remounts the container: without it React
+ * would reconcile the old list with the new one and items still on screen
+ * would not animate.
  *
- * `resetKey` remontează containerul: fără el, React ar reconcilia lista veche cu
- * cea nouă și elementele rămase pe ecran nu s-ar mai anima. Cu el, fiecare
- * schimbare de filtru redă intrarea.
- *
- * Animația stă în CSS, nu în JS: e o intrare simplă, care nu are nevoie nici de
- * stare, nici de hidratare. Astfel lista rămâne server component, iar pagina de
- * catalog nu mai încarcă o bibliotecă de animație doar ca să facă un fade.
- * `prefers-reduced-motion` e tratat în `globals.css`.
+ * The animation is CSS, not JS, so the list stays a server component and the
+ * catalog page loads no animation library just to fade.
  */
 
 /**
- * Peste acest număr de elemente, decalajul nu mai crește: altfel ultimul card
- * dintr-un catalog plin ar începe să apară după o jumătate de secundă, pe o
- * pagină care s-a randat în câteva zeci de milisecunde.
+ * Past this many items the stagger stops growing, or the last card in a full
+ * catalog would start appearing half a second into a page that rendered in
+ * tens of milliseconds.
  */
 const MAX_STAGGERED = 8;
 
-/** Decalajul dintre elemente, în milisecunde. */
+/** Stagger between items, in milliseconds. */
 const STAGGER_MS = 25;
 
 export function AppearList({
@@ -29,7 +24,7 @@ export function AppearList({
   as: Component = "div",
 }: {
   children: React.ReactNode;
-  /** Valoare care, când se schimbă, redă animația (ex: categoria activă). */
+  /** Changing this replays the animation. */
   resetKey?: string;
   className?: string;
   as?: "div" | "ul";
@@ -48,7 +43,7 @@ export function AppearItem({
   as: Component = "div",
 }: {
   children: React.ReactNode;
-  /** Poziția în listă — decide decalajul de intrare. */
+  /** Position in the list, which sets the delay. */
   index?: number;
   className?: string;
   as?: "div" | "li";

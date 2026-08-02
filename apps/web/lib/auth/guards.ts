@@ -10,15 +10,13 @@ import type { Role, User } from "@prisma/client";
 export interface StaffContext {
   user: User;
   role: Role;
-  /** Magazinul pe care staff-ul il administreaza. */
+  /** The store this staff member administers. */
   storeId: string;
 }
 
 /**
- * Utilizatorul curent din DB, sau null daca nu e autentificat. NU
- * redirecteaza — pentru decizii de interfata (ex: ce afiseaza meniul de cont).
- * Rolul vine din baza de date, nu din token, ca sa reflecte imediat
- * promovarile si revocarile.
+ * The current user, or null. Does not redirect — for UI decisions. The role
+ * comes from the database, not the token, so revocations take effect at once.
  */
 export const getSessionUser = cache(async (): Promise<User | null> => {
   const session = await auth();
@@ -27,10 +25,7 @@ export const getSessionUser = cache(async (): Promise<User | null> => {
   return user?.active ? user : null;
 });
 
-/**
- * Utilizatorul din spatele cererii, o singura data pe cerere. Sesiunea si rolul
- * nu se schimba in timpul unei cereri, deci memoizarea e sigura aici.
- */
+/** Session and role cannot change mid-request, so memoizing is safe here. */
 const loadStaffUser = cache(async (): Promise<User> => {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/admin");
@@ -41,22 +36,15 @@ const loadStaffUser = cache(async (): Promise<User> => {
 });
 
 /**
- * Garda serverului pentru control plane. Verifica sesiunea + rolul PE SERVER
- * si incarca utilizatorul din DB (rolul din token e doar un hint de UI;
- * sursa de adevar ramane baza de date — un rol revocat isi pierde accesul
- * imediat, nu la expirarea JWT-ului).
- *
- * Contextul nu se memoizeaza intreg, doar utilizatorul: magazinul administrat SE
- * schimba in timpul unei cereri, cand o server action comuta panoul pe alt
- * magazin. Memoizat, randarea de dupa comutare ar primi magazinul de dinainte —
- * exact bug-ul „comut si nu se schimba nimic".
+ * The control plane's server guard. Only the user is memoized, not the whole
+ * context: the administered store does change mid-request when a server action
+ * switches the panel, and a memoized one would leave the render after it
+ * looking at the old store.
  */
 export const requireStaff = async (): Promise<StaffContext> => {
   const user = await loadStaffUser();
 
-  // STORE_ADMIN/OPERATOR sunt legati de magazinul lor si nu pot comuta;
-  // PLATFORM_ADMIN administreaza magazinul selectat in panou (sau cel activ).
-  // Decide rolul, nu `user.storeId` — vezi `resolveAdminStoreId`.
+  // The role decides, not `user.storeId` — see `resolveAdminStoreId`.
   const storeId = await getAdminStoreId({
     role: user.role,
     pinnedStoreId: user.storeId,
@@ -64,11 +52,7 @@ export const requireStaff = async (): Promise<StaffContext> => {
   return { user, role: user.role, storeId };
 };
 
-/**
- * Ca requireStaff, dar cere drepturi de scriere (STORE_ADMIN+). Nememoizata din
- * acelasi motiv: contextul include magazinul administrat, care se poate schimba
- * in timpul cererii.
- */
+/** Like requireStaff, but demands write access (STORE_ADMIN and up). */
 export const requireAdmin = async (): Promise<StaffContext> => {
   const ctx = await requireStaff();
   if (!isAdmin(ctx.role)) redirect("/admin");
@@ -76,9 +60,8 @@ export const requireAdmin = async (): Promise<StaffContext> => {
 };
 
 /**
- * Garda operatiilor de platforma: creare de magazine, comutare intre ele,
- * schimbarea magazinului activ. Un STORE_ADMIN administreaza magazinul lui,
- * nu platforma.
+ * Guards platform-wide operations: creating stores, switching between them,
+ * changing the active one. A STORE_ADMIN runs their store, not the platform.
  */
 export const requirePlatformAdmin = async (): Promise<StaffContext> => {
   const ctx = await requireStaff();

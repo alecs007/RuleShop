@@ -30,10 +30,6 @@ function parseCategory(raw: unknown): DecisionCategory {
   return value;
 }
 
-// ---------------------------------------------------------------------------
-// Salvare regula (creare / editare)
-// ---------------------------------------------------------------------------
-
 const ruleFormSchema = z.object({
   name: z.string().trim().min(2).max(200),
   description: z.string().trim().max(500).optional().or(z.literal("")),
@@ -94,15 +90,15 @@ export async function saveRuleAction(
 
   let key = existing?.key ?? slugify(parsed.data.name);
   if (!existing) {
-    // asigura unicitatea cheii in ruleset
+    // Keeps the key unique within the ruleset.
     const clash = await prisma.rule.findUnique({
       where: { ruleSetId_key: { ruleSetId: ruleSet.id, key } },
     });
     if (clash) key = `${key}-${Date.now().toString(36).slice(-4)}`;
   }
 
-  // Validarea completa a regulii prin motor (structura + semantica +
-  // compatibilitatea operatorilor si actiunilor cu categoria).
+  // Full engine validation: structure, semantics, and that operators and
+  // actions fit the category.
   const engineRule: EngineRule = {
     key,
     name: parsed.data.name,
@@ -170,10 +166,6 @@ export async function saveRuleAction(
   redirect(`/admin/rules/${cat.toLowerCase()}?saved=1`);
 }
 
-// ---------------------------------------------------------------------------
-// Operatii pe reguli
-// ---------------------------------------------------------------------------
-
 export async function toggleRuleAction(formData: FormData): Promise<void> {
   const { user, storeId } = await requireAdmin();
   const ruleId = formData.get("ruleId");
@@ -206,8 +198,7 @@ export async function deleteRuleAction(formData: FormData): Promise<void> {
   const rule = await prisma.rule.findFirst({ where: { id: ruleId, storeId } });
   if (!rule) return;
 
-  // Stergerea afecteaza doar draftul de lucru; versiunile publicate raman
-  // neatinse pana la urmatorul publish.
+  // Only the working draft is affected; published versions stay untouched.
   await prisma.rule.delete({ where: { id: rule.id } });
   await logAudit({
     storeId,
@@ -222,10 +213,6 @@ export async function deleteRuleAction(formData: FormData): Promise<void> {
   revalidatePath("/admin/rules", "layout");
 }
 
-// ---------------------------------------------------------------------------
-// Publicare / rollback / kill switch / strategie
-// ---------------------------------------------------------------------------
-
 export interface PublishState {
   ok: boolean;
   message?: string;
@@ -234,7 +221,7 @@ export interface PublishState {
 
 export async function publishAction(
   category: string,
-  // semnatura useActionState: (prevState, formData)
+  // The useActionState signature: (prevState, formData).
   ...[]: [PublishState | undefined, FormData]
 ): Promise<PublishState> {
   const { user, storeId } = await requireAdmin();
@@ -267,7 +254,7 @@ export async function rollbackAction(formData: FormData): Promise<void> {
   const result = await rollbackToVersion(storeId, versionId, user);
   revalidatePath("/", "layout");
   if (result.ok) {
-    // Dupa rollback, adminul vede imediat CE a activat: continutul versiunii.
+    // After a rollback the admin lands on what they just activated.
     redirect(
       `/admin/rules/${version.ruleSet.category.toLowerCase()}/versions/${versionId}?activated=1`,
     );

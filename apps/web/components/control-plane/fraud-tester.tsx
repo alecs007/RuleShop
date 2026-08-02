@@ -10,10 +10,10 @@ import {
   RISK_LEVEL_LABELS,
   type FraudAssessment,
   type FraudDecisionValue,
-} from "@/lib/shop/fraud-risk";
+} from "@ruleshop/storefront";
 import { Badge } from "@/components/ui/badge";
 
-/** Scenariul simulat, din query string — testul e partajabil prin URL. */
+/** The simulated scenario, from the query string, so the test is shareable. */
 export interface FraudSimulation {
   totalLei: number;
   itemCount: number;
@@ -122,10 +122,9 @@ const inputCls =
   "h-9 rounded-lg border border-line bg-surface px-2.5 text-sm outline-none transition-colors focus:border-accent";
 
 /**
- * „Testează un scenariu": rezultatul verificarii antifraudă pentru o tentativa
- * de comanda, calculat cu versiunea activa si — daca exista drafturi — cu
- * snapshotul care ar rezulta din publicare. Foloseste exact aceeasi functie ca
- * checkout-ul (`assessFraud`).
+ * The fraud check for an attempted order, under the active version and, if
+ * there are drafts, under the snapshot a publish would produce. Uses
+ * `assessFraud`, the same function checkout does.
  */
 export async function FraudTester({
   storeId,

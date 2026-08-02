@@ -2,22 +2,15 @@ import { gcra, ttlMs } from "./gcra";
 import type { RateLimitStore } from "./types";
 
 /**
- * Stare în memoria procesului.
- *
- * Două roluri: singurul magazin când nu există Redis (dezvoltare, teste) și
- * plasa de siguranță când Redis cade. Limitează doar per instanță — cu mai
- * multe procese, limita efectivă se înmulțește cu numărul lor. E o degradare
- * asumată, dar tot e mult mai bine decât să nu limitezi deloc.
- *
- * Atomicitatea vine gratis: Node rulează un singur fir, iar `consume` nu are
- * niciun `await` între citire și scriere.
+ * Process-memory state: the only store when there is no Redis, and the safety
+ * net when Redis falls over. Limits per instance only, so with N processes the
+ * effective limit is N times the configured one.
  */
 export class MemoryStore implements RateLimitStore {
   readonly name = "memory" as const;
 
   private readonly entries = new Map<string, { tatMs: number; expiresAtMs: number }>();
 
-  /** Sub acest prag nu merită să scanăm harta după chei expirate. */
   private static readonly SWEEP_EVERY = 512;
   private writesSinceSweep = 0;
 
@@ -51,7 +44,7 @@ export class MemoryStore implements RateLimitStore {
     this.entries.delete(key);
   }
 
-  /** Fără asta, harta ar crește cu fiecare cheie văzută vreodată. */
+  /** Without this the map grows with every key ever seen. */
   private maybeSweep(nowMs: number): void {
     if (++this.writesSinceSweep < MemoryStore.SWEEP_EVERY) return;
     this.writesSinceSweep = 0;

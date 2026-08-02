@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { gcra, gcraParams, ttlMs } from "../src/gcra";
 
-/** 10 cereri / 60s, burst plin — configurația tipică. */
+/** 10 requests / 60s, full burst — the typical configuration. */
 const params = gcraParams(10, 60_000);
 
 describe("gcraParams", () => {
@@ -37,7 +37,7 @@ describe("gcra", () => {
   });
 
   it("nu consuma bugetul cand refuza", () => {
-    // Un client care insista nu trebuie sa-si impinga singur fereastra.
+    // A client that keeps retrying must not push its own window out.
     let tat: number | null = null;
     const now = 1_000_000;
     for (let i = 0; i < 10; i++) tat = gcra(tat, now, params).tatMs;
@@ -60,8 +60,8 @@ describe("gcra", () => {
   });
 
   it("nu are granita de fereastra — o fereastra fixa ar lasa 2x limita", () => {
-    // Cazul care rupe INCR+EXPIRE: tot bugetul la finalul unei ferestre, apoi
-    // inca o data imediat dupa. Aici a doua rafala este refuzata.
+    // The case that breaks INCR+EXPIRE: the whole budget at the end of a
+    // window, then again right after. Here the second burst is rejected.
     let tat: number | null = null;
     const endOfWindow = 60_000;
     for (let i = 0; i < 10; i++) tat = gcra(tat, endOfWindow, params).tatMs;
@@ -89,7 +89,7 @@ describe("gcra", () => {
     const start = 1_000_000;
     for (let i = 0; i < 10; i++) tat = gcra(tat, start, params).tatMs;
 
-    // O ora de liniste nu da mai mult decat bugetul plin.
+    // An idle hour grants no more than a full budget.
     let allowed = 0;
     let cursor: number | null = tat;
     for (let i = 0; i < 30; i++) {

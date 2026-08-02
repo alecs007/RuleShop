@@ -9,7 +9,7 @@ export default defineConfig({
       // Garda `server-only` ar arunca in mediul de test — devine no-op.
       "server-only": path.resolve(__dirname, "tests/stubs/server-only.ts"),
       "@": path.resolve(__dirname, "."),
-      // Pachetele din workspace se rezolva direct din sursa: fara pas de build
+      // Workspace packages resolve straight from source, with no build step
       // intre o modificare in motor si testele care o folosesc.
       "@ruleshop/rule-engine": path.resolve(
         __dirname,
@@ -18,6 +18,10 @@ export default defineConfig({
       "@ruleshop/rate-limit": path.resolve(
         __dirname,
         "../../packages/rate-limit/src/index.ts",
+      ),
+      "@ruleshop/storefront": path.resolve(
+        __dirname,
+        "../../packages/storefront/src/index.ts",
       ),
     },
   },

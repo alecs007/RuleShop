@@ -40,7 +40,7 @@ export default async function EditRulePage({
         {CATEGORY_LABELS[category]} · <span className="font-mono">{rule.key}</span>
       </p>
 
-      {/* Regulile venite de la IA se verifica inainte de publicare */}
+      {/* AI-generated rules are reviewed before publishing */}
       {rule.source === "AI_SUGGESTION" && rule.aiRationale && (
         <div className="mt-4 flex items-start gap-3 rounded-xl border border-line bg-surface-raised px-4 py-3">
           <Sparkles className="mt-0.5 size-5 shrink-0 text-accent" strokeWidth={1.75} />

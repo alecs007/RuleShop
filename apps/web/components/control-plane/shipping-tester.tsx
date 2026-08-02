@@ -1,16 +1,16 @@
 import { FlaskConical, MoveRight, TriangleAlert } from "lucide-react";
 import { buildCandidateSnapshot, getActiveRuleset, getRuleNames } from "@/lib/rules/service";
-import { readShippingMethods } from "@/lib/shop/shipping-methods";
+import { readShippingMethods } from "@ruleshop/storefront";
 import {
   computeShippingQuote,
   type ActorFacts,
   type ShippingOption,
   type ShippingQuote,
-} from "@/lib/shop/shipping-quote";
+} from "@ruleshop/storefront";
 import { formatMoney } from "@/lib/utils/money";
 import { Badge } from "@/components/ui/badge";
 
-/** Coșul simulat, din query string — testul e partajabil prin URL. */
+/** The simulated cart, from the query string, so the test is shareable. */
 export interface ShippingSimulation {
   subtotalLei: number;
   itemCount: number;
@@ -65,7 +65,7 @@ function eta(option: ShippingOption): string {
   return min === max ? `${max} ${max === 1 ? "zi" : "zile"}` : `${min}–${max} zile`;
 }
 
-/** Celula unei metode intr-una din cele doua coloane. */
+/** One method's cell, in either column. */
 function MethodCell({
   quote,
   methodId,
@@ -114,10 +114,9 @@ const inputCls =
   "h-9 rounded-lg border border-line bg-surface px-2.5 text-sm outline-none transition-colors focus:border-accent";
 
 /**
- * „Testează pe un coș": costurile de livrare calculate de versiunea activa si —
- * daca exista drafturi — de snapshotul care ar rezulta din publicare. Foloseste
- * exact aceeasi functie ca magazinul (`computeShippingQuote`), deci ce se vede
- * aici este ce va plati clientul.
+ * Shipping costs under the active version and, if there are drafts, under the
+ * snapshot a publish would produce. Uses `computeShippingQuote`, the same
+ * function the storefront does, so this is what the customer will pay.
  */
 export async function ShippingTester({
   storeId,
@@ -175,7 +174,7 @@ export async function ShippingTester({
       </h2>
 
       <div className="mt-3 rounded-xl border border-line bg-surface-raised p-4">
-        {/* Coșul simulat — navigare GET, deci testul se poate trimite prin link */}
+        {/* GET navigation, so the test can be shared as a link */}
         <form className="flex flex-wrap items-end gap-3">
           <label className="text-sm">
             <span className="text-ink-muted">Subtotal</span>

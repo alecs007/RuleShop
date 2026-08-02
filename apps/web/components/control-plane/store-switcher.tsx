@@ -11,7 +11,7 @@ export interface StoreOption {
   id: string;
   name: string;
   slug: string;
-  /** Un magazin oprit apare doar daca e cel administrat acum, si nu se poate alege. */
+  /** A stopped store only appears if it is the one being administered. */
   active: boolean;
 }
 
@@ -21,16 +21,13 @@ export interface StoreSwitchState {
 }
 
 /**
- * Comutatorul de magazin din panou, doar pentru PLATFORM_ADMIN. Acelasi
- * component in sidebar si in header, cu aceeasi lista si aceeasi actiune.
+ * Switches the administered store, not what customers see — that is the active
+ * store, changed separately from /admin/stores.
  *
- * Schimba magazinul ADMINISTRAT, nu ce vad clientii: aceia primesc magazinul
- * activ, care se schimba separat din /admin/stores.
- *
- * Selectia pleacă la server într-o tranziție, deci pagina se reînnoiește pe loc,
- * fără ecran de încărcare peste tot panoul. Serverul răspunde cu rezultatul:
- * dacă magazinul a fost oprit sau șters între timp, panoul rămâne pe cel curent
- * și spune de ce, în loc să confirme o comutare care nu s-a întâmplat.
+ * The selection goes to the server in a transition, so the page refreshes in
+ * place. The server answers with the outcome: if the store was stopped or
+ * deleted meanwhile, the panel stays put and says why instead of confirming a
+ * switch that did not happen.
  */
 export function StoreSwitcher({
   stores,
@@ -63,9 +60,8 @@ export function StoreSwitcher({
           startTransition(async () => {
             const state = await selectAction(data);
             if (state.ok) {
-              // Panoul intreg ține de magazinul administrat, iar rutele deja
-              // prefetch-uite stau în cache-ul de router cu datele vechi:
-              // `refresh` le aduce pe toate pe magazinul nou.
+              // Prefetched routes sit in the router cache with the old
+              // store's data; `refresh` brings them all to the new one.
               router.refresh();
               toast.success(state.message ?? "Magazin comutat.");
             } else {
@@ -76,8 +72,8 @@ export function StoreSwitcher({
         className="w-full cursor-pointer appearance-none truncate rounded-lg border border-line bg-surface py-1.5 pl-2.5 pr-8 text-sm font-semibold transition-colors hover:border-ink-faint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-progress"
       >
         {stores.map((store) => (
-          // Magazinul oprit e in lista doar ca sa se vada pe ce lucrezi; nu e o
-          // destinatie valida, iar serverul refuza oricum comutarea pe el.
+          // A stopped store is listed only to show what you are working on;
+          // the server refuses to switch to it anyway.
           <option
             key={store.id}
             value={store.id}

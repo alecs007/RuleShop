@@ -16,8 +16,8 @@ const STATUS_OPTIONS = [
 ] as const;
 
 /**
- * Formularul de verificare umana a unui incident. Cand incidentul are o comanda
- * care aşteapta verificare, operatorul decide si soarta comenzii.
+ * Human review of an incident. When it holds an order awaiting review, the
+ * operator decides that order's fate too.
  */
 export function IncidentReview({
   incidentId,

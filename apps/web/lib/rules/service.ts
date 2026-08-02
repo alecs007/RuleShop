@@ -16,12 +16,8 @@ import { CATEGORY_DEFAULTS } from "./defaults";
 import { getEvaluationEvents } from "./evaluation-log";
 import { compareSnapshots, type SimulationComparison } from "./simulation";
 
-/** Cate evenimente istorice se folosesc la simularea din fluxul de publicare. */
+/** How many historical events the publish-time simulation replays. */
 const PUBLISH_SIMULATION_EVENTS = 500;
-
-// ---------------------------------------------------------------------------
-// RuleSet
-// ---------------------------------------------------------------------------
 
 export async function getOrCreateRuleSet(
   storeId: string,
@@ -45,11 +41,7 @@ export async function getOrCreateRuleSet(
   });
 }
 
-// ---------------------------------------------------------------------------
-// Snapshot & publicare
-// ---------------------------------------------------------------------------
-
-/** Construieste EngineRule-urile din regulile active+enabled ale rulesetului. */
+/** Builds the EngineRules from the ruleset's active, enabled rules. */
 async function buildEngineRules(ruleSetId: string): Promise<EngineRule[]> {
   const rules = await prisma.rule.findMany({
     where: { ruleSetId, enabled: true, status: { in: ["ACTIVE", "DRAFT"] } },
@@ -68,7 +60,7 @@ async function buildEngineRules(ruleSetId: string): Promise<EngineRule[]> {
 }
 
 
-/** Diff structurat intre doua snapshot-uri (după cheia regulii). */
+/** Structured diff between two snapshots, keyed by rule. */
 function diffSnapshots(
   prev: RuleSetSnapshot | null,
   next: RuleSetSnapshot,
@@ -98,9 +90,8 @@ export interface PublishResult {
 }
 
 /**
- * Snapshot-ul „candidat": starea curenta a regulilor (inclusiv drafturile),
- * exact cum ar arata daca s-ar publica acum. Folosit de testerul din
- * control plane pentru a compara „acum" vs „dupa publicare".
+ * The candidate snapshot: the current rules, drafts included, exactly as they
+ * would look if published now. The control plane tester compares against it.
  */
 export async function buildCandidateSnapshot(
   storeId: string,
@@ -123,9 +114,8 @@ export async function buildCandidateSnapshot(
 }
 
 /**
- * Publica starea curenta a regulilor ca versiune imutabila si o activeaza.
- * Motorul evalueaza doar astfel de snapshot-uri; magazinul isi schimba
- * comportamentul imediat, fara deploy.
+ * Publishes the current rules as an immutable version and activates it. The
+ * storefront changes behaviour immediately, without a deploy.
  */
 export async function publishVersion(
   storeId: string,
@@ -150,8 +140,7 @@ export async function publishVersion(
     rules: engineRules,
   };
 
-  // Validare completa inainte de publicare — un snapshot invalid nu ajunge
-  // niciodata in productie.
+  // An invalid snapshot must never reach production.
   const issues = validateSnapshot(snapshot).filter((i) => i.severity === "error");
   if (issues.length > 0) {
     return { ok: false, issues, message: "Snapshot invalid — corectează regulile." };
@@ -166,9 +155,8 @@ export async function publishVersion(
     ? (lastVersion.snapshot as unknown as RuleSetSnapshot)
     : null;
 
-  // Simularea pe evenimente istorice: cum s-ar fi comportat noua versiune fata
-  // de cea activa, pe evaluari REALE. Calculata de aplicatie si inghetata pe
-  // versiune — dovada masurabila a schimbarii, nu o estimare declarata.
+  // How the new version would have behaved against the active one, over real
+  // evaluations. Computed here and frozen onto the version.
   const activeSnapshot = ruleSet.activeVersionId
     ? (((await prisma.ruleVersion.findUnique({
         where: { id: ruleSet.activeVersionId },
@@ -202,7 +190,7 @@ export async function publishVersion(
   });
 
   await prisma.$transaction([
-    // versiunea veche devine istorica
+    // The previous version becomes historical.
     ...(ruleSet.activeVersionId
       ? [
           prisma.ruleVersion.update({
@@ -215,7 +203,7 @@ export async function publishVersion(
       where: { id: ruleSet.id },
       data: { activeVersionId: version.id },
     }),
-    // regulile publicate devin ACTIVE
+    // The published rules become ACTIVE.
     prisma.rule.updateMany({
       where: { ruleSetId: ruleSet.id, status: "DRAFT", enabled: true },
       data: { status: "ACTIVE" },
@@ -236,7 +224,7 @@ export async function publishVersion(
   return { ok: true, version: nextVersion };
 }
 
-/** Rollback = repointarea versiunii active. Nimic nu se sterge. */
+/** Rollback repoints the active version; nothing is deleted. */
 export async function rollbackToVersion(
   storeId: string,
   versionId: string,
@@ -312,24 +300,18 @@ export async function setKillSwitch(
   });
 }
 
-// ---------------------------------------------------------------------------
-// Citirea snapshot-ului activ (folosita de magazin)
-// ---------------------------------------------------------------------------
-
 export interface ActiveRuleset {
   snapshot: RuleSetSnapshot;
   killSwitch: boolean;
 }
 
 /**
- * Snapshot-ul activ al unei categorii, sau null daca nu s-a publicat nimic.
+ * The active snapshot for a category, or null if nothing was published.
  *
- * Citire directa din baza de date, dedublata per cerere de `cache()` in
- * apelantii din `lib/shop/`. Un cache in Redis ar economisi cateva milisecunde,
- * dar ar introduce o fereastra in care magazinul inca serveste versiunea
- * anterioara dupa o publicare — exact garantia pe care se sprijina proiectul.
- * La dimensiunile masurate (o pagina se randeaza in ~25-45 ms, din care
- * rulesetul e o fractiune), nu merita schimbul.
+ * Read straight from the database, deduplicated per request by `cache()` in
+ * the `lib/shop/` callers. A Redis cache would save a few milliseconds but
+ * open a window where the storefront still serves the previous version after
+ * a publish — exactly the guarantee this project rests on.
  */
 export async function getActiveRuleset(
   storeId: string,
@@ -347,9 +329,8 @@ export async function getActiveRuleset(
 }
 
 /**
- * Cheie de regula -> nume, pentru traducerea explicatiilor de decizie.
- * Snapshot-urile publicate poarta doar chei; numele se citesc de aici ca
- * explicatiile din magazin si din control plane sa fie lizibile.
+ * Rule key -> name. Published snapshots carry only keys, so explanations read
+ * the names from here.
  */
 export const getRuleNames = cache(
   async (storeId: string): Promise<Map<string, string>> => {

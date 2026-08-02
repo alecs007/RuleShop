@@ -163,7 +163,7 @@ describe("strategii de conflict", () => {
       vipContext,
     );
     expect(result.matchedRules).toEqual(["low", "high"]);
-    // high suprascrie discountul setat de low, dar badge-ul lui low ramane
+    // high overwrites low's discount, but low's badge stays
     expect(result.decision.discountPercent).toBe(10);
     expect(result.decision.badges).toEqual(["MEGA-SALE"]);
   });

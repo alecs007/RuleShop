@@ -12,25 +12,18 @@ import {
   removeItemAction,
   selectShippingMethodAction,
   setQuantityAction,
-} from "@/app/(shop)/cart/actions";
+} from "@/app/(shop)/[store]/cart/actions";
+import { storeHref } from "@/lib/shop/routing";
 
 /**
- * Coșul, cu răspuns instantaneu la interacțiune.
+ * The cart, with instant feedback. Every change is applied locally through
+ * `useOptimistic` before it reaches the server action: rendering this page
+ * costs several rule evaluations, so a round trip is visible.
  *
- * Fiecare modificare (cantitate, ștergere, metodă de livrare) se aplică mai
- * întâi local prin `useOptimistic`, apoi pleacă spre server action. Randarea
- * paginii de coș costă câteva evaluări de reguli (PRICING, AVAILABILITY,
- * SHIPPING), deci un round-trip se vede — iar înainte utilizatorul aștepta cu
- * un ecran de încărcare peste toată pagina la fiecare clic pe „+".
- *
- * Optimismul e limitat la ce se poate calcula din datele deja primite:
- * subtotalul (preț unitar × cantitate) și costul metodei alese (fiecare opțiune
- * vine cu `costCents` calculat). Ce depinde de reguli — o livrare care devine
- * gratuită peste un prag, un plafon nou pe produs — se corectează singur când
- * răspunde serverul; `useOptimistic` renunță la starea locală în acel moment.
- *
- * Compromis asumat: butoanele nu mai funcționează fără JavaScript (un client
- * function nu are fallback de POST ca un server action pus direct pe `action`).
+ * The optimism only covers what can be computed from data already at hand —
+ * the subtotal and the chosen method's cost. Anything rule-dependent, like
+ * shipping turning free over a threshold, corrects itself when the server
+ * answers. The trade-off is that the buttons need JavaScript.
  */
 
 export interface CartLineView {
@@ -43,7 +36,7 @@ export interface CartLineView {
   quantity: number;
   maxPerOrder: number;
   available: boolean;
-  /** Motivul indisponibilității, formatat pe server. */
+  /** Why it is unavailable, formatted on the server. */
   unavailableMessage?: string;
 }
 
@@ -58,7 +51,7 @@ export interface CartShippingOptionView {
 }
 
 interface CartState {
-  /** Cantitatea cerută, per produs — doar pentru liniile atinse de utilizator. */
+  /** Requested quantity per product, only for lines the user touched. */
   quantities: Record<string, number>;
   removedIds: string[];
   methodId: string | null;
@@ -72,7 +65,7 @@ type CartMutation =
 function reduce(state: CartState, mutation: CartMutation): CartState {
   switch (mutation.type) {
     case "quantity":
-      // Cantitate zero = linia dispare, la fel ca pe server.
+      // Zero quantity removes the line, as it does on the server.
       return mutation.quantity <= 0
         ? { ...state, removedIds: [...state.removedIds, mutation.productId] }
         : {
@@ -96,34 +89,35 @@ function eta(min: number, max: number): string {
 }
 
 export function CartView({
+  prefix,
   lines,
   currency,
   shippingOptions,
   selectedMethodId,
-  /** Metoda impusă de o regulă — atunci alegerea clientului nu are efect. */
+  /** A method forced by a rule; the customer's choice then has no effect. */
   methodForced = false,
   shippingNotes,
 }: {
+  /** The store prefix, so links stay inside the current store. */
+  prefix: string | null;
   lines: CartLineView[];
   currency: string;
   shippingOptions: CartShippingOptionView[];
   selectedMethodId: string | null;
   methodForced?: boolean;
-  /** Explicația deciziei de livrare, randată pe server. */
+  /** The shipping decision's explanation, rendered on the server. */
   shippingNotes?: React.ReactNode;
 }) {
   const [state, mutate] = useOptimistic<CartState, CartMutation>(
     { quantities: {}, removedIds: [], methodId: selectedMethodId },
     reduce,
   );
-  // Actualizările optimiste au nevoie de o tranziție: în afara ei React le
-  // refuză, iar starea locală ar fi aruncată imediat.
+  // Optimistic updates need a transition; outside one React discards them.
   const [, startTransition] = useTransition();
 
   /**
-   * Cantitățile cerute, în afara randării: două clicuri pe „+" în același
-   * frame ar citi amândouă aceeași valoare din state și un increment s-ar
-   * pierde. Ref-ul se resincronizează cu serverul la fiecare set nou de linii.
+   * Requested quantities kept outside the render: two clicks in one frame
+   * would read the same state and lose an increment.
    */
   const desired = useRef<Record<string, number>>({});
   useEffect(() => {
@@ -139,7 +133,7 @@ export function CartView({
       quantity: state.quantities[line.productId] ?? line.quantity,
     }));
 
-  if (visible.length === 0) return <EmptyCart />;
+  if (visible.length === 0) return <EmptyCart prefix={prefix} />;
 
   const itemCount = visible.reduce((sum, line) => sum + line.quantity, 0);
   const subtotalCents = visible.reduce(
@@ -166,6 +160,7 @@ export function CartView({
       mutate({ type: "quantity", productId: line.productId, quantity });
 
       const data = new FormData();
+      data.set("storePrefix", prefix ?? "");
       data.set("productId", line.productId);
       data.set("quantity", String(quantity));
       await setQuantityAction(data);
@@ -179,10 +174,11 @@ export function CartView({
       mutate({ type: "remove", productId: line.productId });
 
       const data = new FormData();
+      data.set("storePrefix", prefix ?? "");
       data.set("productId", line.productId);
       await removeItemAction(data);
-      // Confirmarea vine din client: acțiunea nu mai redirecționează, deci nu
-      // mai există navigare care să ducă un mesaj flash prin URL.
+      // The action no longer redirects, so there is no navigation to carry a
+      // flash message through the URL.
       toast.info("Produs șters din coș.", { description: line.name });
     });
   }
@@ -194,6 +190,7 @@ export function CartView({
       mutate({ type: "method", methodId: option.id });
 
       const data = new FormData();
+      data.set("storePrefix", prefix ?? "");
       data.set("methodId", option.id);
       await selectShippingMethodAction(data);
     });
@@ -203,7 +200,6 @@ export function CartView({
     <>
       <h1 className="text-2xl font-semibold tracking-tight">Coșul meu</h1>
       <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_360px]">
-        {/* Lista de produse */}
         <ul className="divide-y divide-line rounded-xl border border-line bg-surface-raised">
           {visible.map((line) => {
             const lineTotal = line.quantity * line.unitCents;
@@ -211,7 +207,7 @@ export function CartView({
             return (
               <li key={line.productId} className="flex gap-4 p-4">
                 <Link
-                  href={`/products/${line.slug}`}
+                  href={storeHref(prefix, `/products/${line.slug}`)}
                   className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-zinc-100 sm:size-24"
                 >
                   {line.image && (
@@ -229,7 +225,7 @@ export function CartView({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <Link
-                        href={`/products/${line.slug}`}
+                        href={storeHref(prefix, `/products/${line.slug}`)}
                         className="line-clamp-2 text-sm font-medium hover:underline"
                       >
                         {line.name}
@@ -242,7 +238,7 @@ export function CartView({
                           </span>
                         )}
                       </p>
-                      {/* Produs blocat de o regulă sau rămas fără stoc */}
+                      {/* Blocked by a rule, or out of stock */}
                       {!line.available && (
                         <p className="mt-1 flex items-center gap-1.5 text-xs text-critical">
                           <TriangleAlert
@@ -308,7 +304,6 @@ export function CartView({
           })}
         </ul>
 
-        {/* Sumar */}
         <aside className="h-fit rounded-xl border border-line bg-surface-raised p-5 lg:sticky lg:top-32">
           <h2 className="font-semibold">Sumar comandă</h2>
           <dl className="mt-4 space-y-2 text-sm">
@@ -336,7 +331,6 @@ export function CartView({
             </div>
           </dl>
 
-          {/* Metodele de livrare, cu costul decis de rulesetul SHIPPING */}
           <div className="mt-4 border-t border-line pt-4">
             <p className="mb-2 text-xs font-medium tracking-wide text-ink-faint">
               Metodă de livrare
@@ -436,7 +430,7 @@ export function CartView({
           ) : (
             <>
               <Link
-                href="/checkout"
+                href={storeHref(prefix, "/checkout")}
                 className="mt-5 flex h-12 w-full items-center justify-center rounded-lg bg-ink font-medium text-white transition-colors hover:bg-zinc-700"
               >
                 Continuă spre checkout
