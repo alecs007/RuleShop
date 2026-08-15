@@ -9,6 +9,8 @@ redeploy.
 🥇 Built for **OPEN InfoEducație 2026, Web section** — **gold medal (second
 prize)**.
 
+<img src="https://res.cloudinary.com/dqyq1oiwi/image/upload/v1786819599/ruleshop-banner_s63m9w.png" w-full h-auto />
+
 ---
 
 ## ✨ Features
