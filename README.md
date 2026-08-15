@@ -6,7 +6,7 @@ but configured as rules from an **admin control plane**. Changing how the store
 behaves means publishing a new version of the rules. No recompilation, no
 redeploy.
 
-🥇 Built for **OPEN InfoEducație 2026, Web section** — **gold medal (second
+🥇 Built for **OPEN Stage of 2026 National Olympiad of Innovation and Digital Creation, Web section** — **gold medal (second
 prize)**.
 
 <img src="https://res.cloudinary.com/dqyq1oiwi/image/upload/v1786819599/ruleshop-banner_s63m9w.png" w-full h-auto />
